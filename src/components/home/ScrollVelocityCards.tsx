@@ -11,7 +11,7 @@ import {
   useAnimationFrame,
   useMotionValue,
 } from "framer-motion";
-import { Sparkles, ExternalLink, Flame, ArrowRight, Layers, Swords } from "lucide-react";
+import { Sparkles, Flame, ArrowRight, Layers, Trophy } from "lucide-react";
 import { EnergyBadge } from "@/components/ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
@@ -47,9 +47,15 @@ function wrap(min: number, max: number, v: number) {
   return ((((v - min) % rangeSize) + rangeSize) % rangeSize) + min;
 }
 
-function ParallaxRow({
+// Parâmetros estéticos para efeito editorial solto e dinâmico
+const ROTATIONS = [-5, 4, -2, 6, -6, 3, -4, 5, -3, 6];
+const Y_OFFSETS = [-16, 20, -10, 24, -14, 16, -20, 12, -8, 18];
+const SCALES = [1.02, 0.97, 1.04, 0.98, 1.02, 0.96, 1.03, 0.98];
+const Z_INDICES = [10, 25, 15, 30, 20, 35, 12, 28];
+
+function LooseCardsMarquee({
   decks,
-  baseVelocity = 0.5,
+  baseVelocity = 0.18,
   direction = 1,
 }: {
   decks: DeckCardItem[];
@@ -60,28 +66,28 @@ function ParallaxRow({
   const { scrollY } = useScroll();
   const scrollVelocity = useVelocity(scrollY);
   const smoothVelocity = useSpring(scrollVelocity, {
-    damping: 50,
-    stiffness: 300,
+    damping: 60,
+    stiffness: 250,
   });
 
-  const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 3], {
+  const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 2], {
     clamp: false,
   });
 
-  const [isHovered, setIsHovered] = useState(false);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const directionFactor = useRef<number>(direction);
 
   useAnimationFrame((t, delta) => {
-    if (isHovered) {
-      // Quando o mouse está sobre a esteira, desacelera ainda mais para contemplação
-      const moveBy = directionFactor.current * (baseVelocity * 0.2) * (delta / 1000);
+    if (hoveredIdx !== null) {
+      // Quando o cursor está sobre uma carta, quase para a esteira para apreciação
+      const moveBy = directionFactor.current * (baseVelocity * 0.1) * (delta / 1000);
       baseX.set(baseX.get() + moveBy);
       return;
     }
 
     let moveBy = directionFactor.current * baseVelocity * (delta / 1000);
 
-    // Reage suavemente à rolagem da página
+    // Reage sutilmente ao scroll do usuário
     const currentVelocity = velocityFactor.get();
     if (currentVelocity < 0) {
       directionFactor.current = -1 * direction;
@@ -93,32 +99,43 @@ function ParallaxRow({
     baseX.set(baseX.get() + moveBy);
   });
 
-  // Repetição contínua entre -50% e 0%
+  // Repetição contínua suave entre -50% e 0%
   const x = useTransform(baseX, (v) => `${wrap(-50, 0, v)}%`);
 
-  // Duplica a lista de decks para garantir looping fluido e ininterrupto
+  // Repetição de decks para seamless loop infinito
   const repeatedDecks = [...decks, ...decks, ...decks, ...decks];
 
   return (
-    <div
-      className="flex overflow-visible select-none py-4"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <motion.div className="flex gap-4 sm:gap-6 shrink-0" style={{ x }}>
+    <div className="relative w-full overflow-visible select-none py-10 sm:py-14">
+      <motion.div className="flex -space-x-3 sm:-space-x-5 shrink-0 items-center" style={{ x }}>
         {repeatedDecks.map((deck, idx) => {
           const energy = getMultiEnergyConfig(deck.tipoEnergia);
+          const rot = ROTATIONS[idx % ROTATIONS.length];
+          const yOff = Y_OFFSETS[idx % Y_OFFSETS.length];
+          const scl = SCALES[idx % SCALES.length];
+          const zIdx = Z_INDICES[idx % Z_INDICES.length];
+          const isCurrentHovered = hoveredIdx === idx;
 
           return (
             <div
               key={`${deck.nome}-${idx}`}
-              className="group relative w-[160px] sm:w-[195px] md:w-[220px] shrink-0 transition-all duration-500 hover:scale-105 hover:z-30 cursor-pointer"
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              className="relative shrink-0 transition-all duration-500 ease-out cursor-pointer"
+              style={{
+                zIndex: isCurrentHovered ? 60 : zIdx,
+                transform: isCurrentHovered
+                  ? `translateY(${yOff - 20}px) scale(1.1) rotate(0deg)`
+                  : `translateY(${yOff}px) scale(${scl}) rotate(${rot}deg)`,
+              }}
             >
-              {/* Card Pokémon com Proporção Oficial 63:88 */}
+              {/* Card Pokémon Físico / Editorial Loose */}
               <div
-                className="relative aspect-[63/88] w-full rounded-2xl overflow-hidden border border-white/[0.08] bg-slate-950/80 backdrop-blur-md shadow-2xl group-hover:border-white/30 transition-all duration-300"
+                className="relative aspect-[63/88] w-[170px] sm:w-[205px] md:w-[235px] rounded-2xl overflow-hidden border border-white/15 bg-slate-950 shadow-[0_20px_50px_rgba(0,0,0,0.85)] transition-all duration-300"
                 style={{
-                  boxShadow: `0 12px 30px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05)`,
+                  boxShadow: isCurrentHovered
+                    ? `0 30px 60px -10px rgba(0, 0, 0, 0.95), 0 0 30px rgba(59, 130, 246, 0.3)`
+                    : `0 18px 40px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08)`,
                 }}
               >
                 {/* Imagem da Carta */}
@@ -126,28 +143,32 @@ function ParallaxRow({
                   <img
                     src={deck.imagem}
                     alt={deck.nome}
-                    className="w-full h-full object-cover object-center select-none filter brightness-95 group-hover:brightness-105 transition-all duration-300"
+                    className="w-full h-full object-cover object-center select-none filter brightness-95 hover:brightness-105 transition-all duration-300"
                     loading="lazy"
                   />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center p-4 text-center">
-                    <span className="text-3xl mb-2">⚡</span>
+                    <span className="text-4xl mb-2">⚡</span>
                     <span className="font-bold text-white text-xs leading-tight">
                       {deck.nome}
                     </span>
                   </div>
                 )}
 
-                {/* Efeito Foil Holográfico no Hover */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-gradient-to-tr from-transparent via-white/15 to-transparent mix-blend-overlay" />
+                {/* Efeito Foil Holográfico */}
+                <div
+                  className={`absolute inset-0 transition-opacity duration-300 pointer-events-none bg-gradient-to-tr from-transparent via-white/20 to-transparent mix-blend-overlay ${
+                    isCurrentHovered ? "opacity-100" : "opacity-0"
+                  }`}
+                />
 
                 {/* Badge Flutuante de Energia */}
-                <div className="absolute top-2.5 right-2.5 opacity-90 group-hover:opacity-100 transition-opacity">
-                  <div className="flex items-center -space-x-1 p-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-md">
+                <div className="absolute top-2.5 right-2.5">
+                  <div className="flex items-center -space-x-1 p-1 rounded-full bg-black/70 backdrop-blur-md border border-white/15 shadow-lg">
                     {energy.types.map((t, i) => (
                       <span
                         key={i}
-                        className="h-2.5 w-2.5 rounded-full border border-black/50 shadow-sm"
+                        className="h-3 w-3 rounded-full border border-black/60 shadow-sm"
                         style={{ backgroundColor: t.hex }}
                         title={t.label}
                       />
@@ -155,14 +176,14 @@ function ParallaxRow({
                   </div>
                 </div>
 
-                {/* Faixa Inferior com Nome do Deck */}
+                {/* Tag Inferior Flutuante com Nome do Deck e Presença */}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-transparent p-3 pt-8 flex flex-col justify-end">
-                  <span className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-amber-300 transition-colors drop-shadow-md">
+                  <span className="text-xs sm:text-sm font-bold text-white truncate drop-shadow-md">
                     {deck.nome}
                   </span>
                   {deck.count !== undefined && (
                     <span className="text-[10px] text-slate-400 font-medium">
-                      {deck.count} aparições na temporada
+                      {deck.count} aparições
                     </span>
                   )}
                 </div>
@@ -179,7 +200,7 @@ export function ScrollVelocityCards({
   decks = [],
   metagameEntries = [],
   decksInfo = [],
-  baseVelocity = 0.5,
+  baseVelocity = 0.18,
 }: ScrollVelocityCardsProps) {
   // Cálculo integrado das estatísticas do Metagame para o rodapé da esteira
   const metaStats = useMemo(() => {
@@ -227,12 +248,19 @@ export function ScrollVelocityCards({
   if (validDecks.length < 3) return null;
 
   return (
-    <section className="relative w-full overflow-hidden rounded-3xl border border-white/[0.04] bg-white/[0.015] p-5 sm:p-7 backdrop-blur-2xl shadow-2xl space-y-6">
+    <section className="relative w-full overflow-hidden rounded-3xl border border-white/[0.04] bg-white/[0.015] p-4 sm:p-7 backdrop-blur-2xl shadow-2xl space-y-6">
+      {/* Tipografia de Fundo Editorial / Watermark */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center select-none pointer-events-none opacity-[0.03] overflow-hidden whitespace-nowrap">
+        <span className="text-7xl sm:text-9xl md:text-[11rem] font-black tracking-widest uppercase text-white font-mono">
+          STANDARD FORMAT
+        </span>
+      </div>
+
       {/* Luz ambiente de fundo */}
       <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
 
-      {/* Topo Sutil da Esteira */}
-      <div className="flex items-center justify-between px-1">
+      {/* Topo Sutil da Galeria */}
+      <div className="flex items-center justify-between px-1 relative z-10">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-amber-400 animate-pulse" />
           <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300">
@@ -240,19 +268,17 @@ export function ScrollVelocityCards({
           </h3>
         </div>
         <span className="text-[10px] sm:text-xs text-slate-400 font-normal hidden sm:inline">
-          ⚡ Role a página para acelerar a esteira
+          ⚡ Deslize o mouse ou role a página para interagir
         </span>
       </div>
 
-      {/* Esteira Conceitual Inclinada (-rotate-1 / -rotate-2) e Lenta */}
-      <div className="relative w-full py-2 sm:py-4 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
-        <div className="transform -rotate-1 sm:-rotate-2 scale-[1.02] sm:scale-[1.03] transition-transform duration-700">
-          <ParallaxRow decks={validDecks} baseVelocity={baseVelocity} direction={1} />
-        </div>
+      {/* Esteira com Cartas Soltas em Ângulos e Offsets Variados */}
+      <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]">
+        <LooseCardsMarquee decks={validDecks} baseVelocity={baseVelocity} direction={1} />
       </div>
 
       {/* Rodapé Bento Integrado com as Informações do Metagame */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 pt-3 border-t border-white/[0.05] items-center">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 pt-3 border-t border-white/[0.05] items-center relative z-10">
         {/* Bloco 1: Deck Dominante (5 Colunas) */}
         {metaStats.topDeck && (
           <div className="md:col-span-5 flex items-center gap-3 p-3 rounded-2xl border border-white/[0.04] bg-white/[0.02]">

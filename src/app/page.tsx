@@ -84,12 +84,12 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8 sm:space-y-12">
-      {/* 1. Esteira Conceitual Inclinada de Cartas com Telemetria Integrada no Rodapé */}
+      {/* 1. Galeria Flutuante Editorial de Cartas com Telemetria Integrada no Rodapé */}
       <ScrollVelocityCards
         decks={velocityDeckList}
         metagameEntries={metaData.metagameEntries}
         decksInfo={metaData.decksInfo}
-        baseVelocity={0.5}
+        baseVelocity={0.18}
       />
 
       {/* 2. Pódio da Temporada + Próximo Evento (Bento 5x7) */}
