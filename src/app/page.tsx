@@ -1,6 +1,7 @@
 import { getRanking, getTop4Podium, getMetagameData, getEtapasWithSummary, getConfigMap, getNextEvent, getSeasonAwards } from "@/lib/queries";
 import { HeroSeasonHub } from "@/components/home/HeroSeasonHub";
 import { MetagameBanner } from "@/components/home/MetagameBanner";
+import { ScrollVelocityCards } from "@/components/home/ScrollVelocityCards";
 import { SeasonAwardsSection } from "@/components/ranking/SeasonAwardsSection";
 import { PlayerModalData } from "@/components/ranking/PlayerModal";
 
@@ -17,7 +18,7 @@ export default async function HomePage() {
     getSeasonAwards(),
   ]);
 
-  // Top Deck calculation
+  // Top Deck calculation & Decks with counts for Scroll Velocity Marquee
   const deckCounts: Record<string, number> = {};
   metaData.metagameEntries.forEach((m) => {
     const d = m.deckNome?.trim();
@@ -40,6 +41,17 @@ export default async function HomePage() {
         porcentagem: totalMetaEntries > 0 ? `${((topDeckMax / totalMetaEntries) * 100).toFixed(0)}%` : "0%",
       }
     : null;
+
+  // Lista de cartas enriquecida para a esteira Scroll Velocity
+  const velocityDeckList = metaData.decksInfo
+    .map((d) => ({
+      nome: d.nome,
+      tipoEnergia: d.tipoEnergia,
+      imagem: d.imagem,
+      limitless: d.limitless,
+      count: deckCounts[d.nome] || 0,
+    }))
+    .sort((a, b) => b.count - a.count);
 
   const lider = rankingRaw[0]
     ? {
@@ -71,14 +83,17 @@ export default async function HomePage() {
   });
 
   return (
-    <div className="space-y-10 sm:space-y-14 lg:space-y-16">
-      {/* 1. Radar Panorâmico de Metagame (Logo abaixo da Navbar) */}
+    <div className="space-y-8 sm:space-y-12">
+      {/* 1. Radar Panorâmico de Metagame Bento (Logo abaixo da Navbar) */}
       <MetagameBanner
         metagameEntries={metaData.metagameEntries}
         decksInfo={metaData.decksInfo}
       />
 
-      {/* 2. Pódio da Temporada + Próximo Evento */}
+      {/* 2. Esteira Interativa de Cartas com Scroll Velocity Parallax */}
+      <ScrollVelocityCards decks={velocityDeckList} baseVelocity={1.2} />
+
+      {/* 3. Pódio da Temporada + Próximo Evento (Bento 5x7) */}
       <HeroSeasonHub
         temporada={Number(config.temporadaAtual) || 5}
         totalEtapas={etapas.length}
@@ -90,7 +105,7 @@ export default async function HomePage() {
         nextEvent={nextEvent}
       />
 
-      {/* 3. Premiações Projetadas da Temporada */}
+      {/* 4. Premiações Projetadas da Temporada (Bento Quad) */}
       <SeasonAwardsSection awards={awards} />
     </div>
   );

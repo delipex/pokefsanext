@@ -37,7 +37,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
         {gold && (
           <div
             onClick={() => setSelectedAward("gold")}
-            className="group relative flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-[#0f172a]/75 p-5 backdrop-blur-xl shadow-lg transition-all duration-200 hover:border-yellow-400/40 hover:bg-slate-800/60 hover:scale-[1.01] cursor-pointer"
+            className="group relative flex flex-col justify-between rounded-3xl border border-white/[0.04] hover:border-amber-400/40 bg-white/[0.02] hover:bg-white/[0.04] p-5 sm:p-6 backdrop-blur-2xl shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
           >
             <div className="space-y-3">
               {/* Header com Ícone e Título */}
@@ -86,7 +86,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
         {gym && (
           <div
             onClick={() => setSelectedAward("gym")}
-            className="group relative flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-[#0f172a]/75 p-5 backdrop-blur-xl shadow-lg transition-all duration-200 hover:border-blue-400/40 hover:bg-slate-800/60 hover:scale-[1.01] cursor-pointer"
+            className="group relative flex flex-col justify-between rounded-3xl border border-white/[0.04] hover:border-blue-400/40 bg-white/[0.02] hover:bg-white/[0.04] p-5 sm:p-6 backdrop-blur-2xl shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
           >
             <div className="space-y-3">
               {/* Header com Ícone e Título */}
@@ -130,7 +130,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
         {ditto && (
           <div
             onClick={() => setSelectedAward("ditto")}
-            className="group relative flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-[#0f172a]/75 p-5 backdrop-blur-xl shadow-lg transition-all duration-200 hover:border-purple-400/40 hover:bg-slate-800/60 hover:scale-[1.01] cursor-pointer"
+            className="group relative flex flex-col justify-between rounded-3xl border border-white/[0.04] hover:border-purple-400/40 bg-white/[0.02] hover:bg-white/[0.04] p-5 sm:p-6 backdrop-blur-2xl shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
           >
             <div className="space-y-3">
               {/* Header com Ícone e Título */}
@@ -200,7 +200,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
         {murcha && (
           <div
             onClick={() => setSelectedAward("murcha")}
-            className="group relative flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-[#0f172a]/75 p-5 backdrop-blur-xl shadow-lg transition-all duration-200 hover:border-rose-400/40 hover:bg-slate-800/60 hover:scale-[1.01] cursor-pointer"
+            className="group relative flex flex-col justify-between rounded-3xl border border-white/[0.04] hover:border-rose-400/40 bg-white/[0.02] hover:bg-white/[0.04] p-5 sm:p-6 backdrop-blur-2xl shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
           >
             <div className="space-y-3">
               {/* Header com Ícone e Título */}
