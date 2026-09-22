@@ -438,7 +438,7 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 : "bg-slate-800 text-slate-400 hover:text-white"
             }`}
           >
-            <Flame className="h-4 w-4" /> Decks & Meta
+            <Flame className="h-4 w-4" /> Metagame
           </button>
           <button
             onClick={() => setActiveTab("config")}

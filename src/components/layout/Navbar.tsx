@@ -19,7 +19,7 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
   const navLinks = [
     { href: "/", label: "Início", icon: Trophy },
     { href: "/ranking", label: "Ranking", icon: Trophy },
-    { href: "/metagame", label: "Decks & Meta", icon: Flame },
+    { href: "/metagame", label: "Metagame", icon: Flame },
     { href: "/calendario", label: "Calendário", icon: Calendar },
     { href: "/campeoes", label: "Campeões", icon: Shield },
     { href: "/regras", label: "Regras", icon: BookOpen },

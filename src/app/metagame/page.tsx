@@ -5,7 +5,7 @@ import { Flame } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Decks & Metagame | Liga Atlântica TCG",
+  title: "Metagame | Liga Atlântica TCG",
   description: "Análise completa do Metagame: presença por etapa, arquétipos dominantes e listas de referência.",
 };
 
@@ -20,7 +20,7 @@ export default async function MetagamePage() {
           Análise Oficial de Metagame
         </div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-          Metagame & Arquétipos
+          Metagame
         </h1>
         <p className="text-sm text-slate-400 max-w-2xl">
           Acompanhe a distribuição e frequência de cada deck utilizado pelos jogadores nas etapas oficiais,
