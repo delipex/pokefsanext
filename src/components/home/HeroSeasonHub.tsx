@@ -236,7 +236,7 @@ export function HeroSeasonHub({
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
         {/* =========================================================
             COLUNA 1: TOP 4 DA TEMPORADA ATUAL (Esquerda)
            ========================================================= */}

@@ -73,7 +73,7 @@ export default async function HomePage() {
   });
 
   return (
-    <div className="space-y-12 sm:space-y-16">
+    <div className="space-y-16 sm:space-y-20 lg:space-y-24">
       {/* Banner Principal: Top 4 da Temporada + Próximo Evento */}
       <HeroSeasonHub
         temporada={Number(config.temporadaAtual) || 5}
