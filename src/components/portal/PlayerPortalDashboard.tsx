@@ -18,6 +18,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
+import { CategoryBadge } from "../ui/CategoryBadge";
 import { PokeballIcon } from "../ui/BrandLogo";
 
 interface PlayerPortalDashboardProps {
@@ -145,9 +146,12 @@ export function PlayerPortalDashboard({
                   Temporada 5
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
-                {player.nome}
-              </h1>
+              <div className="flex items-center gap-3 flex-wrap mt-1">
+                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  {player.nome}
+                </h1>
+                <CategoryBadge category={player.categoria} />
+              </div>
               <p className="text-xs text-slate-400 font-mono mt-0.5 flex items-center gap-3">
                 <span>POP ID: <strong className="text-white">{player.id}</strong></span>
                 <span>•</span>

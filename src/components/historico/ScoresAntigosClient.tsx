@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search, Trophy, History } from "lucide-react";
+import { CategoryBadge } from "@/components/ui/CategoryBadge";
 
 export interface ScoreItem {
   id: number;
@@ -70,7 +71,6 @@ export function ScoresAntigosClient({ scores }: ScoresAntigosClientProps) {
             <tr>
               <th className="py-3.5 pl-4 pr-2 text-center w-12">#</th>
               <th className="px-4 py-3.5">Jogador</th>
-              <th className="px-3 py-3.5 text-center">Categoria</th>
               <th className="px-4 py-3.5 text-right font-bold text-yellow-400">Pontos Finais</th>
               <th className="px-4 py-3.5">Deck Registrado</th>
             </tr>
@@ -78,7 +78,7 @@ export function ScoresAntigosClient({ scores }: ScoresAntigosClientProps) {
           <tbody className="divide-y divide-white/5">
             {filteredScores.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-slate-400">
+                <td colSpan={4} className="py-12 text-center text-slate-400">
                   Nenhum registro encontrado para esta temporada.
                 </td>
               </tr>
@@ -104,11 +104,11 @@ export function ScoresAntigosClient({ scores }: ScoresAntigosClientProps) {
                         <span className="font-mono text-slate-400">{score.pos}º</span>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 font-bold text-white text-sm">{score.jogador}</td>
-                    <td className="px-3 py-3.5 text-center">
-                      <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
-                        {score.categoria}
-                      </span>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-white text-sm">{score.jogador}</span>
+                        <CategoryBadge category={score.categoria} size="sm" />
+                      </div>
                     </td>
                     <td className="px-4 py-3.5 text-right font-black text-sm text-yellow-400">
                       {score.pontos || "—"}

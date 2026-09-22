@@ -5,6 +5,7 @@ import { Sparkles, ArrowRight, Trophy, Award, Medal } from "lucide-react";
 import Link from "next/link";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
 import { EnergyBadge } from "../ui/EnergyBadge";
+import { CategoryBadge } from "../ui/CategoryBadge";
 import { formatCategoryAbbr } from "@/lib/theme/energy-tokens";
 
 interface PodiumSectionProps {
@@ -143,25 +144,20 @@ export function PodiumSection({ top4, onSelectPlayer, showFullLink = true }: Pod
 
               {/* Nome do Competidor + Categoria */}
               <div className="space-y-1">
-                <h3 className="text-lg font-black text-white group-hover:text-amber-400 transition-colors leading-tight truncate">
-                  {player.jogadorNome}
-                </h3>
-                <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-                  <span className="rounded bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-bold text-blue-300 uppercase">
-                    {formatCategoryAbbr(player.categoria)}
-                  </span>
-                  {player.ultimoDeck && (
-                    <>
-                      <span>•</span>
-                      <div className="flex items-center gap-1.5 truncate">
-                        <EnergyBadge energyRaw={player.ultimoDeckEnergia || "colorless"} size="sm" showLabel={false} />
-                        <span className="text-slate-300 font-sans text-xs truncate max-w-[120px]">
-                          {player.ultimoDeck}
-                        </span>
-                      </div>
-                    </>
-                  )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg font-black text-white group-hover:text-amber-400 transition-colors leading-tight truncate">
+                    {player.jogadorNome}
+                  </h3>
+                  <CategoryBadge category={player.categoria} size="sm" />
                 </div>
+                {player.ultimoDeck && (
+                  <div className="flex items-center gap-1.5 truncate text-xs text-slate-400">
+                    <EnergyBadge energyRaw={player.ultimoDeckEnergia || "colorless"} size="sm" showLabel={false} />
+                    <span className="text-slate-300 font-sans text-xs truncate max-w-[140px]">
+                      {player.ultimoDeck}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Rodapé Compacto com Estatísticas */}

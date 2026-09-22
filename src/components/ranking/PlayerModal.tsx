@@ -2,6 +2,7 @@
 
 import { X, Trophy, Award, TrendingUp, Calendar, Zap } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
+import { CategoryBadge } from "../ui/CategoryBadge";
 
 export interface PlayerModalData {
   jogadorNome: string;
@@ -54,9 +55,7 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-xl font-extrabold text-white">{player.jogadorNome}</h3>
-              <span className="rounded-full bg-blue-500/20 px-2.5 py-0.5 text-xs font-semibold text-blue-300 border border-blue-500/30">
-                {player.categoria}
-              </span>
+              <CategoryBadge category={player.categoria} />
             </div>
             {player.ultimoDeck ? (
               <div className="mt-1 flex items-center gap-2">

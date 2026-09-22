@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, History, Search, Trophy } from "lucide-react";
 import { ScoreItem } from "@/components/historico/ScoresAntigosClient";
+import { CategoryBadge } from "@/components/ui/CategoryBadge";
 
 interface ScoresAntigosAccordionProps {
   scores: ScoreItem[];
@@ -107,7 +108,6 @@ export function ScoresAntigosAccordion({ scores }: ScoresAntigosAccordionProps) 
                   <th className="py-3 pl-4 pr-2 text-center w-12">#</th>
                   <th className="px-4 py-3">Jogador</th>
                   <th className="px-3 py-3 text-center">Temporada</th>
-                  <th className="px-3 py-3 text-center">Categoria</th>
                   <th className="px-4 py-3 text-right font-bold text-yellow-400">Pontos</th>
                   <th className="px-4 py-3">Deck Registrado</th>
                 </tr>
@@ -115,7 +115,7 @@ export function ScoresAntigosAccordion({ scores }: ScoresAntigosAccordionProps) 
               <tbody className="divide-y divide-white/5">
                 {filteredScores.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
+                    <td colSpan={5} className="py-8 text-center text-slate-400 text-xs">
                       Nenhum resultado histórico encontrado.
                     </td>
                   </tr>
@@ -141,15 +141,15 @@ export function ScoresAntigosAccordion({ scores }: ScoresAntigosAccordionProps) 
                             <span className="font-mono text-slate-400">{score.pos}º</span>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 font-bold text-white text-xs">{score.jogador}</td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-white text-xs">{score.jogador}</span>
+                            <CategoryBadge category={score.categoria} size="sm" />
+                          </div>
+                        </td>
                         <td className="px-3 py-2.5 text-center">
                           <span className="rounded bg-purple-500/10 px-2 py-0.5 text-[10px] font-semibold text-purple-300 border border-purple-500/20">
                             {score.temporada}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 text-center">
-                          <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300">
-                            {score.categoria || "Master"}
                           </span>
                         </td>
                         <td className="px-4 py-2.5 text-right font-black text-xs text-yellow-400">

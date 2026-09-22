@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { PlayerModalData, PlayerModal } from "@/components/ranking/PlayerModal";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
+import { CategoryBadge } from "@/components/ui/CategoryBadge";
 
 export interface HeroSeasonHubProps {
   temporada: number;
@@ -227,8 +228,11 @@ export function HeroSeasonHub({
 
                   {/* Informações do Jogador e Deck */}
                   <div className="min-w-0 flex-1 pl-1">
-                    <div className="font-bold text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors truncate">
-                      {player.jogadorNome}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors truncate">
+                        {player.jogadorNome}
+                      </span>
+                      <CategoryBadge category={player.categoria} size="sm" />
                     </div>
 
                     <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate mt-0.5">

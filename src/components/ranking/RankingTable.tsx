@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
+import { CategoryBadge } from "@/components/ui/CategoryBadge";
 import { formatCategoryAbbr } from "@/lib/theme/energy-tokens";
 
 export interface StageResult {
@@ -64,29 +65,7 @@ function renderPosNumber(pos: number) {
   return <span className="text-sm font-semibold text-slate-400">{pos}</span>;
 }
 
-// Renderizador da Tag de Categoria (ME, SE, JR)
-function renderCategoryBadge(catRaw?: string | null) {
-  const cat = formatCategoryAbbr(catRaw);
-  if (cat === "SE") {
-    return (
-      <span className="inline-flex items-center justify-center min-w-[34px] px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/25">
-        SE
-      </span>
-    );
-  }
-  if (cat === "JR") {
-    return (
-      <span className="inline-flex items-center justify-center min-w-[34px] px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/25">
-        JR
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center justify-center min-w-[34px] px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-pink-500/10 text-pink-400 border border-pink-500/25">
-      ME
-    </span>
-  );
-}
+
 
 // Renderizador do Badge compacto de Deck (usado na visualização de etapas)
 function renderDeckBadge(deckNome?: string | null, allDecks: DeckItemInfo[] = []) {
@@ -331,7 +310,6 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
               <tr>
                 <th scope="col" className="py-4 pl-6 pr-2 text-left w-16">POS</th>
                 <th scope="col" className="px-6 py-4">TREINADOR</th>
-                <th scope="col" className="px-4 py-4 text-center w-24">CAT</th>
                 <th scope="col" className="px-6 py-4 text-center w-36">PONTOS</th>
                 <th scope="col" className="py-4 pr-6 pl-2 text-center w-28">V-E-D</th>
               </tr>
@@ -339,7 +317,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
             <tbody className="divide-y divide-white/5">
               {paginatedGeneralPlayers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                  <td colSpan={4} className="py-12 text-center text-slate-400">
                     Nenhum jogador encontrado com os filtros selecionados.
                   </td>
                 </tr>
@@ -367,14 +345,14 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                         {renderPosNumber(pos)}
                       </td>
 
-                      {/* TREINADOR */}
-                      <td className="px-6 py-4 font-bold text-white group-hover:text-amber-400 transition-colors">
-                        {player.jogadorNome}
-                      </td>
-
-                      {/* CAT */}
-                      <td className="px-4 py-4 text-center">
-                        {renderCategoryBadge(player.categoria)}
+                      {/* TREINADOR + TAG DE CATEGORIA LOGO AO LADO */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
+                            {player.jogadorNome}
+                          </span>
+                          <CategoryBadge category={player.categoria} />
+                        </div>
                       </td>
 
                       {/* PONTOS */}
@@ -415,7 +393,6 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
               <tr>
                 <th scope="col" className="py-4 pl-6 pr-2 text-left w-16">POS</th>
                 <th scope="col" className="px-6 py-4">TREINADOR</th>
-                <th scope="col" className="px-4 py-4 text-center w-24">CAT</th>
                 <th scope="col" className="px-6 py-4 text-center w-36">PONTOS</th>
                 <th scope="col" className="py-4 pr-6 pl-2 text-center w-28">V-E-D</th>
               </tr>
@@ -423,7 +400,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
             <tbody className="divide-y divide-white/5">
               {paginatedStageResults.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                  <td colSpan={4} className="py-12 text-center text-slate-400">
                     Nenhum resultado para esta etapa com os filtros selecionados.
                   </td>
                 </tr>
@@ -452,19 +429,15 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                         {renderPosNumber(pos)}
                       </td>
 
-                      {/* TREINADOR + DECK BADGE */}
+                      {/* TREINADOR + TAG DE CATEGORIA + DECK BADGE */}
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2.5 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
                             {result.jogadorNome}
                           </span>
+                          <CategoryBadge category={result.categoria} />
                           {result.deckNome && renderDeckBadge(result.deckNome, allDecks)}
                         </div>
-                      </td>
-
-                      {/* CAT */}
-                      <td className="px-4 py-4 text-center">
-                        {renderCategoryBadge(result.categoria)}
                       </td>
 
                       {/* PONTOS COM BASE × MULTIPLICADOR */}

@@ -16,6 +16,7 @@ import {
   Layers,
   ChevronRight,
 } from "lucide-react";
+import { CategoryBadge } from "@/components/ui/CategoryBadge";
 
 export interface ChampionItem {
   id: number;
@@ -362,7 +363,6 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
                 <tr>
                   <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-14">#</th>
                   <th scope="col" className="px-4 py-3.5">Treinador</th>
-                  <th scope="col" className="px-4 py-3.5 text-center">Categoria</th>
                   <th scope="col" className="px-4 py-3.5 text-right font-black text-amber-400">PTS</th>
                   <th scope="col" className="px-4 py-3.5">Deck</th>
                 </tr>
@@ -373,11 +373,11 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
                     <td className="py-3.5 pl-4 pr-2 text-center font-mono font-bold text-xs">
                       {score.pos === 1 ? "🥇" : score.pos === 2 ? "🥈" : score.pos === 3 ? "🥉" : `${score.pos}º`}
                     </td>
-                    <td className="px-4 py-3.5 font-bold text-white">{score.jogador}</td>
-                    <td className="px-4 py-3.5 text-center">
-                      <span className="rounded bg-blue-500/10 border border-blue-500/25 px-1.5 py-0.5 text-[10px] font-bold text-blue-300">
-                        {score.categoria || "ME"}
-                      </span>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-white">{score.jogador}</span>
+                        <CategoryBadge category={score.categoria} size="sm" />
+                      </div>
                     </td>
                     <td className="px-4 py-3.5 text-right font-black text-amber-400">{score.pontos} PTS</td>
                     <td className="px-4 py-3.5 text-xs text-slate-300">{score.deck || "—"}</td>
