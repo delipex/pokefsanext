@@ -56,13 +56,8 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
           })}
         </nav>
 
-        {/* Controles da Direita: Status, Botão de Login do Atleta & Alternador de Tema */}
+        {/* Controles da Direita: Botão de Login do Atleta & Alternador de Tema */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="hidden lg:flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-semibold text-emerald-400 backdrop-blur-md">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            Temporada {temporada} Ativa
-          </div>
-
           {/* Botão de Login / Portal do Treinador */}
           <Link
             href="/portal"
@@ -89,10 +84,6 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
       {mobileMenuOpen && (
         <div className="border-b border-white/10 bg-slate-950/95 px-4 py-4 md:hidden backdrop-blur-2xl">
           <div className="flex flex-col gap-2">
-            <div className="px-3 py-2 text-xs font-bold text-blue-400 uppercase tracking-wider border-b border-white/5 mb-1 flex items-center justify-between">
-              <span>Temporada {temporada} • Pokémon TCG</span>
-              <span className="text-emerald-400 text-[10px] font-semibold">Ativa</span>
-            </div>
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;
