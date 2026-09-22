@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Trophy, Medal, Calendar, ShieldCheck, Flame, Users, Sparkles } from "lucide-react";
+import { Search, Calendar, Sparkles } from "lucide-react";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
+import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
 export interface StageResult {
   id: number;
@@ -30,12 +31,41 @@ export interface StageSummary {
   resultados: StageResult[];
 }
 
+export interface DeckItemInfo {
+  nome: string;
+  tipoEnergia: string;
+  icone?: string | null;
+}
+
 interface RankingTableProps {
   initialPlayers: PlayerModalData[];
   etapas?: StageSummary[];
+  allDecks?: DeckItemInfo[];
 }
 
-export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps) {
+// Helper para formatar o nome do deck com iniciais maiúsculas e "Ex"
+function formatDeckName(name?: string | null): string {
+  if (!name) return "";
+  const lowerWords = ["da", "de", "do", "das", "dos", "e", "com", "no", "na"];
+  return name
+    .split(" ")
+    .map((word, idx) => {
+      const w = word.trim();
+      if (!w) return "";
+      const lower = w.toLowerCase();
+      if (lower === "ex") return "Ex";
+      if (lower === "gx") return "GX";
+      if (lower === "vmax") return "VMAX";
+      if (lower === "vstar") return "VSTAR";
+      if (lower === "v") return "V";
+      if (lowerWords.includes(lower) && idx > 0) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ")
+    .replace(/\s*\+\s*/g, " + ");
+}
+
+export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: RankingTableProps) {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("TODOS");
   const [selectedStageDate, setSelectedStageDate] = useState<string>("general");
@@ -46,6 +76,13 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
     return etapas.find((e) => e.data === selectedStageDate) || null;
   }, [etapas, selectedStageDate]);
 
+  // Helper para buscar energia de um deck
+  const getDeckEnergy = (deckName?: string | null): string => {
+    if (!deckName) return "colorless";
+    const found = allDecks.find((d) => d.nome.toLowerCase() === deckName.toLowerCase());
+    return found?.tipoEnergia || "colorless";
+  };
+
   // Filtragem no Ranking Geral
   const filteredGeneralPlayers = useMemo(() => {
     return initialPlayers.filter((p) => {
@@ -55,7 +92,8 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
 
       const matchSearch =
         p.jogadorNome.toLowerCase().includes(search.toLowerCase()) ||
-        p.jogadorId.includes(search);
+        p.jogadorId.includes(search) ||
+        (p.ultimoDeck && p.ultimoDeck.toLowerCase().includes(search.toLowerCase()));
 
       return matchCategory && matchSearch;
     });
@@ -67,7 +105,7 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
     return currentStage.resultados.filter((r) => {
       const matchCategory =
         selectedCategory === "TODOS" ||
-        (r.categoria && r.categoria.toUpperCase() === selectedCategory.toUpperCase());
+        ((r.categoria || "Master").toUpperCase() === selectedCategory.toUpperCase());
 
       const matchSearch =
         r.jogadorNome.toLowerCase().includes(search.toLowerCase()) ||
@@ -101,6 +139,8 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
         mediaColocacao: result.colocacao,
         participacoes: 1,
         historicoColocacoes: `${result.etapaData}:${result.colocacao}`,
+        ultimoDeck: result.deckNome,
+        ultimoDeckEnergia: getDeckEnergy(result.deckNome),
       });
     }
   };
@@ -214,14 +254,14 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
             <thead className="border-b border-white/10 bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
                 <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-12">#</th>
-                <th scope="col" className="px-4 py-3.5">Jogador</th>
-                <th scope="col" className="px-3 py-3.5 text-center">Cat</th>
+                <th scope="col" className="px-4 py-3.5">Treinador</th>
                 <th scope="col" className="px-4 py-3.5 text-right font-extrabold text-yellow-400">PTS</th>
                 <th scope="col" className="px-3 py-3.5 text-center hidden md:table-cell">V / E / D</th>
                 <th scope="col" className="px-3 py-3.5 text-center hidden sm:table-cell">Pódios</th>
                 <th scope="col" className="px-3 py-3.5 text-center hidden lg:table-cell">Média</th>
                 <th scope="col" className="px-3 py-3.5 text-center hidden sm:table-cell">Etapas</th>
-                <th scope="col" className="py-3.5 pr-4 pl-2 text-right">Ação</th>
+                <th scope="col" className="px-4 py-3.5">Deck</th>
+                <th scope="col" className="py-3.5 pr-4 pl-2 text-right">Perfil</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -236,6 +276,8 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
                   const pos = index + 1;
                   const isTop1 = pos === 1;
                   const isTop4 = pos <= 4;
+                  const deckEnergy = player.ultimoDeckEnergia || getDeckEnergy(player.ultimoDeck);
+                  const energyCfg = getMultiEnergyConfig(deckEnergy);
 
                   return (
                     <tr
@@ -249,7 +291,7 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
                           : ""
                       }`}
                     >
-                      <td className="py-3.5 pl-4 pr-2 text-center">
+                      <td className="py-3.5 pl-4 pr-2 text-center font-mono">
                         {isTop1 ? (
                           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-yellow-500/20 text-sm font-black text-yellow-400 border border-yellow-500/40">
                             🥇
@@ -262,25 +304,25 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
                           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-600/20 text-sm font-black text-amber-500 border border-amber-600/30">
                             🥉
                           </span>
-                        ) : pos === 4 ? (
+                        ) : isTop4 ? (
                           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-400 border border-blue-500/30">
                             4º
                           </span>
                         ) : (
-                          <span className="text-xs font-mono font-medium text-slate-400">{pos}º</span>
+                          <span className="text-xs text-slate-400">{pos}º</span>
                         )}
                       </td>
 
+                      {/* Nome do Treinador com a Tag de Categoria em seguida */}
                       <td className="px-4 py-3.5">
-                        <div className="font-bold text-white group-hover:text-blue-400 transition-colors">
-                          {player.jogadorNome}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
+                            {player.jogadorNome}
+                          </span>
+                          <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-bold text-blue-300 uppercase tracking-wider">
+                            {player.categoria.slice(0, 3)}
+                          </span>
                         </div>
-                      </td>
-
-                      <td className="px-3 py-3.5 text-center">
-                        <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[11px] font-semibold text-slate-300 border border-white/5">
-                          {player.categoria.slice(0, 3).toUpperCase()}
-                        </span>
                       </td>
 
                       <td className="px-4 py-3.5 text-right font-black text-base text-yellow-400">
@@ -313,6 +355,32 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
                         {player.participacoes}
                       </td>
 
+                      {/* Box do Deck Utilizado */}
+                      <td className="px-4 py-3.5 text-xs">
+                        {player.ultimoDeck ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md"
+                            style={{
+                              background: energyCfg.gradientBg,
+                              border: energyCfg.borderStyle,
+                            }}
+                          >
+                            <div className="flex items-center -space-x-1 shrink-0">
+                              {energyCfg.types.map((t, i) => (
+                                <span
+                                  key={i}
+                                  className="h-2 w-2 rounded-full border border-black/40 shadow-sm shrink-0"
+                                  style={{ backgroundColor: t.hex, boxShadow: `0 0 4px ${t.hex}` }}
+                                />
+                              ))}
+                            </div>
+                            <span className="truncate max-w-[140px]">{formatDeckName(player.ultimoDeck)}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-600 font-medium">—</span>
+                        )}
+                      </td>
+
                       <td className="py-3.5 pr-4 pl-2 text-right">
                         <button
                           onClick={(e) => {
@@ -337,17 +405,16 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
               <tr>
                 <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-12">Pos</th>
                 <th scope="col" className="px-4 py-3.5">Treinador</th>
-                <th scope="col" className="px-3 py-3.5 text-center">Cat</th>
                 <th scope="col" className="px-4 py-3.5 text-right font-extrabold text-yellow-400">Pontos</th>
                 <th scope="col" className="px-3 py-3.5 text-center">V / E / D</th>
-                <th scope="col" className="px-4 py-3.5">Deck Registrado</th>
+                <th scope="col" className="px-4 py-3.5">Deck</th>
                 <th scope="col" className="py-3.5 pr-4 pl-2 text-right">Perfil</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {filteredStageResults.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-slate-400">
                     Nenhum jogador encontrado para esta etapa com os filtros selecionados.
                   </td>
                 </tr>
@@ -355,6 +422,8 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
                 filteredStageResults.map((result) => {
                   const isTop1 = result.colocacao === 1;
                   const isTop4 = result.colocacao <= 4;
+                  const deckEnergy = getDeckEnergy(result.deckNome);
+                  const energyCfg = getMultiEnergyConfig(deckEnergy);
 
                   return (
                     <tr
@@ -388,16 +457,16 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
                         )}
                       </td>
 
+                      {/* Treinador com a Tag de Categoria em seguida */}
                       <td className="px-4 py-3.5">
-                        <div className="font-bold text-white group-hover:text-blue-400 transition-colors">
-                          {result.jogadorNome}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
+                            {result.jogadorNome}
+                          </span>
+                          <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-bold text-blue-300 uppercase tracking-wider">
+                            {(result.categoria || "Master").slice(0, 3).toUpperCase()}
+                          </span>
                         </div>
-                      </td>
-
-                      <td className="px-3 py-3.5 text-center">
-                        <span className="rounded-md bg-slate-800 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
-                          {result.categoria ? result.categoria.slice(0, 3).toUpperCase() : "MAS"}
-                        </span>
                       </td>
 
                       <td className="px-4 py-3.5 text-right font-black text-base text-yellow-400">
@@ -412,14 +481,29 @@ export function RankingTable({ initialPlayers, etapas = [] }: RankingTableProps)
                         <span className="text-rose-400 font-semibold">{result.derrotas}</span>
                       </td>
 
-                      <td className="px-4 py-3.5 text-xs text-slate-300">
+                      {/* Box do Deck Utilizado com Cores e Indicadores de Energia */}
+                      <td className="px-4 py-3.5 text-xs">
                         {result.deckNome ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800/80 px-2.5 py-1 text-slate-200 border border-white/5 font-medium">
-                            <Flame className="h-3 w-3 text-amber-400" />
-                            {result.deckNome}
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md"
+                            style={{
+                              background: energyCfg.gradientBg,
+                              border: energyCfg.borderStyle,
+                            }}
+                          >
+                            <div className="flex items-center -space-x-1 shrink-0">
+                              {energyCfg.types.map((t, i) => (
+                                <span
+                                  key={i}
+                                  className="h-2 w-2 rounded-full border border-black/40 shadow-sm shrink-0"
+                                  style={{ backgroundColor: t.hex, boxShadow: `0 0 4px ${t.hex}` }}
+                                />
+                              ))}
+                            </div>
+                            <span className="truncate max-w-[150px]">{formatDeckName(result.deckNome)}</span>
                           </span>
                         ) : (
-                          <span className="text-slate-500 italic">Não registrado</span>
+                          <span className="text-slate-600 font-medium">—</span>
                         )}
                       </td>
 

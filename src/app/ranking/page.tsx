@@ -49,7 +49,7 @@ export default async function RankingPage() {
       </div>
 
       {/* Tabela Interativa de Ranking com Seletor de Etapas Integrado */}
-      <RankingTable initialPlayers={ranking} etapas={etapas} />
+      <RankingTable initialPlayers={ranking} etapas={etapas} allDecks={allDecks} />
 
       {/* Rodapé: Consulta de Scores Antigos (#1 a #4) */}
       <section className="pt-4">
