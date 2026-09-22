@@ -19,20 +19,15 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
   if (!gold && !gym && !ditto && !murcha) return null;
 
   return (
-    <section className="relative my-8 sm:my-10 space-y-4">
-      {/* Cabeçalho da Seção */}
+    <section id="premios-temporada" className="relative my-8 sm:my-10 space-y-4">
+      {/* Cabeçalho da Seção sem subtítulos redundantes */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            Premiações Projetadas da Temporada
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Reconhecimento oficial dos atletas por performance, assiduidade, variedade e persistência
-          </p>
-        </div>
+        <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+          Premiações da Temporada
+        </h2>
       </div>
 
-      {/* Grid Horizontal 2x2 com Títulos dos Prêmios em Evidência */}
+      {/* Grid Horizontal 2x2 com Títulos Reais Oficiais em Alta Evidência */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         {/* 1. POKÉBOLA DE OURO */}
         {gold && (
@@ -50,10 +45,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 />
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] font-black uppercase tracking-wider text-yellow-400 block">
-                  Treinador Completo
-                </span>
-                <h3 className="text-base font-black text-white group-hover:text-yellow-400 transition-colors truncate">
+                <h3 className="text-lg font-black text-white group-hover:text-yellow-400 transition-colors truncate">
                   Pokébola de Ouro
                 </h3>
                 <p className="text-xs text-slate-300 font-bold truncate mt-0.5">
@@ -73,7 +65,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
           </div>
         )}
 
-        {/* 2. LÍDER DE GINÁSIO */}
+        {/* 2. LÍDER DO GINÁSIO */}
         {gym && (
           <div
             onClick={() => setSelectedAward("gym")}
@@ -84,11 +76,8 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 <span className="text-2xl">🏛️</span>
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 block">
-                  Maior Assiduidade
-                </span>
-                <h3 className="text-base font-black text-white group-hover:text-blue-400 transition-colors truncate">
-                  Líder de Ginásio
+                <h3 className="text-lg font-black text-white group-hover:text-blue-400 transition-colors truncate">
+                  Líder do Ginásio
                 </h3>
                 <p className="text-xs text-slate-300 font-bold truncate mt-0.5">
                   Líder: <span className="text-white font-black">{gym.player}</span>
@@ -122,10 +111,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 />
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 block">
-                  Maior Variedade
-                </span>
-                <h3 className="text-base font-black text-white group-hover:text-purple-400 transition-colors truncate">
+                <h3 className="text-lg font-black text-white group-hover:text-purple-400 transition-colors truncate">
                   Ditto Player
                 </h3>
                 <p className="text-xs text-slate-300 font-bold truncate mt-0.5">
@@ -160,10 +146,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 />
               </div>
               <div className="min-w-0">
-                <span className="text-[10px] font-black uppercase tracking-wider text-rose-400 block">
-                  Persistência & Garra
-                </span>
-                <h3 className="text-base font-black text-white group-hover:text-rose-400 transition-colors truncate">
+                <h3 className="text-lg font-black text-white group-hover:text-rose-400 transition-colors truncate">
                   Pokébola Murcha
                 </h3>
                 <p className="text-xs text-slate-300 font-bold truncate mt-0.5">
@@ -223,7 +206,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
             {selectedAward === "gym" && (
               <div>
                 <div className="flex items-center gap-2 text-blue-400 text-lg font-black">
-                  <span>🏛️</span> Líder de Ginásio
+                  <span>🏛️</span> Líder do Ginásio
                 </div>
                 <p className="text-xs text-slate-300 mt-2 leading-relaxed">
                   Concedida ao atleta com maior número de presenças oficiais e assiduidade nos torneios da Liga Atlântica.

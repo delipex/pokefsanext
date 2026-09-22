@@ -19,13 +19,10 @@ export default async function CampeoesPage() {
   return (
     <div className="space-y-12">
       {/* Cabeçalho */}
-      <div className="space-y-1.5 text-center sm:text-left">
+      <div className="text-center sm:text-left">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
           Hall da Fama & Campeões
         </h1>
-        <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
-          A consagração dos grandes vencedores de todas as temporadas da Liga Atlântica e galeria histórica.
-        </p>
       </div>
 
       <ChampionsClient

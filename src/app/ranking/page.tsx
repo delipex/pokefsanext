@@ -42,13 +42,10 @@ export default async function RankingPage() {
 
   return (
     <div className="space-y-8 sm:space-y-10">
-      <div className="space-y-1.5">
+      <div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
           Classificação Oficial • Temporada 5
         </h1>
-        <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
-          Ranking consolidado da temporada e resultados oficiais das etapas disputadas no circuito.
-        </p>
       </div>
 
       {/* Tabela Interativa de Ranking com Seletor de Etapas Integrado */}

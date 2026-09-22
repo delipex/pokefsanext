@@ -75,62 +75,46 @@ export function HeroSeasonHub({
     {
       id: "gold",
       title: "Pokébola de Ouro",
-      badge: "Líder de Vitórias",
-      description: "Melhor aproveitamento e saldo de vitórias da temporada",
       leader: awards.gold?.player || "A definir",
       stat: awards.gold
         ? `${awards.gold.wins}V - ${awards.gold.losses}D (${awards.gold.winRate}% WR)`
         : "Aguardando mais etapas",
-      tagColor: "border-amber-500/30 bg-amber-500/10 text-amber-400",
       accentBg: "from-amber-500/10 via-amber-500/5 to-transparent",
       icon: Trophy,
       iconColor: "text-amber-400",
-      targetId: "premios-temporada",
     },
     {
       id: "gym",
       title: "Líder do Ginásio",
-      badge: "Maior Assiduidade",
-      description: "Presença garantida no maior número de etapas disputadas",
       leader: awards.gym?.player || "A definir",
       stat: awards.gym
         ? `${awards.gym.participations} etapas disputadas (${awards.gym.points} pts)`
         : "Aguardando etapas",
-      tagColor: "border-blue-500/30 bg-blue-500/10 text-blue-400",
       accentBg: "from-blue-500/10 via-blue-500/5 to-transparent",
       icon: Swords,
       iconColor: "text-blue-400",
-      targetId: "premios-temporada",
     },
     {
       id: "ditto",
       title: "Ditto Player",
-      badge: "Maior Variedade",
-      description: "Mestre da adaptação com a maior quantidade de decks diferentes",
       leader: awards.ditto?.player || "A definir",
       stat: awards.ditto
         ? `${awards.ditto.count} decks diferentes utilizados`
         : "Aguardando metagame",
-      tagColor: "border-purple-500/30 bg-purple-500/10 text-purple-400",
       accentBg: "from-purple-500/10 via-purple-500/5 to-transparent",
       icon: Sparkles,
       iconColor: "text-purple-400",
-      targetId: "premios-temporada",
     },
     {
       id: "murcha",
       title: "Pokébola Murcha",
-      badge: "Persistência Pura",
-      description: "Maior resiliência competitiva: enfrenta todas as derrotas sem desistir",
       leader: awards.murcha?.player || "A definir",
       stat: awards.murcha
-        ? `${awards.murcha.losses} derrotas acumuladas (Guerreiro)`
+        ? `${awards.murcha.losses} derrotas acumuladas`
         : "Sem candidatos",
-      tagColor: "border-slate-500/30 bg-slate-500/10 text-slate-400",
       accentBg: "from-slate-500/10 via-slate-500/5 to-transparent",
       icon: ShieldAlert,
       iconColor: "text-slate-400",
-      targetId: "premios-temporada",
     },
   ];
 
@@ -295,25 +279,15 @@ export function HeroSeasonHub({
 
             {/* Slide Body */}
             <div className="relative z-10 py-3 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-xl bg-slate-950/60 border border-white/10">
-                    <SlideIcon className={`h-4 w-4 ${currentSlide.iconColor}`} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white leading-none">
-                      {currentSlide.title}
-                    </h3>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {currentSlide.description}
-                    </span>
-                  </div>
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-slate-950/60 border border-white/10">
+                  <SlideIcon className={`h-4.5 w-4.5 ${currentSlide.iconColor}`} />
                 </div>
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${currentSlide.tagColor}`}
-                >
-                  {currentSlide.badge}
-                </span>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white leading-none">
+                    {currentSlide.title}
+                  </h3>
+                </div>
               </div>
 
               {/* Dynamic Leader Row */}

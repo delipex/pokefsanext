@@ -51,13 +51,10 @@ export default function RegrasPage() {
 
   return (
     <div className="space-y-10 max-w-4xl mx-auto">
-      <div className="space-y-1.5 text-center sm:text-left">
+      <div className="text-center sm:text-left">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
           Regulamento da Liga Atlântica
         </h1>
-        <p className="text-sm text-slate-400 leading-relaxed">
-          Normas oficiais que regem a pontuação, legalidade de decks e o fair play do nosso circuito.
-        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6">

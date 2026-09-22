@@ -22,9 +22,6 @@ export default async function ScoresAntigosPage() {
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
           Scores Antigos (Temporadas #1 a #4)
         </h1>
-        <p className="text-sm text-slate-400 max-w-2xl">
-          Consolidação oficial de colocações, pontuações e decks utilizados pelos treinadores nas primeiras temporadas do circuito.
-        </p>
       </div>
 
       <ScoresAntigosClient scores={scores} />

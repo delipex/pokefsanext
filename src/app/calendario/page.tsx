@@ -64,13 +64,10 @@ export default async function CalendarioPage() {
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       {/* Cabeçalho */}
-      <div className="space-y-1.5">
+      <div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
           Calendário de Torneios
         </h1>
-        <p className="text-sm text-slate-400 leading-relaxed">
-          Agenda oficial de confrontos, sessões semanais e torneios especiais da temporada.
-        </p>
       </div>
 
       {/* Lista / Linha do Tempo dos Eventos */}

@@ -22,9 +22,6 @@ export default async function EtapasPage() {
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
           Calendário & Histórico de Etapas
         </h1>
-        <p className="text-sm text-slate-400 max-w-2xl">
-          Todas as rodadas realizadas na temporada atual, incluindo League Challenges e eventos especiais com multiplicadores de pontos.
-        </p>
       </div>
 
       <EtapasTimeline etapas={etapas} />

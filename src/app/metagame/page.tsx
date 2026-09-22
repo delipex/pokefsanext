@@ -14,14 +14,10 @@ export default async function MetagamePage() {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-1.5">
+      <div>
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
           Metagame da Temporada
         </h1>
-        <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
-          Distribuição e frequência de cada arquétipo utilizado pelos jogadores nas etapas oficiais,
-          com filtros por sessão individual ou consolidado geral.
-        </p>
       </div>
 
       <MetagameDashboard
