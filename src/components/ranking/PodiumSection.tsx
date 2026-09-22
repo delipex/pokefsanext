@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Trophy, Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
+import { getEnergyConfig } from "@/lib/theme/energy-tokens";
 
 interface PodiumSectionProps {
   top4: PlayerModalData[];
@@ -33,16 +34,11 @@ export function PodiumSection({ top4, onSelectPlayer, showFullLink = true }: Pod
 
   return (
     <section className="relative my-6 sm:my-8">
-      {/* Título Único da Seção com Ação */}
+      {/* Título Único da Seção (Sem textos redundantes) com Ação */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            Pódio dos Campeões
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Top 4 competidores dominando a temporada atual
-          </p>
-        </div>
+        <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+          Pódio dos Campeões
+        </h2>
 
         {showFullLink && (
           <Link
@@ -58,6 +54,8 @@ export function PodiumSection({ top4, onSelectPlayer, showFullLink = true }: Pod
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
         {podiumOrder.map(({ rank, player, icon, label, border, glow, height, isChampion }) => {
           if (!player) return null;
+
+          const energyCfg = getEnergyConfig(player.ultimoDeckEnergia || "");
 
           return (
             <div
@@ -98,11 +96,18 @@ export function PodiumSection({ top4, onSelectPlayer, showFullLink = true }: Pod
                 </div>
               </div>
 
-              {/* Centro: Nome do Jogador */}
-              <div className="my-3">
-                <h3 className="text-lg font-black text-white group-hover:text-blue-400 transition-colors line-clamp-1">
+              {/* Centro: Nome do Jogador em Alta Evidência + Último Deck Utilizado */}
+              <div className="my-3 space-y-2">
+                <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-amber-400 transition-colors tracking-tight leading-snug line-clamp-1">
                   {player.jogadorNome}
                 </h3>
+
+                {player.ultimoDeck && (
+                  <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-950/70 px-2.5 py-0.5 text-[11px] font-bold text-slate-200 shadow-sm backdrop-blur-md">
+                    <span className="text-xs">{energyCfg.iconSymbol}</span>
+                    <span className="text-slate-300 font-medium truncate max-w-[130px]">{player.ultimoDeck}</span>
+                  </div>
+                )}
               </div>
 
               {/* Rodapé do Card: Stats */}

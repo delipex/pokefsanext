@@ -52,19 +52,27 @@ export default async function HomePage() {
       }
     : null;
 
-  const top4: PlayerModalData[] = top4Raw.map((r) => ({
-    jogadorNome: r.jogadorNome,
-    jogadorId: r.jogadorId,
-    categoria: r.categoria,
-    pontos: r.pontos,
-    vitorias: r.vitorias,
-    empates: r.empates,
-    derrotas: r.derrotas,
-    podios: r.podios,
-    mediaColocacao: r.mediaColocacao,
-    participacoes: r.participacoes,
-    historicoColocacoes: r.historicoColocacoes || "",
-  }));
+  const top4: PlayerModalData[] = top4Raw.map((r) => {
+    const deckInfo = metaData.decksInfo.find(
+      (d) => d.nome.toLowerCase() === r.ultimoDeck?.toLowerCase()
+    );
+    return {
+      jogadorNome: r.jogadorNome,
+      jogadorId: r.jogadorId,
+      categoria: r.categoria,
+      pontos: r.pontos,
+      vitorias: r.vitorias,
+      empates: r.empates,
+      derrotas: r.derrotas,
+      podios: r.podios,
+      mediaColocacao: r.mediaColocacao,
+      participacoes: r.participacoes,
+      historicoColocacoes: r.historicoColocacoes || "",
+      ultimoDeck: r.ultimoDeck || null,
+      ultimoDeckEnergia: deckInfo?.tipoEnergia || null,
+      ultimoDeckIcone: deckInfo?.icone || null,
+    };
+  });
 
   return (
     <div className="space-y-12 sm:space-y-16">
