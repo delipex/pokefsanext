@@ -34,16 +34,12 @@ export default async function RankingPage() {
 
   return (
     <div className="space-y-8 sm:space-y-10">
-      <div className="space-y-2">
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-bold text-blue-400">
-          <Trophy className="h-4 w-4" />
-          Classificação Oficial • Temporada 5
-        </div>
+      <div className="space-y-1.5">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-          Tabela Geral de Classificação
+          Classificação Oficial • Temporada 5
         </h1>
-        <p className="text-sm text-slate-400 max-w-2xl">
-          Consulte o ranking geral consolidado da temporada ou alterne entre as 21 etapas individuais do circuito oficial.
+        <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
+          Ranking consolidado da temporada e resultados oficiais das etapas disputadas no circuito.
         </p>
       </div>
 

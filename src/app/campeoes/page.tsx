@@ -19,17 +19,12 @@ export default async function CampeoesPage() {
   return (
     <div className="space-y-12">
       {/* Cabeçalho */}
-      <div className="space-y-2 text-center sm:text-left">
-        <div className="inline-flex items-center gap-2 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-3.5 py-1 text-xs font-bold text-yellow-400">
-          <Trophy className="h-4 w-4" />
-          Hall da Fama & Memória Histórica
-        </div>
+      <div className="space-y-1.5 text-center sm:text-left">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-          Campeões, Galeria & Histórico
+          Hall da Fama & Campeões
         </h1>
-        <p className="text-sm text-slate-400 max-w-2xl">
-          A consagração dos grandes vencedores de todas as temporadas da Liga Atlântica,
-          nossa galeria de eventos e o registro histórico das temporadas passadas.
+        <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
+          A consagração dos grandes vencedores de todas as temporadas da Liga Atlântica e galeria histórica.
         </p>
       </div>
 

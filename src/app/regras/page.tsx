@@ -51,15 +51,11 @@ export default function RegrasPage() {
 
   return (
     <div className="space-y-10 max-w-4xl mx-auto">
-      <div className="space-y-2 text-center sm:text-left">
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-bold text-blue-400">
-          <BookOpen className="h-4 w-4" />
-          Regulamento Geral da Temporada
-        </div>
+      <div className="space-y-1.5 text-center sm:text-left">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-          Regras da Liga Atlântica TCG
+          Regulamento da Liga Atlântica
         </h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-400 leading-relaxed">
           Normas oficiais que regem a pontuação, legalidade de decks e o fair play do nosso circuito.
         </p>
       </div>

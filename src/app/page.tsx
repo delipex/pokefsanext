@@ -66,18 +66,18 @@ export default async function HomePage() {
 
       {/* 4. Metagame Atual (Donut + Carrossel 3D) */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
-              <Flame className="h-4 w-4" />
-            </span>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               Metagame Atual
             </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+              Distribuição de arquétipos e decks dominantes na temporada
+            </p>
           </div>
           <Link
             href="/metagame"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl"
           >
             Ver Detalhes <ArrowRight className="h-3.5 w-3.5" />
           </Link>

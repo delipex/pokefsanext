@@ -23,15 +23,10 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
       {/* Cabeçalho da Seção */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-md">
-              <Award className="h-4 w-4" />
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Premiações Projetadas da Temporada
-            </h2>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            Premiações Projetadas da Temporada
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
             Reconhecimento oficial dos atletas por performance, assiduidade, variedade e persistência
           </p>
         </div>

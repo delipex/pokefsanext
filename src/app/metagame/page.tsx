@@ -14,17 +14,13 @@ export default async function MetagamePage() {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-2">
-        <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-400">
-          <Flame className="h-4 w-4" />
-          Análise Oficial de Metagame
-        </div>
+      <div className="space-y-1.5">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-          Metagame
+          Metagame da Temporada
         </h1>
-        <p className="text-sm text-slate-400 max-w-2xl">
-          Acompanhe a distribuição e frequência de cada deck utilizado pelos jogadores nas etapas oficiais,
-          com filtros por sessão individual ou consolidado geral da temporada.
+        <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
+          Distribuição e frequência de cada arquétipo utilizado pelos jogadores nas etapas oficiais,
+          com filtros por sessão individual ou consolidado geral.
         </p>
       </div>
 

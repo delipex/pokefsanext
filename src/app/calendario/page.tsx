@@ -14,16 +14,12 @@ export default async function CalendarioPage() {
   return (
     <div className="space-y-10">
       {/* Cabeçalho */}
-      <div className="space-y-2 text-center sm:text-left">
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-bold text-blue-400">
-          <Calendar className="h-4 w-4" />
-          Agenda Oficial Pokémon TCG Feira de Santana
-        </div>
+      <div className="space-y-1.5 text-center sm:text-left">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-          Calendário de Eventos & Torneios
+          Calendário de Torneios
         </h1>
-        <p className="text-sm text-slate-400 max-w-2xl">
-          Fique por dentro de todas as sessões de liga semanais, League Challenges e League Cups agendados para a temporada.
+        <p className="text-sm text-slate-400 max-w-2xl leading-relaxed">
+          Datas e programações das sessões de liga semanais, League Challenges e League Cups.
         </p>
       </div>
 
