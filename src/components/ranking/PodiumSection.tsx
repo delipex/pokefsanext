@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Trophy, Sparkles } from "lucide-react";
+import { Trophy, Sparkles, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
 
 interface PodiumSectionProps {
   top4: PlayerModalData[];
   onSelectPlayer?: (player: PlayerModalData) => void;
+  showFullLink?: boolean;
 }
 
-export function PodiumSection({ top4, onSelectPlayer }: PodiumSectionProps) {
+export function PodiumSection({ top4, onSelectPlayer, showFullLink = true }: PodiumSectionProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerModalData | null>(null);
 
   if (!top4 || top4.length === 0) return null;
@@ -31,8 +33,8 @@ export function PodiumSection({ top4, onSelectPlayer }: PodiumSectionProps) {
 
   return (
     <section className="relative my-6 sm:my-8">
-      {/* Título da Seção */}
-      <div className="flex items-center justify-between mb-5">
+      {/* Título Único da Seção com Ação */}
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
         <div>
           <div className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 shadow-md">
@@ -46,6 +48,15 @@ export function PodiumSection({ top4, onSelectPlayer }: PodiumSectionProps) {
             Top 4 competidores dominando a temporada atual
           </p>
         </div>
+
+        {showFullLink && (
+          <Link
+            href="/ranking"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl"
+          >
+            Ver Tabela Completa <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        )}
       </div>
 
       {/* Grid do Pódio com Glassmorphism e Efeito Foil */}

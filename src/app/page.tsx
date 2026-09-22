@@ -59,25 +59,7 @@ export default async function HomePage() {
       <NextEventCard event={nextEvent} />
 
       {/* 2. Top 4 Podium */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
-              <Trophy className="h-4 w-4" />
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Pódio da Temporada
-            </h2>
-          </div>
-          <Link
-            href="/ranking"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors"
-          >
-            Ver Tabela Completa <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-        <PodiumSection top4={top4} />
-      </div>
+      <PodiumSection top4={top4} />
 
       {/* 3. Premiações Projetadas da Temporada */}
       <SeasonAwardsSection awards={awards} />
