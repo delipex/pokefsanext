@@ -5,6 +5,7 @@ import { Sparkles, ArrowRight, Trophy, Award, Medal } from "lucide-react";
 import Link from "next/link";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
 import { EnergyBadge } from "../ui/EnergyBadge";
+import { formatCategoryAbbr } from "@/lib/theme/energy-tokens";
 
 interface PodiumSectionProps {
   top4: PlayerModalData[];
@@ -146,7 +147,9 @@ export function PodiumSection({ top4, onSelectPlayer, showFullLink = true }: Pod
                   {player.jogadorNome}
                 </h3>
                 <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-                  <span>{player.categoria}</span>
+                  <span className="rounded bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-bold text-blue-300 uppercase">
+                    {formatCategoryAbbr(player.categoria)}
+                  </span>
                   {player.ultimoDeck && (
                     <>
                       <span>•</span>

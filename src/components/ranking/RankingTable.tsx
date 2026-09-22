@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Search, Calendar, Sparkles, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
-import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
+import { getMultiEnergyConfig, formatCategoryAbbr } from "@/lib/theme/energy-tokens";
 
 export interface StageResult {
   id: number;
@@ -92,7 +92,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
     return initialPlayers.filter((p) => {
       const matchCategory =
         selectedCategory === "TODOS" ||
-        p.categoria.toUpperCase() === selectedCategory.toUpperCase();
+        formatCategoryAbbr(p.categoria) === selectedCategory;
 
       const matchSearch =
         p.jogadorNome.toLowerCase().includes(search.toLowerCase()) ||
@@ -109,7 +109,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
     return currentStage.resultados.filter((r) => {
       const matchCategory =
         selectedCategory === "TODOS" ||
-        ((r.categoria || "Master").toUpperCase() === selectedCategory.toUpperCase());
+        formatCategoryAbbr(r.categoria) === selectedCategory;
 
       const matchSearch =
         r.jogadorNome.toLowerCase().includes(search.toLowerCase()) ||
@@ -139,7 +139,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
     return filteredStageResults.slice(start, start + pageSize);
   }, [filteredStageResults, currentPage, pageSize]);
 
-  const categories = ["TODOS", "MASTER", "SENIOR", "JUNIOR"];
+  const categories = ["TODOS", "ME", "SE", "JR"];
 
   // Helper para abrir modal a partir do resultado da etapa
   const handleOpenStagePlayerModal = (result: StageResult) => {
@@ -359,7 +359,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                             {player.jogadorNome}
                           </span>
                           <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-bold text-blue-300 uppercase tracking-wider">
-                            {player.categoria.slice(0, 3)}
+                            {formatCategoryAbbr(player.categoria)}
                           </span>
                         </div>
                       </td>
@@ -503,7 +503,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                             {result.jogadorNome}
                           </span>
                           <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-bold text-blue-300 uppercase tracking-wider">
-                            {(result.categoria || "Master").slice(0, 3).toUpperCase()}
+                            {formatCategoryAbbr(result.categoria)}
                           </span>
                         </div>
                       </td>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Calendar, Trophy, Users, CheckCircle2, ChevronRight, X, Award, Shield } from "lucide-react";
+import { formatCategoryAbbr } from "@/lib/theme/energy-tokens";
 
 export interface StageResult {
   id: number;
@@ -208,7 +209,7 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                         </td>
                         <td className="px-2 py-2.5 text-center">
                           <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">
-                            {(res.categoria || "Master").slice(0, 3).toUpperCase()}
+                            {formatCategoryAbbr(res.categoria)}
                           </span>
                         </td>
                         <td className="px-3 py-2.5 text-right font-black text-sm text-yellow-400">

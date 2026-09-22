@@ -166,3 +166,13 @@ export function getEnergyConfig(energyRaw?: string) {
     types: multi.types,
   };
 }
+
+export function formatCategoryAbbr(cat?: string | null): "ME" | "SE" | "JR" {
+  if (!cat) return "ME";
+  const upper = cat.trim().toUpperCase();
+  if (upper === "ME" || upper === "MAS" || upper.startsWith("MASTER") || upper.startsWith("ME")) return "ME";
+  if (upper === "SE" || upper === "SEN" || upper.startsWith("SENIOR") || upper.startsWith("SE")) return "SE";
+  if (upper === "JR" || upper === "JUN" || upper.startsWith("JUNIOR") || upper.startsWith("JR")) return "JR";
+  return "ME";
+}
+
