@@ -41,8 +41,8 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
 
   return (
     <div className="w-full space-y-4">
-      {/* Grid de Cards de Etapas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Grid de Cards de Etapas Bento-Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {etapas.map((etapa, idx) => {
           const isPremier = etapa.multiplicador > 1.0;
           const [year, month, day] = etapa.data.split("-");
@@ -53,37 +53,37 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
             <div
               key={etapa.id || idx}
               onClick={() => setSelectedEtapa(etapa)}
-              className={`group relative flex flex-col justify-between rounded-2xl border p-5 backdrop-blur-xl transition-all cursor-pointer hover:-translate-y-1 hover:bg-slate-900/90 shadow-lg ${
+              className={`group relative flex flex-col justify-between rounded-3xl border p-5 sm:p-6 backdrop-blur-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] shadow-xl ${
                 isPremier
-                  ? "border-amber-500/40 bg-slate-900/75 shadow-amber-500/10 hover:border-amber-400/60"
-                  : "border-white/10 bg-slate-900/60 hover:border-white/20"
+                  ? "border-amber-400/30 bg-amber-500/[0.03] hover:bg-amber-500/[0.06] hover:border-amber-400/50"
+                  : "border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.08]"
               }`}
             >
               {/* Topo do Card */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-black text-sm shadow-md ${
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-black text-sm shadow-md ${
                       isPremier
                         ? "bg-gradient-to-br from-amber-500 to-orange-600 text-slate-950"
-                        : "bg-slate-800 text-blue-400 border border-white/10"
+                        : "bg-white/[0.04] text-blue-400 border border-white/[0.08]"
                     }`}
                   >
                     E#{stageNumber}
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-black text-white group-hover:text-blue-400 transition-colors">
+                      <h3 className="text-base font-black text-white group-hover:text-amber-300 transition-colors">
                         {etapa.tipo}
                       </h3>
                       {isPremier && (
-                        <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-black text-amber-300 border border-amber-500/40">
+                        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black text-amber-300 border border-amber-500/30">
                           {etapa.multiplicador}x PTS
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 tabular-nums flex items-center gap-1 mt-0.5">
-                      <Calendar className="h-3 w-3 text-slate-500" />
+                    <p className="text-xs text-slate-400 tabular-nums flex items-center gap-1 mt-0.5 font-normal">
+                      <Calendar className="h-3 w-3 text-slate-400" />
                       {formattedDate}
                     </p>
                   </div>
@@ -96,10 +96,10 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
               </div>
 
               {/* Informações da Etapa: Campeão e Participantes */}
-              <div className="mt-4 rounded-xl border border-white/5 bg-slate-950/50 p-3 space-y-1.5">
+              <div className="mt-4 rounded-2xl border border-white/[0.04] bg-white/[0.02] p-3.5 space-y-2">
                 {etapa.campeaoNome ? (
                   <div className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5 text-yellow-400 font-bold">
+                    <span className="flex items-center gap-1.5 text-amber-400 font-bold">
                       <Trophy className="h-3.5 w-3.5" /> Campeão:
                     </span>
                     <strong className="text-white font-black truncate max-w-[160px]">
@@ -107,12 +107,12 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                     </strong>
                   </div>
                 ) : (
-                  <div className="text-xs text-slate-500">Resultados consolidados</div>
+                  <div className="text-xs text-slate-400 font-normal">Resultados consolidados</div>
                 )}
 
-                <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-white/5">
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5 text-slate-500" /> Participantes:
+                <div className="flex items-center justify-between text-xs text-slate-400 pt-1.5 border-t border-white/[0.04]">
+                  <span className="flex items-center gap-1 font-normal">
+                    <Users className="h-3.5 w-3.5 text-slate-400" /> Participantes:
                   </span>
                   <span className="font-bold text-slate-200 tabular-nums">
                     {etapa.totalJogadores > 0 ? `${etapa.totalJogadores} jogadores` : "Ver Tabela"}
@@ -121,7 +121,7 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
               </div>
 
               {/* Rodapé: Ver Standings */}
-              <div className="mt-3 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-blue-300">
+              <div className="mt-4 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-blue-300 pt-2 border-t border-white/[0.03]">
                 <span>Ver Classificação da Etapa</span>
                 <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </div>

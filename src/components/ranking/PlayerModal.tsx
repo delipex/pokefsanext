@@ -34,15 +34,15 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
   const etapasArray = player.historicoColocacoes ? player.historicoColocacoes.split(";") : [];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl backdrop-blur-2xl text-slate-100"
+        className="relative w-full max-w-lg rounded-3xl border border-white/[0.08] bg-slate-950/90 p-6 sm:p-7 shadow-2xl backdrop-blur-2xl text-slate-100"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Botão Fechar */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+          className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
         >
           <X className="h-5 w-5" />
         </button>
@@ -68,44 +68,44 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
           </div>
         </div>
 
-        {/* Estatísticas Chave */}
+        {/* Estatísticas Chave Bento */}
         <div className="mt-6 grid grid-cols-3 gap-3">
-          <div className="rounded-xl border border-white/5 bg-slate-800/50 p-3 text-center">
+          <div className="rounded-2xl border border-white/[0.04] bg-white/[0.02] p-3 text-center">
             <span className="flex items-center justify-center gap-1 text-[11px] font-semibold text-yellow-400">
               <Trophy className="h-3.5 w-3.5" /> Pontos
             </span>
-            <p className="mt-1 text-2xl font-black text-white">{player.pontos}</p>
+            <p className="mt-1 text-2xl font-black text-white tabular-nums">{player.pontos}</p>
           </div>
-          <div className="rounded-xl border border-white/5 bg-slate-800/50 p-3 text-center">
+          <div className="rounded-2xl border border-white/[0.04] bg-white/[0.02] p-3 text-center">
             <span className="flex items-center justify-center gap-1 text-[11px] font-semibold text-blue-400">
               <Award className="h-3.5 w-3.5" /> Pódios
             </span>
-            <p className="mt-1 text-2xl font-black text-white">{player.podios}</p>
+            <p className="mt-1 text-2xl font-black text-white tabular-nums">{player.podios}</p>
           </div>
-          <div className="rounded-xl border border-white/5 bg-slate-800/50 p-3 text-center">
+          <div className="rounded-2xl border border-white/[0.04] bg-white/[0.02] p-3 text-center">
             <span className="flex items-center justify-center gap-1 text-[11px] font-semibold text-emerald-400">
               <TrendingUp className="h-3.5 w-3.5" /> Win Rate
             </span>
-            <p className="mt-1 text-2xl font-black text-white">{winRate}%</p>
+            <p className="mt-1 text-2xl font-black text-white tabular-nums">{winRate}%</p>
           </div>
         </div>
 
         {/* Resumo de Partidas */}
-        <div className="mt-4 rounded-xl border border-white/5 bg-slate-800/30 p-4">
+        <div className="mt-4 rounded-2xl border border-white/[0.04] bg-white/[0.02] p-4">
           <div className="flex justify-between text-xs text-slate-300">
-            <span>Partidas Jogadas: <strong className="text-white">{totalJogos}</strong></span>
-            <span>Participações: <strong className="text-white">{player.participacoes} etapas</strong></span>
-            <span>Média de Colocação: <strong className="text-white">#{player.mediaColocacao.toFixed(1)}</strong></span>
+            <span>Partidas: <strong className="text-white tabular-nums">{totalJogos}</strong></span>
+            <span>Presenças: <strong className="text-white tabular-nums">{player.participacoes} et.</strong></span>
+            <span>Média: <strong className="text-white tabular-nums">#{player.mediaColocacao.toFixed(1)}</strong></span>
           </div>
-          <div className="mt-2 flex gap-1 h-2 rounded-full overflow-hidden bg-slate-700">
+          <div className="mt-2.5 flex gap-1 h-2 rounded-full overflow-hidden bg-slate-800">
             <div style={{ width: `${(player.vitorias / (totalJogos || 1)) * 100}%` }} className="bg-emerald-500" title={`Vitórias: ${player.vitorias}`} />
             <div style={{ width: `${(player.empates / (totalJogos || 1)) * 100}%` }} className="bg-yellow-500" title={`Empates: ${player.empates}`} />
             <div style={{ width: `${(player.derrotas / (totalJogos || 1)) * 100}%` }} className="bg-rose-500" title={`Derrotas: ${player.derrotas}`} />
           </div>
-          <div className="mt-2 flex justify-between text-[11px] text-slate-400">
-            <span className="text-emerald-400 font-medium">V: {player.vitorias}</span>
-            <span className="text-yellow-400 font-medium">E: {player.empates}</span>
-            <span className="text-rose-400 font-medium">D: {player.derrotas}</span>
+          <div className="mt-2 flex justify-between text-[11px] text-slate-400 tabular-nums">
+            <span className="text-emerald-400 font-bold">V: {player.vitorias}</span>
+            <span className="text-yellow-400 font-bold">E: {player.empates}</span>
+            <span className="text-rose-400 font-bold">D: {player.derrotas}</span>
           </div>
         </div>
 

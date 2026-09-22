@@ -188,19 +188,19 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
   return (
     <div className="w-full space-y-4">
-      {/* Barra de Filtros, Seletor de Etapas e Busca */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-3.5 backdrop-blur-xl shadow-lg">
+      {/* Barra de Filtros, Seletor de Etapas e Busca (Bento Card) */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5 rounded-3xl border border-white/[0.04] bg-white/[0.02] p-4 backdrop-blur-2xl shadow-xl">
         {/* Seletor de Visão: Ranking Geral vs Etapas Individuais */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
           {etapas.length > 0 && (
             <div className="relative w-full sm:w-auto flex items-center gap-2">
-              <span className="hidden sm:inline-flex items-center rounded-lg bg-blue-500/20 border border-blue-500/40 px-2 py-1 text-[10px] font-black uppercase text-blue-300">
+              <span className="hidden sm:inline-flex items-center rounded-xl bg-blue-500/15 border border-blue-500/30 px-2.5 py-1 text-[10px] font-black uppercase text-blue-300">
                 Temporada 5
               </span>
               <select
                 value={selectedStageDate}
                 onChange={(e) => setSelectedStageDate(e.target.value)}
-                className="w-full sm:w-auto rounded-xl border border-blue-500/30 bg-blue-950/40 px-3.5 py-2 text-xs font-bold text-blue-300 focus:outline-none focus:border-blue-400 cursor-pointer backdrop-blur-md"
+                className="w-full sm:w-auto rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3.5 py-2 text-xs font-bold text-blue-300 focus:outline-none focus:border-blue-400 cursor-pointer backdrop-blur-md"
               >
                 <option value="general" className="bg-slate-900 text-white">
                   🏆 Ranking Geral Consolidado (Temporada 5)
@@ -225,10 +225,10 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all shrink-0 ${
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   selectedCategory === cat
                     ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                    : "bg-slate-800/60 text-slate-400 hover:bg-slate-800 hover:text-white border border-white/5"
+                    : "bg-white/[0.03] text-slate-400 hover:bg-white/[0.06] hover:text-white border border-white/[0.05]"
                 }`}
               >
                 {cat}
@@ -238,39 +238,39 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         </div>
 
         {/* Campo de Busca Rápida */}
-        <div className="relative min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <div className="relative min-w-[240px]">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Buscar por treinador ou deck..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-slate-800/80 py-2 pl-9 pr-4 text-xs text-white placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+            className="w-full rounded-2xl border border-white/[0.06] bg-white/[0.02] py-2 pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:border-amber-400/40 focus:outline-none focus:ring-1 focus:ring-amber-400/30 transition-all backdrop-blur-xl"
           />
         </div>
       </div>
 
       {/* Banner Informativo da Etapa Selecionada (Exibido APENAS quando uma etapa individual for selecionada) */}
       {!isGeneralRanking && currentStage && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-[#ffcb05]/40 bg-[#ffcb05]/10 px-4 py-2.5 text-xs text-slate-200 backdrop-blur-md shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-amber-400/30 bg-amber-500/[0.05] px-4 py-3 text-xs text-slate-200 backdrop-blur-2xl shadow-sm">
           <span className="text-slate-400 font-medium">Você está visualizando:</span>
-          <span className="rounded bg-[#ffcb05]/20 border border-[#ffcb05]/40 px-2.5 py-0.5 font-bold text-[#ffcb05]">
+          <span className="rounded-lg bg-amber-400/20 border border-amber-400/30 px-2.5 py-0.5 font-bold text-amber-300">
             {currentStage.data}
           </span>
-          <span className="text-yellow-500/50">•</span>
+          <span className="text-amber-500/50">•</span>
           <span className="text-slate-400 font-medium">Evento:</span>
-          <span className="rounded bg-[#ffcb05]/20 border border-[#ffcb05]/40 px-2.5 py-0.5 font-bold text-[#ffcb05]">
+          <span className="rounded-lg bg-amber-400/20 border border-amber-400/30 px-2.5 py-0.5 font-bold text-amber-300">
             {currentStage.tipo}
           </span>
-          <span className="text-yellow-500/50">•</span>
+          <span className="text-amber-500/50">•</span>
           <span className="text-slate-400 font-medium">Multiplicador:</span>
-          <span className="rounded bg-[#ffcb05]/20 border border-[#ffcb05]/40 px-2.5 py-0.5 font-bold text-[#ffcb05]">
+          <span className="rounded-lg bg-amber-400/20 border border-amber-400/30 px-2.5 py-0.5 font-bold text-amber-300">
             {currentStage.multiplicador}x
           </span>
           {currentStage.campeaoNome && (
             <>
-              <span className="text-yellow-500/50">•</span>
-              <span className="font-bold text-[#ffcb05] flex items-center gap-1">
+              <span className="text-amber-500/50">•</span>
+              <span className="font-bold text-amber-300 flex items-center gap-1">
                 🏆 Campeão: {currentStage.campeaoNome}
               </span>
             </>
@@ -291,22 +291,22 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
           <select
             value={pageSize}
             onChange={(e) => setPageSize(Number(e.target.value))}
-            className="rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
+            className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer backdrop-blur-md"
           >
-            <option value={10}>10</option>
-            <option value={15}>15</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
+            <option value={10} className="bg-slate-900 text-white">10</option>
+            <option value={15} className="bg-slate-900 text-white">15</option>
+            <option value={25} className="bg-slate-900 text-white">25</option>
+            <option value={50} className="bg-slate-900 text-white">50</option>
           </select>
         </div>
       </div>
 
-      {/* Tabela de Classificação Responsiva com Design Autêntico da Liga Atlântica */}
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0f172a]/70 shadow-2xl backdrop-blur-xl">
+      {/* Tabela de Classificação Bento-Grid */}
+      <div className="overflow-x-auto rounded-3xl border border-white/[0.04] bg-white/[0.02] shadow-2xl backdrop-blur-2xl">
         {isGeneralRanking ? (
           /* TABELA 1: RANKING GERAL CONSOLIDADO */
           <table className="w-full text-left text-sm text-slate-200">
-            <thead className="border-b border-white/10 bg-slate-950/40 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <thead className="border-b border-white/[0.06] bg-white/[0.02] text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
                 <th scope="col" className="py-4 pl-6 pr-2 text-left w-16">POS</th>
                 <th scope="col" className="px-6 py-4">TREINADOR</th>
@@ -314,7 +314,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                 <th scope="col" className="py-4 pr-6 pl-2 text-center w-28">V-E-D</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-white/[0.04]">
               {paginatedGeneralPlayers.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="py-12 text-center text-slate-400">
@@ -397,7 +397,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                 <th scope="col" className="py-4 pr-6 pl-2 text-center w-28">V-E-D</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-white/[0.04]">
               {paginatedStageResults.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="py-12 text-center text-slate-400">
@@ -422,7 +422,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                     <tr
                       key={result.id || idx}
                       onClick={() => handleOpenStagePlayerModal(result)}
-                      className="group cursor-pointer transition-all duration-150 hover:bg-white/[0.06] hover:shadow-[inset_4px_0_0_0_#ffcb05] even:bg-black/15"
+                      className="group cursor-pointer transition-all duration-150 hover:bg-white/[0.04] even:bg-white/[0.01]"
                     >
                       {/* POS */}
                       <td className="py-4 pl-6 pr-2 text-left tabular-nums">
@@ -479,7 +479,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         )}
       </div>
 
-      {/* Controles de Paginação */}
+      {/* Controles de Paginação Bento */}
       {totalPages > 1 && (
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 px-1">
           <div className="text-xs text-slate-400">
@@ -491,7 +491,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
             <button
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-lg border border-white/10 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
               aria-label="Primeira página"
             >
               <ChevronsLeft className="h-4 w-4" />
@@ -501,7 +501,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-lg border border-white/10 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
               aria-label="Página anterior"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -524,10 +524,10 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`min-w-[32px] h-8 rounded-lg px-2 text-xs font-bold transition-all ${
+                  className={`min-w-[32px] h-8 rounded-xl px-2 text-xs font-bold transition-all cursor-pointer ${
                     currentPage === pageNum
                       ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                      : "border border-white/10 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800"
+                      : "border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08]"
                   }`}
                 >
                   {pageNum}
@@ -539,7 +539,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg border border-white/10 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
               aria-label="Próxima página"
             >
               <ChevronRight className="h-4 w-4" />
@@ -549,7 +549,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
             <button
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg border border-white/10 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
               aria-label="Última página"
             >
               <ChevronsRight className="h-4 w-4" />

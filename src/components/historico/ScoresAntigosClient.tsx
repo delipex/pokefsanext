@@ -34,17 +34,17 @@ export function ScoresAntigosClient({ scores }: ScoresAntigosClientProps) {
 
   return (
     <div className="space-y-6">
-      {/* Abas das Temporadas e Campo de Busca */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl">
+      {/* Abas das Temporadas e Campo de Busca Bento */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-3xl border border-white/[0.04] bg-white/[0.02] p-4 backdrop-blur-2xl shadow-xl">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
           {seasons.map((season) => (
             <button
               key={season}
               onClick={() => setSelectedSeason(season)}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all shrink-0 ${
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 selectedSeason === season
                   ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-                  : "bg-slate-800/60 text-slate-400 hover:bg-slate-800 hover:text-white border border-white/5"
+                  : "bg-white/[0.03] text-slate-400 hover:bg-white/[0.06] hover:text-white border border-white/[0.05]"
               }`}
             >
               {season}
@@ -52,30 +52,30 @@ export function ScoresAntigosClient({ scores }: ScoresAntigosClientProps) {
           ))}
         </div>
 
-        <div className="relative min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <div className="relative min-w-[240px]">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
             placeholder="Buscar jogador ou deck..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-slate-800/90 py-2 pl-9 pr-4 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-purple-500"
+            className="w-full rounded-2xl border border-white/[0.06] bg-white/[0.02] py-2 pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400/40 focus:ring-1 focus:ring-purple-400/30 transition-all backdrop-blur-xl"
           />
         </div>
       </div>
 
-      {/* Tabela de Scores Antigos */}
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/70 shadow-2xl backdrop-blur-xl">
+      {/* Tabela de Scores Antigos Bento */}
+      <div className="overflow-x-auto rounded-3xl border border-white/[0.04] bg-white/[0.02] shadow-2xl backdrop-blur-2xl">
         <table className="w-full text-left text-xs text-slate-200">
-          <thead className="border-b border-white/10 bg-slate-950/60 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <thead className="border-b border-white/[0.06] bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-slate-400">
             <tr>
               <th className="py-3.5 pl-4 pr-2 text-center w-12">#</th>
               <th className="px-4 py-3.5">Jogador</th>
-              <th className="px-4 py-3.5 text-right font-bold text-yellow-400">Pontos Finais</th>
+              <th className="px-4 py-3.5 text-right font-bold text-amber-400">Pontos Finais</th>
               <th className="px-4 py-3.5">Deck Registrado</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody className="divide-y divide-white/[0.04]">
             {filteredScores.length === 0 ? (
               <tr>
                 <td colSpan={4} className="py-12 text-center text-slate-400">
@@ -89,9 +89,7 @@ export function ScoresAntigosClient({ scores }: ScoresAntigosClientProps) {
                 return (
                   <tr
                     key={idx}
-                    className={`hover:bg-purple-600/10 transition-colors ${
-                      isChampion ? "bg-yellow-500/10 font-bold" : ""
-                    }`}
+                    className="hover:bg-white/[0.04] transition-colors even:bg-white/[0.01]"
                   >
                     <td className="py-3.5 pl-4 pr-2 text-center">
                       {isChampion ? (
@@ -110,7 +108,7 @@ export function ScoresAntigosClient({ scores }: ScoresAntigosClientProps) {
                         <CategoryBadge category={score.categoria} size="sm" />
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-right font-black text-sm text-yellow-400">
+                    <td className="px-4 py-3.5 text-right font-black text-sm text-amber-400">
                       {score.pontos || "—"}
                     </td>
                     <td className="px-4 py-3.5 text-slate-300 font-medium">{score.deck || "—"}</td>

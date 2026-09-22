@@ -57,25 +57,25 @@ export default function RegrasPage() {
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-5">
         {sections.map((section, idx) => {
           const Icon = section.icon;
           return (
             <div
               key={idx}
-              className="rounded-2xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4"
+              className="rounded-3xl border border-white/[0.04] bg-white/[0.02] p-6 sm:p-7 backdrop-blur-2xl shadow-xl space-y-4"
             >
               <div className="flex items-center gap-3">
-                <span className={`flex h-10 w-10 items-center justify-center rounded-xl border ${section.color}`}>
+                <span className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${section.color}`}>
                   <Icon className="h-5 w-5" />
                 </span>
                 <h3 className="text-lg font-black text-white">{section.title}</h3>
               </div>
 
-              <div className="space-y-2.5 pl-2">
+              <div className="space-y-3 pl-1">
                 {section.content.map((p, pIdx) => (
-                  <div key={pIdx} className="flex items-start gap-2.5 text-sm text-slate-300 leading-relaxed">
-                    <CheckCircle2 className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+                  <div key={pIdx} className="flex items-start gap-3 text-sm text-slate-300 leading-relaxed font-normal">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                     <span>{p}</span>
                   </div>
                 ))}

@@ -89,14 +89,14 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
 
   return (
     <div className="space-y-8">
-      {/* Abas Superiores de Navegação */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto">
+      {/* Abas Superiores de Navegação Bento */}
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl border border-white/[0.04] bg-white/[0.02] backdrop-blur-2xl shadow-lg overflow-x-auto">
         <button
           onClick={() => setActiveTab("campeoes")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 ${
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === "campeoes"
               ? "bg-[#ffcb05] text-slate-950 shadow-lg shadow-yellow-500/20"
-              : "bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800"
+              : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
           }`}
         >
           <Trophy className="h-4 w-4" />
@@ -105,10 +105,10 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
 
         <button
           onClick={() => setActiveTab("galeria")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 ${
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === "galeria"
               ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-              : "bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800"
+              : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
           }`}
         >
           <Camera className="h-4 w-4" />
@@ -117,10 +117,10 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
 
         <button
           onClick={() => setActiveTab("historico")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 ${
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
             activeTab === "historico"
               ? "bg-purple-600 text-white shadow-lg shadow-purple-600/20"
-              : "bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800"
+              : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
           }`}
         >
           <History className="h-4 w-4" />
@@ -134,15 +134,15 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
       {activeTab === "campeoes" && (
         <div className="space-y-6">
           {/* Subtítulo */}
-          <p className="text-xs sm:text-sm text-slate-400">
+          <p className="text-xs sm:text-sm text-slate-400 font-normal">
             Homenagem aos vencedores e recordistas das temporadas passadas.
           </p>
 
           {/* Cards de Recordes Oficiais da Liga (4 Colunas no Topo) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* 1. Maior Campeão */}
-            <div className="flex items-center gap-3.5 rounded-2xl border border-white/10 bg-[#0f172a]/80 p-4 backdrop-blur-xl shadow-lg">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400">
+            <div className="flex items-center gap-3.5 rounded-3xl border border-white/[0.04] bg-white/[0.02] p-4 backdrop-blur-2xl shadow-xl">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
                 <Crown className="h-6 w-6" />
               </div>
               <div className="min-w-0">
@@ -159,8 +159,8 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
             </div>
 
             {/* 2. Deck Mais Vitorioso */}
-            <div className="flex items-center gap-3.5 rounded-2xl border border-white/10 bg-[#0f172a]/80 p-4 backdrop-blur-xl shadow-lg">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-yellow-500/20 border border-yellow-500/30 text-yellow-400">
+            <div className="flex items-center gap-3.5 rounded-3xl border border-white/[0.04] bg-white/[0.02] p-4 backdrop-blur-2xl shadow-xl">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-yellow-500/15 border border-yellow-500/30 text-yellow-400">
                 <Zap className="h-6 w-6" />
               </div>
               <div className="min-w-0">
@@ -177,8 +177,8 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
             </div>
 
             {/* 3. Maior Finalista */}
-            <div className="flex items-center gap-3.5 rounded-2xl border border-white/10 bg-[#0f172a]/80 p-4 backdrop-blur-xl shadow-lg">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-400/20 border border-slate-400/30 text-slate-300">
+            <div className="flex items-center gap-3.5 rounded-3xl border border-white/[0.04] bg-white/[0.02] p-4 backdrop-blur-2xl shadow-xl">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-400/15 border border-slate-400/30 text-slate-300">
                 <Medal className="h-6 w-6" />
               </div>
               <div className="min-w-0">
@@ -195,8 +195,8 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
             </div>
 
             {/* 4. Histórico Oficial */}
-            <div className="flex items-center gap-3.5 rounded-2xl border border-white/10 bg-[#0f172a]/80 p-4 backdrop-blur-xl shadow-lg">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400">
+            <div className="flex items-center gap-3.5 rounded-3xl border border-white/[0.04] bg-white/[0.02] p-4 backdrop-blur-2xl shadow-xl">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/15 border border-blue-500/30 text-blue-400">
                 <Trophy className="h-6 w-6" />
               </div>
               <div className="min-w-0">
@@ -216,7 +216,7 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
           {/* =========================================================
               ACORDEÃO INTERATIVO HORIZONTAL DOS CAMPEÕES
              ========================================================= */}
-          <div className="flex flex-col lg:flex-row gap-3 min-h-[460px] w-full">
+          <div className="flex flex-col lg:flex-row gap-3.5 min-h-[460px] w-full">
             {champions.map((champ, index) => {
               const isExpanded = expandedIndex === index;
               const championInitial = champ.campeao ? champ.campeao.charAt(0).toUpperCase() : "🏆";
@@ -227,8 +227,8 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
                   onClick={() => setExpandedIndex(index)}
                   className={`relative overflow-hidden rounded-3xl border transition-all duration-500 ease-out cursor-pointer backdrop-blur-2xl flex flex-col items-center justify-center p-5 ${
                     isExpanded
-                      ? "lg:flex-[4] flex-1 bg-gradient-to-b from-[#ffcb05]/10 via-[#0f172a]/95 to-[#0a0f1d] border-amber-500/40 shadow-2xl shadow-amber-500/10"
-                      : "lg:flex-1 h-20 lg:h-auto bg-[#0f172a]/60 border-white/10 hover:border-white/20 hover:bg-slate-800/50"
+                      ? "lg:flex-[4] flex-1 bg-gradient-to-b from-[#ffcb05]/10 via-[#0f172a]/95 to-[#0a0f1d] border-amber-400/40 shadow-2xl shadow-amber-500/10"
+                      : "lg:flex-1 h-20 lg:h-auto bg-white/[0.02] border-white/[0.04] hover:border-white/[0.08] hover:bg-white/[0.04]"
                   }`}
                 >
                   {/* ESTADO RECOLHIDO (COLLAPSED) */}
@@ -307,7 +307,7 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
       {activeTab === "galeria" && (
         <div className="space-y-4">
           {gallery.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-[#0f172a]/60 p-12 text-center text-slate-400">
+            <div className="rounded-3xl border border-white/[0.04] bg-white/[0.02] p-12 text-center text-slate-400 backdrop-blur-2xl">
               Nenhuma foto publicada na galeria oficial até o momento.
             </div>
           ) : (
@@ -316,7 +316,7 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
                 <div
                   key={item.id}
                   onClick={() => setLightboxImage(item.urlImagem)}
-                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a]/80 shadow-lg cursor-pointer transition-all hover:scale-[1.02] hover:border-blue-400/40"
+                  className="group relative overflow-hidden rounded-3xl border border-white/[0.04] bg-white/[0.02] shadow-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-blue-400/40 backdrop-blur-2xl"
                 >
                   <div className="aspect-[4/3] w-full overflow-hidden bg-slate-950">
                     <img
@@ -325,7 +325,7 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
-                  <div className="p-3">
+                  <div className="p-3.5">
                     <h4 className="font-bold text-xs text-white truncate">{item.titulo}</h4>
                     {item.data && <p className="text-[10px] text-slate-400 mt-0.5">{item.data}</p>}
                   </div>
@@ -346,10 +346,10 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
               <button
                 key={season}
                 onClick={() => setSelectedSeason(season)}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shrink-0 ${
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   selectedSeason === season
                     ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
-                    : "bg-slate-900 border border-white/10 text-slate-400 hover:text-white"
+                    : "bg-white/[0.03] border border-white/[0.05] text-slate-400 hover:text-white hover:bg-white/[0.06]"
                 }`}
               >
                 {season}
@@ -357,9 +357,9 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
             ))}
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0f172a]/80 shadow-2xl backdrop-blur-xl">
+          <div className="overflow-x-auto rounded-3xl border border-white/[0.04] bg-white/[0.02] shadow-2xl backdrop-blur-2xl">
             <table className="w-full text-left text-sm text-slate-200">
-              <thead className="border-b border-white/10 bg-slate-950/40 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <thead className="border-b border-white/[0.06] bg-white/[0.02] text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 <tr>
                   <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-14">#</th>
                   <th scope="col" className="px-4 py-3.5">Treinador</th>
@@ -367,9 +367,9 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
                   <th scope="col" className="px-4 py-3.5">Deck</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-white/[0.04]">
                 {filteredScores.map((score, idx) => (
-                  <tr key={score.id || idx} className="hover:bg-white/[0.04] transition-colors even:bg-black/15">
+                  <tr key={score.id || idx} className="hover:bg-white/[0.04] transition-colors even:bg-white/[0.01]">
                     <td className="py-3.5 pl-4 pr-2 text-center tabular-nums font-bold text-xs">
                       {score.pos === 1 ? "🥇" : score.pos === 2 ? "🥈" : score.pos === 3 ? "🥉" : `${score.pos}º`}
                     </td>
