@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Search, Calendar, Sparkles, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
-import { getMultiEnergyConfig, formatCategoryAbbr } from "@/lib/theme/energy-tokens";
+import { formatCategoryAbbr } from "@/lib/theme/energy-tokens";
 
 export interface StageResult {
   id: number;
@@ -41,28 +41,6 @@ interface RankingTableProps {
   initialPlayers: PlayerModalData[];
   etapas?: StageSummary[];
   allDecks?: DeckItemInfo[];
-}
-
-// Helper para formatar o nome do deck com iniciais maiúsculas e "Ex"
-function formatDeckName(name?: string | null): string {
-  if (!name) return "";
-  const lowerWords = ["da", "de", "do", "das", "dos", "e", "com", "no", "na"];
-  return name
-    .split(" ")
-    .map((word, idx) => {
-      const w = word.trim();
-      if (!w) return "";
-      const lower = w.toLowerCase();
-      if (lower === "ex") return "Ex";
-      if (lower === "gx") return "GX";
-      if (lower === "vmax") return "VMAX";
-      if (lower === "vstar") return "VSTAR";
-      if (lower === "v") return "V";
-      if (lowerWords.includes(lower) && idx > 0) return lower;
-      return lower.charAt(0).toUpperCase() + lower.slice(1);
-    })
-    .join(" ")
-    .replace(/\s*\+\s*/g, " + ");
 }
 
 export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: RankingTableProps) {
@@ -284,28 +262,33 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         </div>
       </div>
 
+      {/* Micro-hint de Usabilidade (UI/UX Affordance) */}
+      <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/40 border border-white/5 rounded-xl px-3.5 py-2">
+        <span className="text-amber-400 shrink-0">💡</span>
+        <span>
+          Clique em qualquer treinador para abrir o <strong>perfil completo</strong> (histórico, cartel V/E/D e decks utilizados).
+        </span>
+      </div>
+
       {/* Tabela de Classificação Responsiva com Glassmorphism */}
       <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/70 shadow-2xl backdrop-blur-xl">
         {isGeneralRanking ? (
-          /* TABELA 1: RANKING GERAL CONSOLIDADO */
-          <table className="w-full text-left text-sm text-slate-200 min-w-[700px]">
+          /* TABELA 1: RANKING GERAL CONSOLIDADO - APENAS POSIÇÃO, NOME + CATEGORIA, PONTOS */
+          <table className="w-full text-left text-sm text-slate-200">
             <thead className="border-b border-white/10 bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
-                <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-12">#</th>
+                <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-14">#</th>
                 <th scope="col" className="px-4 py-3.5">Treinador</th>
-                <th scope="col" className="px-4 py-3.5 text-right font-extrabold text-yellow-400">PTS</th>
-                <th scope="col" className="px-3 py-3.5 text-center hidden md:table-cell">V / E / D</th>
-                <th scope="col" className="px-3 py-3.5 text-center hidden sm:table-cell">Pódios</th>
-                <th scope="col" className="px-3 py-3.5 text-center hidden lg:table-cell">Média</th>
-                <th scope="col" className="px-3 py-3.5 text-center hidden sm:table-cell">Etapas</th>
-                <th scope="col" className="px-4 py-3.5">Deck</th>
-                <th scope="col" className="py-3.5 pr-4 pl-2 text-right">Perfil</th>
+                <th scope="col" className="px-4 py-3.5 text-right font-extrabold text-amber-400">PTS</th>
+                <th scope="col" className="py-3.5 pr-4 pl-2 text-right w-16">
+                  <span className="sr-only">Ação</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {paginatedGeneralPlayers.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
+                  <td colSpan={4} className="py-12 text-center text-slate-400">
                     Nenhum jogador encontrado com os filtros selecionados.
                   </td>
                 </tr>
@@ -315,14 +298,12 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                   const pos = globalIndex + 1;
                   const isTop1 = pos === 1;
                   const isTop4 = pos <= 4;
-                  const deckEnergy = player.ultimoDeckEnergia || getDeckEnergy(player.ultimoDeck);
-                  const energyCfg = getMultiEnergyConfig(deckEnergy);
 
                   return (
                     <tr
                       key={player.jogadorId || globalIndex}
                       onClick={() => setSelectedPlayer(player)}
-                      className={`group cursor-pointer transition-colors hover:bg-blue-600/10 ${
+                      className={`group cursor-pointer transition-all duration-150 hover:bg-white/[0.05] active:bg-white/[0.08] ${
                         isTop1
                           ? "bg-yellow-500/5 font-semibold"
                           : isTop4
@@ -330,9 +311,10 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                           : ""
                       }`}
                     >
+                      {/* Posição com Medalha / Badge */}
                       <td className="py-3.5 pl-4 pr-2 text-center font-mono">
                         {isTop1 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-yellow-500/20 text-sm font-black text-yellow-400 border border-yellow-500/40">
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-yellow-500/20 text-sm font-black text-yellow-400 border border-yellow-500/40 shadow-sm shadow-yellow-500/20">
                             🥇
                           </span>
                         ) : pos === 2 ? (
@@ -348,88 +330,35 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                             4º
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-400">{pos}º</span>
+                          <span className="text-xs text-slate-400 font-bold">{pos}º</span>
                         )}
                       </td>
 
-                      {/* Nome do Treinador com a Tag de Categoria em seguida */}
+                      {/* Treinador: Nome + Categoria (ME / SE / JR) */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
                             {player.jogadorNome}
                           </span>
-                          <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-bold text-blue-300 uppercase tracking-wider">
+                          <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-black text-blue-300 uppercase tracking-wider">
                             {formatCategoryAbbr(player.categoria)}
                           </span>
                         </div>
                       </td>
 
-                      <td className="px-4 py-3.5 text-right font-black text-base text-yellow-400">
+                      {/* Pontos Totais */}
+                      <td className="px-4 py-3.5 text-right font-black text-base text-amber-400">
                         {player.pontos}
                       </td>
 
-                      <td className="px-3 py-3.5 text-center hidden md:table-cell text-xs font-mono text-slate-300">
-                        <span className="text-emerald-400 font-semibold">{player.vitorias}</span>
-                        <span className="text-slate-500"> / </span>
-                        <span className="text-yellow-400 font-semibold">{player.empates}</span>
-                        <span className="text-slate-500"> / </span>
-                        <span className="text-rose-400 font-semibold">{player.derrotas}</span>
-                      </td>
-
-                      <td className="px-3 py-3.5 text-center hidden sm:table-cell">
-                        {player.podios > 0 ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/10 px-2.5 py-0.5 text-xs font-bold text-yellow-400 border border-yellow-500/20">
-                            🏆 {player.podios}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-500">—</span>
-                        )}
-                      </td>
-
-                      <td className="px-3 py-3.5 text-center hidden lg:table-cell text-xs font-mono text-slate-300">
-                        #{player.mediaColocacao.toFixed(1)}
-                      </td>
-
-                      <td className="px-3 py-3.5 text-center hidden sm:table-cell text-xs text-slate-300 font-semibold">
-                        {player.participacoes}
-                      </td>
-
-                      {/* Box do Deck Utilizado */}
-                      <td className="px-4 py-3.5 text-xs">
-                        {player.ultimoDeck ? (
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md"
-                            style={{
-                              background: energyCfg.gradientBg,
-                              border: energyCfg.borderStyle,
-                            }}
-                          >
-                            <div className="flex items-center -space-x-1 shrink-0">
-                              {energyCfg.types.map((t, i) => (
-                                <span
-                                  key={i}
-                                  className="h-1.5 w-1.5 rounded-full border border-black/40 shadow-sm shrink-0"
-                                  style={{ backgroundColor: t.hex, boxShadow: `0 0 4px ${t.hex}` }}
-                                />
-                              ))}
-                            </div>
-                            <span className="truncate max-w-[140px]">{formatDeckName(player.ultimoDeck)}</span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-600 font-medium">—</span>
-                        )}
-                      </td>
-
+                      {/* Indicador de Clique / Affordance */}
                       <td className="py-3.5 pr-4 pl-2 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPlayer(player);
-                          }}
-                          className="rounded-lg bg-slate-800/80 px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-blue-600 hover:text-white transition-all border border-white/5"
-                        >
-                          Ver Perfil
-                        </button>
+                        <div className="flex items-center justify-end gap-1 text-slate-500 group-hover:text-amber-400 transition-colors">
+                          <span className="text-[11px] font-semibold hidden sm:inline-block opacity-0 group-hover:opacity-100 transition-opacity">
+                            Ver
+                          </span>
+                          <ChevronRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform" />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -439,21 +368,21 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
           </table>
         ) : (
           /* TABELA 2: CLASSIFICAÇÃO DA ETAPA SELECIONADA */
-          <table className="w-full text-left text-sm text-slate-200 min-w-[700px]">
+          <table className="w-full text-left text-sm text-slate-200">
             <thead className="border-b border-white/10 bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
-                <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-12">Pos</th>
+                <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-14">#</th>
                 <th scope="col" className="px-4 py-3.5">Treinador</th>
-                <th scope="col" className="px-4 py-3.5 text-right font-extrabold text-yellow-400">Pontos</th>
-                <th scope="col" className="px-3 py-3.5 text-center">V / E / D</th>
-                <th scope="col" className="px-4 py-3.5">Deck</th>
-                <th scope="col" className="py-3.5 pr-4 pl-2 text-right">Perfil</th>
+                <th scope="col" className="px-4 py-3.5 text-right font-extrabold text-amber-400">PTS</th>
+                <th scope="col" className="py-3.5 pr-4 pl-2 text-right w-16">
+                  <span className="sr-only">Ação</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {paginatedStageResults.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={4} className="py-12 text-center text-slate-400">
                     Nenhum jogador encontrado para esta etapa com os filtros selecionados.
                   </td>
                 </tr>
@@ -461,20 +390,19 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                 paginatedStageResults.map((result, idx) => {
                   const isTop1 = result.colocacao === 1;
                   const isTop4 = result.colocacao <= 4;
-                  const deckEnergy = getDeckEnergy(result.deckNome);
-                  const energyCfg = getMultiEnergyConfig(deckEnergy);
 
                   return (
                     <tr
                       key={result.id || idx}
                       onClick={() => handleOpenStagePlayerModal(result)}
-                      className={`group cursor-pointer transition-colors hover:bg-blue-600/10 ${
+                      className={`group cursor-pointer transition-all duration-150 hover:bg-white/[0.05] active:bg-white/[0.08] ${
                         isTop1 ? "bg-yellow-500/10 font-bold" : isTop4 ? "bg-slate-800/30" : ""
                       }`}
                     >
-                      <td className="py-3.5 pl-4 pr-2 text-center">
+                      {/* Posição na Etapa */}
+                      <td className="py-3.5 pl-4 pr-2 text-center font-mono">
                         {isTop1 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-yellow-500/20 text-sm font-black text-yellow-400 border border-yellow-500/40">
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-yellow-500/20 text-sm font-black text-yellow-400 border border-yellow-500/40 shadow-sm shadow-yellow-500/20">
                             🥇
                           </span>
                         ) : result.colocacao === 2 ? (
@@ -496,66 +424,31 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                         )}
                       </td>
 
-                      {/* Treinador com a Tag de Categoria em seguida */}
+                      {/* Treinador: Nome + Categoria (ME / SE / JR) */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
                             {result.jogadorNome}
                           </span>
-                          <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-bold text-blue-300 uppercase tracking-wider">
+                          <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-black text-blue-300 uppercase tracking-wider">
                             {formatCategoryAbbr(result.categoria)}
                           </span>
                         </div>
                       </td>
 
-                      <td className="px-4 py-3.5 text-right font-black text-base text-yellow-400">
+                      {/* Pontos Obtidos */}
+                      <td className="px-4 py-3.5 text-right font-black text-base text-amber-400">
                         {result.pontos}
                       </td>
 
-                      <td className="px-3 py-3.5 text-center text-xs font-mono text-slate-300">
-                        <span className="text-emerald-400 font-semibold">{result.vitorias}</span>
-                        <span className="text-slate-500"> / </span>
-                        <span className="text-yellow-400 font-semibold">{result.empates}</span>
-                        <span className="text-slate-500"> / </span>
-                        <span className="text-rose-400 font-semibold">{result.derrotas}</span>
-                      </td>
-
-                      {/* Box do Deck Utilizado com Cores e Indicadores de Energia */}
-                      <td className="px-4 py-3.5 text-xs">
-                        {result.deckNome ? (
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md"
-                            style={{
-                              background: energyCfg.gradientBg,
-                              border: energyCfg.borderStyle,
-                            }}
-                          >
-                            <div className="flex items-center -space-x-1 shrink-0">
-                              {energyCfg.types.map((t, i) => (
-                                <span
-                                  key={i}
-                                  className="h-1.5 w-1.5 rounded-full border border-black/40 shadow-sm shrink-0"
-                                  style={{ backgroundColor: t.hex, boxShadow: `0 0 4px ${t.hex}` }}
-                                />
-                              ))}
-                            </div>
-                            <span className="truncate max-w-[150px]">{formatDeckName(result.deckNome)}</span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-600 font-medium">—</span>
-                        )}
-                      </td>
-
+                      {/* Indicador de Clique / Affordance */}
                       <td className="py-3.5 pr-4 pl-2 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenStagePlayerModal(result);
-                          }}
-                          className="rounded-lg bg-slate-800/80 px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-blue-600 hover:text-white transition-all border border-white/5"
-                        >
-                          Ver Perfil
-                        </button>
+                        <div className="flex items-center justify-end gap-1 text-slate-500 group-hover:text-amber-400 transition-colors">
+                          <span className="text-[11px] font-semibold hidden sm:inline-block opacity-0 group-hover:opacity-100 transition-opacity">
+                            Ver
+                          </span>
+                          <ChevronRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform" />
+                        </div>
                       </td>
                     </tr>
                   );
