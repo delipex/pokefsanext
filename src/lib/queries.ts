@@ -82,11 +82,13 @@ export async function getMetagameData() {
   const allMeta = await db.select().from(metagame);
   const allDecks = await db.select().from(decks);
   const allEtapas = await db.select().from(etapas).orderBy(desc(etapas.data));
+  const allResults = await db.select().from(etapaResultados);
 
   return {
     metagameEntries: allMeta,
     decksInfo: allDecks,
     etapas: allEtapas,
+    etapaResultados: allResults,
   };
 }
 
