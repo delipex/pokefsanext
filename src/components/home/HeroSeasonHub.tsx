@@ -47,7 +47,7 @@ export interface HeroSeasonHubProps {
     ditto: {
       player: string;
       count: number;
-      decks: string[];
+      decks: any[];
       participations: number;
     } | null;
     murcha: {

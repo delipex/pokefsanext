@@ -150,6 +150,30 @@ export async function getSeasonAwards() {
     return b.pontos - a.pontos;
   })[0];
 
+  const allDecks = await db.select().from(decks);
+
+  // Helper para formatar nome de deck com iniciais maiúsculas e "Ex"
+  function formatDeckName(name: string): string {
+    if (!name) return "";
+    const lowerWords = ["da", "de", "do", "das", "dos", "e", "com", "no", "na"];
+    return name
+      .split(" ")
+      .map((word, idx) => {
+        const w = word.trim();
+        if (!w) return "";
+        const lower = w.toLowerCase();
+        if (lower === "ex") return "Ex";
+        if (lower === "gx") return "GX";
+        if (lower === "vmax") return "VMAX";
+        if (lower === "vstar") return "VSTAR";
+        if (lower === "v") return "V";
+        if (lowerWords.includes(lower) && idx > 0) return lower;
+        return lower.charAt(0).toUpperCase() + lower.slice(1);
+      })
+      .join(" ")
+      .replace(/\s*\+\s*/g, " + ");
+  }
+
   // 3. DITTO PLAYER (Maior número de decks diferentes jogados no metagame)
   const playerDecksMap: Record<string, Set<string>> = {};
   for (const entry of metaEntries) {
@@ -164,10 +188,20 @@ export async function getSeasonAwards() {
   const dittoCandidates = Object.entries(playerDecksMap)
     .map(([pName, deckSet]) => {
       const r = ranking.find((rk) => rk.jogadorNome.toLowerCase() === pName.toLowerCase());
+      const formattedDecks = Array.from(deckSet).map((rawD) => {
+        const found = allDecks.find(
+          (d) => d.nome.toLowerCase() === rawD.toLowerCase()
+        );
+        return {
+          nome: found ? formatDeckName(found.nome) : formatDeckName(rawD),
+          tipoEnergia: found?.tipoEnergia || "colorless",
+        };
+      });
+
       return {
         player: pName,
         count: deckSet.size,
-        decks: Array.from(deckSet),
+        decks: formattedDecks,
         participations: r?.participacoes || 1,
         mediaColocacao: r?.mediaColocacao || 99,
       };

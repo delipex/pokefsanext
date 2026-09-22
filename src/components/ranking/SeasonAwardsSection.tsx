@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Award, ChevronRight, X } from "lucide-react";
+import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
 interface SeasonAwardsSectionProps {
   awards: {
@@ -245,13 +246,35 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                   </div>
                   {ditto?.decks && ditto.decks.length > 0 && (
                     <div className="pt-2 border-t border-white/5">
-                      <span className="text-[10px] uppercase text-slate-400 block mb-1.5 font-bold">Decks Utilizados:</span>
+                      <span className="text-[10px] uppercase text-slate-400 block mb-2 font-bold">Decks Utilizados:</span>
                       <div className="flex flex-wrap gap-1.5">
-                        {ditto.decks.map((d: string) => (
-                          <span key={d} className="rounded-lg bg-purple-500/20 px-2 py-0.5 text-[10px] text-purple-300 border border-purple-500/30">
-                            {d}
-                          </span>
-                        ))}
+                        {ditto.decks.map((d: any, idx: number) => {
+                          const deckName = typeof d === "string" ? d : d.nome;
+                          const deckEnergy = typeof d === "string" ? "colorless" : d.tipoEnergia;
+                          const energyCfg = getMultiEnergyConfig(deckEnergy);
+
+                          return (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold text-white shadow-sm backdrop-blur-md"
+                              style={{
+                                background: energyCfg.gradientBg,
+                                border: energyCfg.borderStyle,
+                              }}
+                            >
+                              <div className="flex items-center -space-x-1 shrink-0">
+                                {energyCfg.types.map((t, i) => (
+                                  <span
+                                    key={i}
+                                    className="h-1.5 w-1.5 rounded-full border border-black/40 shadow-sm shrink-0"
+                                    style={{ backgroundColor: t.hex, boxShadow: `0 0 4px ${t.hex}` }}
+                                  />
+                                ))}
+                              </div>
+                              <span className="truncate">{deckName}</span>
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
