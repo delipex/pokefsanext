@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, Calendar, Sparkles } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Search, Calendar, Sparkles, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
@@ -71,6 +71,10 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
   const [selectedStageDate, setSelectedStageDate] = useState<string>("general");
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerModalData | null>(null);
 
+  // Paginação
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(15);
+
   const isGeneralRanking = selectedStageDate === "general";
   const currentStage = useMemo(() => {
     return etapas.find((e) => e.data === selectedStageDate) || null;
@@ -116,6 +120,25 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
     });
   }, [currentStage, selectedCategory, search]);
 
+  // Resetar página ao mudar filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory, selectedStageDate, pageSize]);
+
+  const activeTotal = isGeneralRanking ? filteredGeneralPlayers.length : filteredStageResults.length;
+  const totalPages = Math.max(1, Math.ceil(activeTotal / pageSize));
+
+  // Dados paginados
+  const paginatedGeneralPlayers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredGeneralPlayers.slice(start, start + pageSize);
+  }, [filteredGeneralPlayers, currentPage, pageSize]);
+
+  const paginatedStageResults = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredStageResults.slice(start, start + pageSize);
+  }, [filteredStageResults, currentPage, pageSize]);
+
   const categories = ["TODOS", "MASTER", "SENIOR", "JUNIOR"];
 
   // Helper para abrir modal a partir do resultado da etapa
@@ -148,25 +171,28 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
   return (
     <div className="w-full space-y-4">
       {/* Barra de Filtros, Seletor de Etapas e Busca */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-3.5 backdrop-blur-xl">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-3.5 backdrop-blur-xl shadow-lg">
         {/* Seletor de Visão: Ranking Geral vs Etapas Individuais */}
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
           {etapas.length > 0 && (
-            <div className="relative w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto flex items-center gap-2">
+              <span className="hidden sm:inline-flex items-center rounded-lg bg-blue-500/20 border border-blue-500/40 px-2 py-1 text-[10px] font-black uppercase text-blue-300">
+                Temporada 5
+              </span>
               <select
                 value={selectedStageDate}
                 onChange={(e) => setSelectedStageDate(e.target.value)}
                 className="w-full sm:w-auto rounded-xl border border-blue-500/30 bg-blue-950/40 px-3.5 py-2 text-xs font-bold text-blue-300 focus:outline-none focus:border-blue-400 cursor-pointer backdrop-blur-md"
               >
                 <option value="general" className="bg-slate-900 text-white">
-                  🏆 Ranking Geral Consolidado
+                  🏆 Ranking Geral Consolidado (Temporada 5)
                 </option>
-                <optgroup label="── Etapas da Temporada ──" className="bg-slate-900 text-slate-400">
+                <optgroup label="── Etapas da Temporada 5 ──" className="bg-slate-900 text-slate-400">
                   {etapas.map((etapa, idx) => {
                     const stageNum = etapas.length - idx;
                     return (
                       <option key={etapa.data} value={etapa.data} className="bg-slate-900 text-white">
-                        Etapa #{stageNum} • {etapa.data} ({etapa.tipo} • {etapa.multiplicador}x)
+                        Etapa #{stageNum} (T5) • {etapa.data} ({etapa.tipo} • {etapa.multiplicador}x)
                       </option>
                     );
                   })}
@@ -210,6 +236,9 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
       {!isGeneralRanking && currentStage && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-xs text-blue-300 backdrop-blur-md">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <span className="rounded-md bg-blue-600/30 px-2 py-0.5 text-[11px] font-black text-blue-200 border border-blue-400/40">
+              Temporada 5
+            </span>
             <span className="flex items-center gap-1 font-bold text-white">
               <Calendar className="h-3.5 w-3.5 text-blue-400" /> {currentStage.data}
             </span>
@@ -232,25 +261,34 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         </div>
       )}
 
-      {/* Contagem de Resultados */}
-      <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+      {/* Contagem e Controles de Exibição */}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 px-1">
         <span>
-          Mostrando{" "}
-          <strong>
-            {isGeneralRanking ? filteredGeneralPlayers.length : filteredStageResults.length}
-          </strong>{" "}
-          participantes
+          Mostrando <strong>{activeTotal === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong> a{" "}
+          <strong>{Math.min(currentPage * pageSize, activeTotal)}</strong> de <strong>{activeTotal}</strong> participantes
         </span>
-        <span>
-          {isGeneralRanking ? "Temporada 5 Consolidada" : `Resultado Oficial • ${currentStage?.data}`}
-        </span>
+
+        {/* Seletor de Itens por Página */}
+        <div className="flex items-center gap-2">
+          <span>Itens por pág:</span>
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="rounded-lg border border-white/10 bg-slate-900 px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer"
+          >
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
       </div>
 
-      {/* Tabela de Classificação Responsiva */}
+      {/* Tabela de Classificação Responsiva com Glassmorphism */}
       <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/70 shadow-2xl backdrop-blur-xl">
         {isGeneralRanking ? (
           /* TABELA 1: RANKING GERAL CONSOLIDADO */
-          <table className="w-full text-left text-sm text-slate-200">
+          <table className="w-full text-left text-sm text-slate-200 min-w-[700px]">
             <thead className="border-b border-white/10 bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
                 <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-12">#</th>
@@ -265,15 +303,16 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filteredGeneralPlayers.length === 0 ? (
+              {paginatedGeneralPlayers.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-12 text-center text-slate-400">
                     Nenhum jogador encontrado com os filtros selecionados.
                   </td>
                 </tr>
               ) : (
-                filteredGeneralPlayers.map((player, index) => {
-                  const pos = index + 1;
+                paginatedGeneralPlayers.map((player, index) => {
+                  const globalIndex = (currentPage - 1) * pageSize + index;
+                  const pos = globalIndex + 1;
                   const isTop1 = pos === 1;
                   const isTop4 = pos <= 4;
                   const deckEnergy = player.ultimoDeckEnergia || getDeckEnergy(player.ultimoDeck);
@@ -281,7 +320,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
                   return (
                     <tr
-                      key={player.jogadorId || index}
+                      key={player.jogadorId || globalIndex}
                       onClick={() => setSelectedPlayer(player)}
                       className={`group cursor-pointer transition-colors hover:bg-blue-600/10 ${
                         isTop1
@@ -369,7 +408,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                               {energyCfg.types.map((t, i) => (
                                 <span
                                   key={i}
-                                  className="h-2 w-2 rounded-full border border-black/40 shadow-sm shrink-0"
+                                  className="h-1.5 w-1.5 rounded-full border border-black/40 shadow-sm shrink-0"
                                   style={{ backgroundColor: t.hex, boxShadow: `0 0 4px ${t.hex}` }}
                                 />
                               ))}
@@ -400,7 +439,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
           </table>
         ) : (
           /* TABELA 2: CLASSIFICAÇÃO DA ETAPA SELECIONADA */
-          <table className="w-full text-left text-sm text-slate-200">
+          <table className="w-full text-left text-sm text-slate-200 min-w-[700px]">
             <thead className="border-b border-white/10 bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
                 <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-12">Pos</th>
@@ -412,14 +451,14 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filteredStageResults.length === 0 ? (
+              {paginatedStageResults.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400">
                     Nenhum jogador encontrado para esta etapa com os filtros selecionados.
                   </td>
                 </tr>
               ) : (
-                filteredStageResults.map((result) => {
+                paginatedStageResults.map((result, idx) => {
                   const isTop1 = result.colocacao === 1;
                   const isTop4 = result.colocacao <= 4;
                   const deckEnergy = getDeckEnergy(result.deckNome);
@@ -427,7 +466,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
                   return (
                     <tr
-                      key={result.id}
+                      key={result.id || idx}
                       onClick={() => handleOpenStagePlayerModal(result)}
                       className={`group cursor-pointer transition-colors hover:bg-blue-600/10 ${
                         isTop1 ? "bg-yellow-500/10 font-bold" : isTop4 ? "bg-slate-800/30" : ""
@@ -495,7 +534,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                               {energyCfg.types.map((t, i) => (
                                 <span
                                   key={i}
-                                  className="h-2 w-2 rounded-full border border-black/40 shadow-sm shrink-0"
+                                  className="h-1.5 w-1.5 rounded-full border border-black/40 shadow-sm shrink-0"
                                   style={{ backgroundColor: t.hex, boxShadow: `0 0 4px ${t.hex}` }}
                                 />
                               ))}
@@ -526,6 +565,85 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
           </table>
         )}
       </div>
+
+      {/* Controles de Paginação */}
+      {totalPages > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 px-1">
+          <div className="text-xs text-slate-400">
+            Página <strong>{currentPage}</strong> de <strong>{totalPages}</strong>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {/* Primeira Página */}
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg border border-white/10 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              aria-label="Primeira página"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
+
+            {/* Página Anterior */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg border border-white/10 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            {/* Botões Numéricos de Páginas Próximas */}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum = currentPage;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`min-w-[32px] h-8 rounded-lg px-2 text-xs font-bold transition-all ${
+                    currentPage === pageNum
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                      : "border border-white/10 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+
+            {/* Próxima Página */}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded-lg border border-white/10 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              aria-label="Próxima página"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+
+            {/* Última Página */}
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded-lg border border-white/10 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+              aria-label="Última página"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Detalhes do Jogador */}
       <PlayerModal player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />

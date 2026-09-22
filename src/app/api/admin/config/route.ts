@@ -5,6 +5,27 @@ import { configuracoes } from "@/db/schema";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
+    // Se vier um objeto com múltiplas configs: { configs: { chave: valor, ... } }
+    if (body.configs && typeof body.configs === "object") {
+      const entries = Object.entries(body.configs);
+      for (const [chave, valor] of entries) {
+        await db
+          .insert(configuracoes)
+          .values({
+            chave,
+            valor: typeof valor === "object" ? JSON.stringify(valor) : String(valor),
+          })
+          .onConflictDoUpdate({
+            target: configuracoes.chave,
+            set: {
+              valor: typeof valor === "object" ? JSON.stringify(valor) : String(valor),
+            },
+          });
+      }
+      return NextResponse.json({ success: true, message: "Todas as configurações foram salvas com sucesso!" });
+    }
+
     const { chave, valor } = body;
 
     if (!chave) {

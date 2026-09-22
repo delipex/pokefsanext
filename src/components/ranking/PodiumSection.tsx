@@ -122,20 +122,13 @@ export function PodiumSection({ top4, onSelectPlayer, showFullLink = true }: Pod
                 )}
               </div>
 
-              {/* Rodapé do Card: Stats */}
-              <div className="grid grid-cols-3 gap-1.5 border-t border-white/10 pt-3 text-center text-xs">
-                <div className="rounded-xl bg-slate-800/60 p-1.5 border border-white/5">
-                  <span className="text-[10px] text-slate-400 block">V/E/D</span>
-                  <span className="font-bold text-slate-200">{player.vitorias}/{player.empates}/{player.derrotas}</span>
-                </div>
-                <div className="rounded-xl bg-slate-800/60 p-1.5 border border-white/5">
-                  <span className="text-[10px] text-slate-400 block">Pódios</span>
-                  <span className="font-bold text-yellow-400">{player.podios}x</span>
-                </div>
-                <div className="rounded-xl bg-slate-800/60 p-1.5 border border-white/5">
-                  <span className="text-[10px] text-slate-400 block">Média</span>
-                  <span className="font-bold text-slate-200">#{player.mediaColocacao.toFixed(1)}</span>
-                </div>
+              {/* Rodapé do Card: Resumo Limpo e Legível */}
+              <div className="flex items-center justify-between text-xs text-slate-300 pt-3 border-t border-white/5 font-semibold">
+                <span className="text-slate-400">{player.vitorias}V - {player.derrotas}D</span>
+                {player.podios > 0 && (
+                  <span className="text-amber-300 font-bold">{player.podios} pódios</span>
+                )}
+                <span className="text-slate-400">#{player.mediaColocacao.toFixed(1)}</span>
               </div>
             </div>
           );

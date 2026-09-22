@@ -2,7 +2,6 @@ import { getRanking, getTop4Podium, getMetagameData, getEtapasWithSummary, getCo
 import { HeroSeasonHub } from "@/components/home/HeroSeasonHub";
 import { PodiumSection } from "@/components/ranking/PodiumSection";
 import { MetagameDashboard } from "@/components/metagame/MetagameDashboard";
-import { NextEventCard } from "@/components/home/NextEventCard";
 import { SeasonAwardsSection } from "@/components/ranking/SeasonAwardsSection";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -76,7 +75,7 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-12 sm:space-y-16">
-      {/* Hero Dinâmico: KPIs da Temporada + Ticker de Títulos & Premiações */}
+      {/* Hero Dinâmico Unificado: Ticker de Títulos, KPIs e Próximo Evento Oficial */}
       <HeroSeasonHub
         temporada={Number(config.temporadaAtual) || 5}
         totalEtapas={etapas.length}
@@ -84,12 +83,10 @@ export default async function HomePage() {
         lider={lider}
         topDeck={topDeck}
         awards={awards}
+        nextEvent={nextEvent}
       />
 
-      {/* 1. Card de Próximo Evento Conectado ao Calendário */}
-      <NextEventCard event={nextEvent} />
-
-      {/* 2. Top 4 Podium */}
+      {/* 1. Top 4 Podium */}
       <PodiumSection top4={top4} />
 
       {/* 3. Premiações Projetadas da Temporada */}

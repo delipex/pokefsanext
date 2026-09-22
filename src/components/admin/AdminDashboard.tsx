@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Lock,
-  Unlock,
   Upload,
   UserPlus,
   Settings,
@@ -17,10 +16,17 @@ import {
   Plus,
   ExternalLink,
   Sparkles,
-  Swords,
-  Medal,
   Sliders,
-  HelpCircle,
+  Calendar,
+  LogOut,
+  Trash2,
+  MapPin,
+  Clock,
+  Link as LinkIcon,
+  Shield,
+  Save,
+  Pencil,
+  X,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { parseTDFContent, ParsedPlayerRow } from "@/lib/tdf-parser";
@@ -29,14 +35,30 @@ interface AdminDashboardProps {
   initialPlayers: any[];
   initialDecks: any[];
   initialConfig: Record<string, any>;
+  initialCalendar?: any[];
 }
 
-export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: AdminDashboardProps) {
-  const [pin, setPin] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authError, setAuthError] = useState("");
+export function AdminDashboard({
+  initialPlayers,
+  initialDecks,
+  initialConfig,
+  initialCalendar = [],
+}: AdminDashboardProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"tdf" | "jogadores" | "decks" | "calendario" | "config" | "fechamento">("tdf");
 
-  const [activeTab, setActiveTab] = useState<"tdf" | "jogadores" | "decks" | "config">("tdf");
+  // Estado do Fechamento de Temporada
+  const [closureCurrentSeason, setClosureCurrentSeason] = useState(Number(initialConfig.temporadaAtual) || 5);
+  const [closureNextSeason, setClosureNextSeason] = useState((Number(initialConfig.temporadaAtual) || 5) + 1);
+  const [closureDate, setClosureDate] = useState(new Date().toISOString().split("T")[0]);
+  const [closureCampeao, setClosureCampeao] = useState("");
+  const [closureVice, setClosureVice] = useState("");
+  const [closureDeck, setClosureDeck] = useState("");
+  const [closureConfirmText, setClosureConfirmText] = useState("");
+  const [closureResetRanking, setClosureResetRanking] = useState(true);
+  const [closureLoading, setClosureLoading] = useState(false);
+  const [closureMessage, setClosureMessage] = useState("");
+  const [closureSuccess, setClosureSuccess] = useState(false);
 
   // Estado da aba TDF
   const [stageDate, setStageDate] = useState(new Date().toISOString().split("T")[0]);
@@ -50,6 +72,7 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
 
   // Estado de Jogadores
   const [players, setPlayers] = useState(initialPlayers);
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [newPlayerId, setNewPlayerId] = useState("");
   const [newPlayerName, setNewPlayerName] = useState("");
   const [newPlayerCategory, setNewPlayerCategory] = useState("Master");
@@ -58,6 +81,8 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
 
   // Estado de Decks
   const [decks, setDecks] = useState(initialDecks);
+  const [editingDeckId, setEditingDeckId] = useState<number | null>(null);
+  const [editingDeckOriginalName, setEditingDeckOriginalName] = useState<string | null>(null);
   const [newDeckName, setNewDeckName] = useState("");
   const [newDeckEnergy, setNewDeckEnergy] = useState("fire");
   const [newDeckImage, setNewDeckImage] = useState("");
@@ -65,11 +90,29 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
   const [deckSearch, setDeckSearch] = useState("");
   const [deckMessage, setDeckMessage] = useState("");
 
-  // Estado de Configurações
+  // Estado de Calendário
+  const [calendarEvents, setCalendarEvents] = useState(initialCalendar);
+  const [editingCalId, setEditingCalId] = useState<number | null>(null);
+  const [newCalDate, setNewCalDate] = useState(new Date().toISOString().split("T")[0]);
+  const [newCalEvento, setNewCalEvento] = useState("");
+  const [newCalLocal, setNewCalLocal] = useState("Livraria Atlântica +");
+  const [newCalHorario, setNewCalHorario] = useState("14:00");
+  const [newCalStatus, setNewCalStatus] = useState("confirmado");
+  const [newCalLinkMaps, setNewCalLinkMaps] = useState("https://maps.google.com");
+  const [newCalLinkInscricao, setNewCalLinkInscricao] = useState("");
+  const [calendarMessage, setCalendarMessage] = useState("");
+
+  // Estado de Configurações Globais
+  const [nomeLiga, setNomeLiga] = useState(initialConfig.nomeLiga || "Liga Atlântica TCG");
+  const [temporadaAtual, setTemporadaAtual] = useState(initialConfig.temporadaAtual || "5");
   const [avisoTopo, setAvisoTopo] = useState(initialConfig.avisoTopo || "");
   const [linkWhatsApp, setLinkWhatsApp] = useState(initialConfig.linkWhatsApp || "");
+  const [linkInstagram, setLinkInstagram] = useState(initialConfig.linkInstagram || "");
+  const [chavePix, setChavePix] = useState(initialConfig.chavePix || "");
+  const [adminPin, setAdminPin] = useState(initialConfig.adminPin || "1234");
   const [statusTemporada, setStatusTemporada] = useState(initialConfig.statusTemporada || "ativa");
   const [configMessage, setConfigMessage] = useState("");
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   // Normalizador de nomes
   const normalizeName = (name: string) => {
@@ -80,14 +123,14 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
       .trim();
   };
 
-  // Autenticação por PIN
-  const handleAuth = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pin === "1234" || pin === "liga2026" || pin === (initialConfig.adminPin || "1234")) {
-      setIsAuthenticated(true);
-      setAuthError("");
-    } else {
-      setAuthError("PIN incorreto. Tente novamente.");
+  // Logout
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } catch (err) {
+      console.error("Erro ao fazer logout:", err);
     }
   };
 
@@ -173,7 +216,6 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
       const isMatchedByName = dbNamesNormalized.has(normalizeName(row.jogador));
 
       if (!isMatchedById && !isMatchedByName) {
-        // Se ainda não foi resolvido manualmente
         if (!resolvedNamesMap[row.jogador]) {
           unresolved.push(row);
         }
@@ -253,15 +295,36 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
     }
   };
 
-  // Adicionar Jogador
-  const handleAddPlayer = async (e: React.FormEvent) => {
+  // Selecionar Jogador para Edição
+  const handleSelectPlayerToEdit = (p: any) => {
+    setEditingPlayerId(p.id);
+    setNewPlayerId(p.id);
+    setNewPlayerName(p.nome);
+    setNewPlayerCategory(p.categoria || "Master");
+    setPlayerMessage("");
+  };
+
+  const handleCancelEditPlayer = () => {
+    setEditingPlayerId(null);
+    setNewPlayerId("");
+    setNewPlayerName("");
+    setNewPlayerCategory("Master");
+    setPlayerMessage("");
+  };
+
+  // Salvar/Atualizar Jogador
+  const handleSavePlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlayerId || !newPlayerName) return;
     setPlayerMessage("");
 
     try {
-      const res = await fetch("/api/admin/players", {
-        method: "POST",
+      const isEditing = Boolean(editingPlayerId);
+      const url = "/api/admin/players";
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: newPlayerId,
@@ -275,26 +338,75 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
           ...prev.filter((p) => p.id !== newPlayerId),
           { id: newPlayerId, nome: newPlayerName, categoria: newPlayerCategory },
         ]);
+        setPlayerMessage(isEditing ? "✅ Jogador atualizado com sucesso!" : "✅ Jogador cadastrado com sucesso!");
+        if (isEditing) {
+          setEditingPlayerId(null);
+        }
         setNewPlayerId("");
         setNewPlayerName("");
-        setPlayerMessage("✅ Jogador cadastrado com sucesso!");
+      } else {
+        const data = await res.json();
+        setPlayerMessage(`❌ Erro: ${data.error}`);
       }
     } catch (err: any) {
       setPlayerMessage(`❌ Erro: ${err.message}`);
     }
   };
 
-  // Adicionar Deck
-  const handleAddDeck = async (e: React.FormEvent) => {
+  // Excluir Jogador
+  const handleDeletePlayer = async (id: string, nome: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o jogador "${nome}" (ID: ${id})?`)) return;
+    try {
+      const res = await fetch(`/api/admin/players?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setPlayers((prev) => prev.filter((p) => p.id !== id));
+        if (editingPlayerId === id) {
+          handleCancelEditPlayer();
+        }
+        setPlayerMessage("✅ Jogador excluído com sucesso!");
+      }
+    } catch (err: any) {
+      setPlayerMessage(`❌ Erro ao excluir: ${err.message}`);
+    }
+  };
+
+  // Selecionar Deck para Edição
+  const handleSelectDeckToEdit = (d: any) => {
+    setEditingDeckId(d.id);
+    setEditingDeckOriginalName(d.nome);
+    setNewDeckName(d.nome);
+    setNewDeckEnergy(d.tipoEnergia || "fire");
+    setNewDeckImage(d.imagem || "");
+    setNewDeckLimitless(d.limitless || "");
+    setDeckMessage("");
+  };
+
+  const handleCancelEditDeck = () => {
+    setEditingDeckId(null);
+    setEditingDeckOriginalName(null);
+    setNewDeckName("");
+    setNewDeckEnergy("fire");
+    setNewDeckImage("");
+    setNewDeckLimitless("");
+    setDeckMessage("");
+  };
+
+  // Salvar/Atualizar Deck
+  const handleSaveDeck = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDeckName) return;
     setDeckMessage("");
 
     try {
-      const res = await fetch("/api/admin/decks", {
-        method: "POST",
+      const isEditing = Boolean(editingDeckId);
+      const url = "/api/admin/decks";
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: editingDeckId,
           nome: newDeckName,
           tipoEnergia: newDeckEnergy,
           imagem: newDeckImage || null,
@@ -304,202 +416,367 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
 
       if (res.ok) {
         setDecks((prev) => [
-          ...prev.filter((d) => d.nome.toLowerCase() !== newDeckName.toLowerCase()),
+          ...prev.filter((d) => d.id !== editingDeckId && d.nome.toLowerCase() !== newDeckName.toLowerCase()),
           {
-            id: Date.now(),
+            id: editingDeckId || Date.now(),
             nome: newDeckName,
             tipoEnergia: newDeckEnergy,
             imagem: newDeckImage,
             limitless: newDeckLimitless,
           },
         ]);
-        setNewDeckName("");
-        setNewDeckImage("");
-        setNewDeckLimitless("");
-        setDeckMessage("✅ Deck cadastrado com sucesso!");
+        setDeckMessage(isEditing ? "✅ Deck atualizado com sucesso!" : "✅ Deck cadastrado com sucesso!");
+        if (isEditing) {
+          handleCancelEditDeck();
+        } else {
+          setNewDeckName("");
+          setNewDeckImage("");
+          setNewDeckLimitless("");
+        }
+      } else {
+        const data = await res.json();
+        setDeckMessage(`❌ Erro: ${data.error}`);
       }
     } catch (err: any) {
       setDeckMessage(`❌ Erro: ${err.message}`);
     }
   };
 
-  // Salvar Configurações
-  const handleSaveConfig = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setConfigMessage("");
-
+  // Excluir Deck
+  const handleDeleteDeck = async (d: any) => {
+    if (!confirm(`Tem certeza que deseja excluir o arquétipo "${d.nome}"?`)) return;
     try {
-      await fetch("/api/admin/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chave: "avisoTopo", valor: avisoTopo }),
-      });
-
-      await fetch("/api/admin/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chave: "linkWhatsApp", valor: linkWhatsApp }),
-      });
-
-      await fetch("/api/admin/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chave: "statusTemporada", valor: statusTemporada }),
-      });
-
-      setConfigMessage("✅ Configurações salvas com sucesso!");
+      const res = await fetch(`/api/admin/decks?id=${d.id}&nome=${encodeURIComponent(d.nome)}`, { method: "DELETE" });
+      if (res.ok) {
+        setDecks((prev) => prev.filter((item) => item.id !== d.id));
+        if (editingDeckId === d.id) {
+          handleCancelEditDeck();
+        }
+        setDeckMessage("✅ Deck excluído com sucesso!");
+      }
     } catch (err: any) {
-      setConfigMessage(`❌ Erro ao salvar: ${err.message}`);
+      setDeckMessage(`❌ Erro ao excluir: ${err.message}`);
     }
   };
 
-  // Tela de Login com PIN
-  if (!isAuthenticated) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/80 p-8 backdrop-blur-2xl shadow-2xl text-center space-y-6">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-lg">
-            <Lock className="h-8 w-8" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-white">Painel do Organizador</h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Digite seu PIN de acesso para gerenciar etapas, jogadores, decks e configurações
-            </p>
-          </div>
+  // Selecionar Evento para Edição
+  const handleSelectCalToEdit = (ev: any) => {
+    setEditingCalId(ev.id);
+    setNewCalDate(ev.data);
+    setNewCalEvento(ev.evento);
+    setNewCalLocal(ev.local || "Livraria Atlântica +");
+    setNewCalHorario(ev.horario || "14:00");
+    setNewCalStatus(ev.status || "confirmado");
+    setNewCalLinkMaps(ev.linkMaps || "https://maps.google.com");
+    setNewCalLinkInscricao(ev.linkInscricao || "");
+    setCalendarMessage("");
+  };
 
-          <form onSubmit={handleAuth} className="space-y-4">
-            <input
-              type="password"
-              placeholder="PIN de Acesso (padrão: 1234)"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-slate-800/90 py-3 text-center text-lg font-bold tracking-widest text-white focus:border-blue-500 focus:outline-none"
-              autoFocus
-            />
+  const handleCancelEditCal = () => {
+    setEditingCalId(null);
+    setNewCalDate(new Date().toISOString().split("T")[0]);
+    setNewCalEvento("");
+    setNewCalLinkInscricao("");
+    setCalendarMessage("");
+  };
 
-            {authError && <p className="text-xs font-semibold text-rose-400">{authError}</p>}
+  // Salvar/Atualizar Evento no Calendário
+  const handleSaveCalendarEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCalDate || !newCalEvento) return;
+    setCalendarMessage("");
 
-            <button
-              type="submit"
-              className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/30 hover:opacity-90 transition-all"
-            >
-              Acessar Painel
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
+    try {
+      const isEditing = Boolean(editingCalId);
+      const res = await fetch("/api/admin/calendar", {
+        method: isEditing ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingCalId,
+          data: newCalDate,
+          evento: newCalEvento,
+          local: newCalLocal,
+          horario: newCalHorario,
+          status: newCalStatus,
+          linkMaps: newCalLinkMaps,
+          linkInscricao: newCalLinkInscricao,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.event) {
+        setCalendarEvents((prev) => [
+          ...prev.filter((ev) => ev.id !== (editingCalId || data.event.id)),
+          data.event,
+        ]);
+        setCalendarMessage(isEditing ? "✅ Evento atualizado!" : "✅ Evento adicionado!");
+        handleCancelEditCal();
+      } else {
+        setCalendarMessage(`❌ Erro: ${data.error}`);
+      }
+    } catch (err: any) {
+      setCalendarMessage(`❌ Erro: ${err.message}`);
+    }
+  };
+
+  // Excluir Evento do Calendário
+  const handleDeleteCalendarEvent = async (id: number) => {
+    if (!confirm("Tem certeza que deseja excluir este evento do calendário?")) return;
+    try {
+      const res = await fetch(`/api/admin/calendar?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setCalendarEvents((prev) => prev.filter((ev) => ev.id !== id));
+        if (editingCalId === id) {
+          handleCancelEditCal();
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao excluir evento:", err);
+    }
+  };
+
+  // Salvar Todas as Configurações Globais
+  const handleSaveAllConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingConfig(true);
+    setConfigMessage("");
+
+    try {
+      const res = await fetch("/api/admin/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          configs: {
+            nomeLiga,
+            temporadaAtual,
+            avisoTopo,
+            linkWhatsApp,
+            linkInstagram,
+            chavePix,
+            adminPin,
+            statusTemporada,
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setConfigMessage("✅ Configurações salvas e aplicadas com sucesso!");
+      } else {
+        setConfigMessage(`❌ Erro: ${data.error}`);
+      }
+    } catch (err: any) {
+      setConfigMessage(`❌ Erro ao salvar: ${err.message}`);
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
+
+  // Executar Fechamento de Temporada
+  const handleExecuteSeasonClosure = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (closureConfirmText.trim().toUpperCase() !== `ENCERRAR TEMPORADA ${closureCurrentSeason}`) {
+      setClosureMessage(`❌ Para confirmar com segurança, digite exatamente "ENCERRAR TEMPORADA ${closureCurrentSeason}".`);
+      return;
+    }
+    setClosureLoading(true);
+    setClosureMessage("");
+
+    try {
+      const res = await fetch("/api/admin/season-closure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentSeason: closureCurrentSeason,
+          nextSeason: closureNextSeason,
+          campeaoNome: closureCampeao,
+          viceNome: closureVice,
+          deckCampeao: closureDeck,
+          dataFechamento: closureDate,
+          resetCurrentRankings: closureResetRanking,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setClosureSuccess(true);
+        setClosureMessage(`✅ ${data.message}`);
+        setTemporadaAtual(String(closureNextSeason));
+        setNomeLiga(initialConfig.nomeLiga || "Liga Atlântica TCG");
+      } else {
+        setClosureMessage(`❌ Erro: ${data.error}`);
+      }
+    } catch (err: any) {
+      setClosureMessage(`❌ Erro ao encerrar temporada: ${err.message}`);
+    } finally {
+      setClosureLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
-      {/* Topo do Painel */}
+      {/* Topo do Painel com Botão de Logout */}
       <div className="flex items-center justify-between flex-wrap gap-4 border-b border-white/10 pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              <Unlock className="h-4 w-4" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-inner">
+              <Shield className="h-4 w-4" />
             </span>
-            <h1 className="text-2xl sm:text-3xl font-black text-white">Painel Administrativo</h1>
+            <h1 className="text-2xl sm:text-3xl font-black text-white">Painel do Organizador</h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Gestão oficial de etapas TOM, cálculo de ranking, metagame, jogadores e decks
+            Gestão oficial de etapas TOM, ranking consolidado, metagame, calendário e configurações globais
           </p>
         </div>
 
-        {/* Abas */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setActiveTab("tdf")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-              activeTab === "tdf"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                : "bg-slate-800 text-slate-400 hover:text-white"
-            }`}
+            onClick={handleLogout}
+            className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 transition-all cursor-pointer shadow-sm"
           >
-            <Upload className="h-4 w-4" /> Publicar TDF
-          </button>
-          <button
-            onClick={() => setActiveTab("jogadores")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-              activeTab === "jogadores"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                : "bg-slate-800 text-slate-400 hover:text-white"
-            }`}
-          >
-            <UserPlus className="h-4 w-4" /> Jogadores
-          </button>
-          <button
-            onClick={() => setActiveTab("decks")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-              activeTab === "decks"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                : "bg-slate-800 text-slate-400 hover:text-white"
-            }`}
-          >
-            <Flame className="h-4 w-4" /> Metagame
-          </button>
-          <button
-            onClick={() => setActiveTab("config")}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-              activeTab === "config"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                : "bg-slate-800 text-slate-400 hover:text-white"
-            }`}
-          >
-            <Settings className="h-4 w-4" /> Configurações
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Sair</span>
           </button>
         </div>
       </div>
 
-      {/* 1. ABA TDF / UPLOAD */}
+      {/* Navegação por Abas */}
+      <div className="flex items-center gap-2 flex-wrap bg-slate-900/60 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl">
+        <button
+          onClick={() => setActiveTab("tdf")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "tdf"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <Upload className="h-3.5 w-3.5" />
+          <span>Publicar TDF</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("jogadores")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "jogadores"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <UserPlus className="h-3.5 w-3.5" />
+          <span>Jogadores</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("decks")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "decks"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <Flame className="h-3.5 w-3.5" />
+          <span>Metagame</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("calendario")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "calendario"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <Calendar className="h-3.5 w-3.5" />
+          <span>Calendário & Eventos</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("config")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "config"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <Settings className="h-3.5 w-3.5" />
+          <span>Configurações Globais</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("fechamento")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "fechamento"
+              ? "bg-amber-600 text-white shadow-md shadow-amber-600/30"
+              : "text-amber-400 hover:text-white hover:bg-amber-500/10 border border-amber-500/20"
+          }`}
+        >
+          <Trophy className="h-3.5 w-3.5 text-amber-400" />
+          <span>Fechador de Temporada</span>
+        </button>
+      </div>
+
+      {/* 1. ABA TDF / ETAPAS */}
       {activeTab === "tdf" && (
         <div className="space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-6">
-            <h3 className="text-lg font-black text-white flex items-center gap-2">
-              <Upload className="h-5 w-5 text-blue-400" />
-              Upload & Processamento de Arquivos TDF (TOM XML / TSV)
-            </h3>
+          {/* Box de Upload */}
+          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-400" />
+                  Importar Arquivo Oficial TOM (.tdf)
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Suporta arquivos TOM XML (`.tdf`) e TSV exportados pelo Tournament Operations Manager
+                </p>
+              </div>
 
-            {/* Grid de Seleção de Tipo de Evento */}
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                Tipo de Torneio / Sessão:
+              <label className="flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-xs font-black text-white shadow-lg shadow-blue-600/30 hover:bg-blue-500 transition-all cursor-pointer">
+                <Upload className="h-4 w-4" />
+                <span>Selecionar TDF</span>
+                <input
+                  type="file"
+                  accept=".tdf,.txt,.tsv"
+                  multiple
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            </div>
+
+            {/* Seleção do Tipo de Evento */}
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Tipo do Evento & Multiplicador de Pontuação:
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <button
                   type="button"
                   onClick={() => handleEventTypeSelect("Liga")}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all cursor-pointer ${
                     stageType === "Liga"
                       ? "border-blue-500 bg-blue-600/20 text-white shadow-lg shadow-blue-500/20"
                       : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
                   }`}
                 >
-                  <Swords className="h-5 w-5 mb-1 text-blue-400" />
-                  <span className="text-xs font-black text-white">Sessão de Liga</span>
-                  <span className="text-[10px] text-blue-300 font-semibold">1.0x (Fixo)</span>
+                  <Flame className="h-5 w-5 mb-1 text-blue-400" />
+                  <span className="text-xs font-black text-white">Etapa Regular</span>
+                  <span className="text-[10px] text-blue-300 font-semibold">1.0x (Padrão)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleEventTypeSelect("Challenge")}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all cursor-pointer ${
                     stageType === "Challenge"
                       ? "border-amber-500 bg-amber-600/20 text-white shadow-lg shadow-amber-500/20"
                       : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
                   }`}
                 >
-                  <Medal className="h-5 w-5 mb-1 text-amber-400" />
-                  <span className="text-xs font-black text-white">Challenge</span>
+                  <Trophy className="h-5 w-5 mb-1 text-amber-400" />
+                  <span className="text-xs font-black text-white">League Challenge</span>
                   <span className="text-[10px] text-amber-300 font-semibold">1.5x (Fixo)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleEventTypeSelect("Cup")}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all cursor-pointer ${
                     stageType === "Cup"
                       ? "border-yellow-500 bg-yellow-600/20 text-white shadow-lg shadow-yellow-500/20"
                       : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
@@ -513,7 +790,7 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 <button
                   type="button"
                   onClick={() => handleEventTypeSelect("Especial")}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all cursor-pointer ${
                     stageType === "Especial"
                       ? "border-purple-500 bg-purple-600/20 text-white shadow-lg shadow-purple-500/20"
                       : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
@@ -522,20 +799,6 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                   <Sparkles className="h-5 w-5 mb-1 text-purple-400" />
                   <span className="text-xs font-black text-white">Sessão Especial</span>
                   <span className="text-[10px] text-purple-300 font-semibold">1.0x (Ajustável)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleEventTypeSelect("Personalizado")}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
-                    stageType === "Personalizado"
-                      ? "border-emerald-500 bg-emerald-600/20 text-white shadow-lg shadow-emerald-500/20"
-                      : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
-                  }`}
-                >
-                  <Sliders className="h-5 w-5 mb-1 text-emerald-400" />
-                  <span className="text-xs font-black text-white">Personalizado</span>
-                  <span className="text-[10px] text-emerald-300 font-semibold">Livre</span>
                 </button>
               </div>
             </div>
@@ -554,37 +817,6 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 />
               </div>
 
-              {stageType === "Personalizado" ? (
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Título do Evento:
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Torneio de Férias #1"
-                    value={customStageTitle}
-                    onChange={(e) => setCustomStageTitle(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Multiplicador Oficial:
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0.5"
-                    max="5.0"
-                    value={multiplier}
-                    onChange={(e) => setMultiplier(Number(e.target.value))}
-                    disabled={stageType === "Liga" || stageType === "Challenge" || stageType === "Cup"}
-                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                </div>
-              )}
-
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                   Multiplicador Aplicado:
@@ -597,178 +829,168 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 </div>
               </div>
             </div>
-
-            {/* Dropzone com suporte a múltiplos arquivos */}
-            <div className="relative border-2 border-dashed border-white/20 rounded-2xl p-8 text-center hover:border-blue-500 transition-colors bg-slate-950/40">
-              <input
-                type="file"
-                multiple
-                accept=".tdf,.txt,.tsv,.xml"
-                onChange={handleFileInputChange}
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              />
-              <FileText className="mx-auto h-10 w-10 text-slate-500 mb-2" />
-              <p className="text-sm font-bold text-white">
-                Arraste o arquivo oficial .TDF (ou múltiplos arquivos) aqui ou clique para selecionar
-              </p>
-              <p className="text-xs text-slate-500 mt-1">
-                Suporte automático a XML nativo do TOM, cálculo de Byes, OMW% e ordenação oficial Play! Pokémon
-              </p>
-            </div>
-
-            {/* Painel de Resolução de Jogadores Não Encontrados */}
-            {unresolvedPlayers.length > 0 && (
-              <div className="rounded-2xl border border-amber-500/30 bg-amber-950/20 p-5 space-y-3">
-                <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
-                  <AlertTriangle className="h-5 w-5" />
-                  <span>{unresolvedPlayers.length} Jogadores Não Cadastrados no Banco:</span>
-                </div>
-                <p className="text-xs text-slate-300">
-                  Esses jogadores foram encontrados no TDF mas ainda não possuem registro oficial no banco de jogadores.
-                  Você pode cadastrá-los com 1 clique abaixo:
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-2">
-                  {unresolvedPlayers.map((unr, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-white/10 bg-slate-900 text-xs"
-                    >
-                      <div>
-                        <div className="font-black text-white">{unr.jogador}</div>
-                        <div className="text-[10px] text-slate-400">ID: {unr.id || "Sem ID"} • {unr.categoria}</div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleQuickRegisterPlayer(unr)}
-                        className="rounded-lg bg-blue-600 hover:bg-blue-500 px-2.5 py-1.5 font-bold text-white text-[11px] whitespace-nowrap shadow"
-                      >
-                        ⚡ Cadastrar
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Preview da Tabela com Gestão de Decks */}
-            {parsedRows.length > 0 && (
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4" /> {parsedRows.length} competidores carregados e ordenados
-                  </span>
-                  <button
-                    onClick={handlePublishStage}
-                    disabled={isPublishing}
-                    className="rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 px-6 py-2.5 text-xs font-black text-white shadow-lg shadow-emerald-600/30 hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2"
-                  >
-                    {isPublishing ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin" /> Publicando...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" /> Confirmar e Publicar Etapa
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto max-h-96 rounded-xl border border-white/10 bg-slate-950/80">
-                  <table className="w-full text-left text-xs text-slate-200">
-                    <thead className="sticky top-0 bg-slate-950 border-b border-white/10 text-[10px] uppercase font-bold text-slate-400">
-                      <tr>
-                        <th className="py-2.5 pl-3 pr-2 text-center w-10">#</th>
-                        <th className="px-3 py-2.5">Jogador</th>
-                        <th className="px-3 py-2.5">POP ID</th>
-                        <th className="px-2 py-2.5 text-center">Cat</th>
-                        <th className="px-3 py-2.5 text-center font-bold text-yellow-400">Pontos ({multiplier}x)</th>
-                        <th className="px-3 py-2.5 text-center">V / E / D</th>
-                        <th className="px-3 py-2.5 min-w-[200px]">Deck Usado na Etapa</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {parsedRows.map((r, idx) => {
-                        const multipliedPts = Math.round(r.pontos * multiplier);
-                        return (
-                          <tr key={idx} className="hover:bg-blue-600/10 transition-colors">
-                            <td className="py-2 pl-3 pr-2 text-center font-mono font-bold">{r.colocacao}º</td>
-                            <td className="px-3 py-2 font-bold text-white">
-                              {resolvedNamesMap[r.jogador] || r.jogador}
-                              {r.isDnf && (
-                                <span className="ml-1.5 rounded bg-rose-500/20 px-1 py-0.2 text-[9px] text-rose-400 border border-rose-500/30">
-                                  DNF
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2 font-mono text-slate-400">{r.id || "—"}</td>
-                            <td className="px-2 py-2 text-center">{r.categoria}</td>
-                            <td className="px-3 py-2 text-center">
-                              <span className="font-black text-yellow-400 text-sm">{multipliedPts} PTS</span>
-                              {multiplier !== 1.0 && (
-                                <div className="text-[10px] text-slate-400">
-                                  ({r.pontos} × {multiplier}x)
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-3 py-2 text-center font-mono text-slate-300">
-                              <span className="text-emerald-400 font-bold">{r.vitorias}V</span>{" "}
-                              <span className="text-amber-400 font-bold">{r.empates}E</span>{" "}
-                              <span className="text-rose-400 font-bold">{r.derrotas}D</span>
-                            </td>
-                            <td className="px-3 py-2">
-                              <select
-                                value={r.deckNome || "Não registrado"}
-                                onChange={(e) => handlePlayerDeckChange(idx, e.target.value)}
-                                className="w-full rounded-lg border border-white/10 bg-slate-900 py-1.5 px-2 text-xs font-semibold text-white focus:outline-none focus:border-blue-500"
-                              >
-                                <option value="Não registrado">Não registrado</option>
-                                {decks
-                                  .slice()
-                                  .sort((a, b) => a.nome.localeCompare(b.nome))
-                                  .map((d) => (
-                                    <option key={d.id || d.nome} value={d.nome}>
-                                      {d.nome} ({d.tipoEnergia})
-                                    </option>
-                                  ))}
-                              </select>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {publishMessage && (
-              <div className="p-4 rounded-xl border border-white/10 bg-slate-950/80 text-xs font-bold text-slate-200">
-                {publishMessage}
-              </div>
-            )}
           </div>
+
+          {/* Jogadores Não Reconhecidos / Alerta */}
+          {unresolvedPlayers.length > 0 && (
+            <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 backdrop-blur-xl shadow-xl space-y-4">
+              <div className="flex items-center gap-2 text-amber-400">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                <h4 className="font-bold text-sm">
+                  {unresolvedPlayers.length} jogador(es) no arquivo TDF não cadastrados no banco:
+                </h4>
+              </div>
+              <p className="text-xs text-slate-300">
+                Cadastre-os rapidamente abaixo para vinculá-los ao histórico da Liga e garantir a pontuação correta:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
+                {unresolvedPlayers.map((p, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-900/80 p-3"
+                  >
+                    <div>
+                      <p className="text-xs font-bold text-white">{p.jogador}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">ID: {p.id || "Gerar auto"}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickRegisterPlayer(p)}
+                      className="rounded-xl bg-amber-500 px-3 py-1.5 text-[10px] font-black text-slate-950 hover:bg-amber-400 transition-colors shadow"
+                    >
+                      Cadastrar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Prévia da Tabela de Resultados TDF */}
+          {parsedRows.length > 0 && (
+            <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-4 border-b border-white/10 pb-4">
+                <div>
+                  <h4 className="text-base font-black text-white flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-amber-400" />
+                    Resultados Processados ({parsedRows.length} Atletas)
+                  </h4>
+                  <p className="text-xs text-slate-400">
+                    Defina o deck utilizado por cada jogador antes de publicar a etapa
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePublishStage}
+                  disabled={isPublishing}
+                  className="flex items-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3 text-xs font-black text-white hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 cursor-pointer"
+                >
+                  {isPublishing ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  <span>Publicar Etapa & Atualizar Ranking</span>
+                </button>
+              </div>
+
+              {publishMessage && (
+                <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-bold">
+                  {publishMessage}
+                </div>
+              )}
+
+              <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/80">
+                <table className="w-full text-left text-xs text-slate-200">
+                  <thead className="border-b border-white/10 bg-slate-900/90 text-[10px] uppercase font-bold text-slate-400">
+                    <tr>
+                      <th className="py-3 pl-4 text-center w-12">Pos</th>
+                      <th className="py-3 px-3">Jogador</th>
+                      <th className="py-3 px-3">POP ID</th>
+                      <th className="py-3 px-3 text-center">Score (V-D-E)</th>
+                      <th className="py-3 px-3 text-center">Pontos</th>
+                      <th className="py-3 pr-4">Deck Utilizado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {parsedRows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-800/40">
+                        <td className="py-2.5 pl-4 text-center font-bold text-white">{row.colocacao}º</td>
+                        <td className="py-2.5 px-3 font-bold text-white">
+                          {resolvedNamesMap[row.jogador] || row.jogador}
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-slate-400">{row.id || "—"}</td>
+                        <td className="py-2.5 px-3 text-center font-bold text-slate-300">
+                          {row.vitorias}-{row.derrotas}-{row.empates}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-black text-amber-400">
+                          {Math.round(row.pontos * multiplier)}
+                        </td>
+                        <td className="py-2.5 pr-4">
+                          <select
+                            value={row.deckNome || "Não registrado"}
+                            onChange={(e) => handlePlayerDeckChange(idx, e.target.value)}
+                            className="w-full rounded-lg border border-white/10 bg-slate-800 py-1.5 px-2 text-xs font-semibold text-white focus:outline-none focus:border-blue-500"
+                          >
+                            <option value="Não registrado">Não registrado</option>
+                            {decks.map((d) => (
+                              <option key={d.id} value={d.nome}>
+                                {d.nome}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* 2. ABA JOGADORES */}
       {activeTab === "jogadores" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4">
-            <h3 className="text-base font-black text-white flex items-center gap-2">
-              <UserPlus className="h-4 w-4 text-blue-400" /> Cadastrar Jogador
-            </h3>
-            <form onSubmit={handleAddPlayer} className="space-y-3">
+          <div className={`rounded-3xl border ${editingPlayerId ? "border-amber-500/40 bg-amber-500/5" : "border-white/10 bg-slate-900/60"} p-6 backdrop-blur-xl shadow-xl space-y-4`}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                {editingPlayerId ? (
+                  <>
+                    <Pencil className="h-4 w-4 text-amber-400" /> Editar Jogador
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 text-emerald-400" /> Cadastrar Jogador
+                  </>
+                )}
+              </h3>
+              {editingPlayerId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEditPlayer}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded-lg cursor-pointer"
+                >
+                  <X className="h-3 w-3" /> Cancelar
+                </button>
+              )}
+            </div>
+
+            <form onSubmit={handleSavePlayer} className="space-y-3">
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
-                  POP ID (Play! ID):
+                  POP ID / TOM ID:
                 </label>
                 <input
                   type="text"
                   placeholder="Ex: 5685779"
                   value={newPlayerId}
                   onChange={(e) => setNewPlayerId(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                  disabled={Boolean(editingPlayerId)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-mono text-white focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                   required
                 />
               </div>
@@ -779,7 +1001,7 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 </label>
                 <input
                   type="text"
-                  placeholder="Ex: João da Silva"
+                  placeholder="Ex: Pedro Henrique"
                   value={newPlayerName}
                   onChange={(e) => setNewPlayerName(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
@@ -794,7 +1016,7 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 <select
                   value={newPlayerCategory}
                   onChange={(e) => setNewPlayerCategory(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
                 >
                   <option value="Master">Master</option>
                   <option value="Senior">Senior</option>
@@ -806,19 +1028,26 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-blue-600 py-2.5 text-xs font-black text-white hover:bg-blue-500 transition-colors shadow-md shadow-blue-600/30"
+                className={`w-full rounded-xl py-2.5 text-xs font-black text-white transition-colors shadow-md cursor-pointer ${
+                  editingPlayerId
+                    ? "bg-amber-600 hover:bg-amber-500 shadow-amber-600/30"
+                    : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/30"
+                }`}
               >
-                Salvar Jogador
+                {editingPlayerId ? "Salvar Alterações" : "Cadastrar Jogador"}
               </button>
             </form>
           </div>
 
           <div className="lg:col-span-2 rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <h3 className="text-base font-black text-white flex items-center gap-2">
-                <Users className="h-4 w-4 text-emerald-400" />
-                Jogadores Cadastrados ({players.length})
-              </h3>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Users className="h-4 w-4 text-emerald-400" />
+                  Jogadores Cadastrados ({players.length})
+                </h3>
+                <p className="text-[11px] text-slate-400">Clique em qualquer jogador ou no botão para editar</p>
+              </div>
               <input
                 type="text"
                 placeholder="Buscar jogador..."
@@ -828,13 +1057,14 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
               />
             </div>
 
-            <div className="overflow-y-auto max-h-80 rounded-xl border border-white/10 bg-slate-950/80">
+            <div className="overflow-y-auto max-h-96 rounded-xl border border-white/10 bg-slate-950/80">
               <table className="w-full text-left text-xs text-slate-200">
                 <thead className="sticky top-0 bg-slate-950 border-b border-white/10 text-[10px] uppercase font-bold text-slate-400">
                   <tr>
                     <th className="py-2.5 pl-3">Nome</th>
                     <th className="px-3 py-2.5">POP ID</th>
                     <th className="px-3 py-2.5 text-center">Categoria</th>
+                    <th className="py-2.5 pr-3 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -844,17 +1074,53 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                         p.nome.toLowerCase().includes(playerSearch.toLowerCase()) ||
                         p.id.includes(playerSearch)
                     )
-                    .map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-800/40">
-                        <td className="py-2 pl-3 font-bold text-white">{p.nome}</td>
-                        <td className="px-3 py-2 font-mono text-slate-400">{p.id}</td>
-                        <td className="px-3 py-2 text-center">
-                          <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
-                            {p.categoria}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    .map((p) => {
+                      const isBeingEdited = editingPlayerId === p.id;
+                      return (
+                        <tr
+                          key={p.id}
+                          onClick={() => handleSelectPlayerToEdit(p)}
+                          className={`hover:bg-slate-800/50 cursor-pointer transition-colors ${
+                            isBeingEdited ? "bg-amber-500/10 border-l-2 border-amber-400" : ""
+                          }`}
+                        >
+                          <td className="py-2 pl-3 font-bold text-white flex items-center gap-2">
+                            <span>{p.nome}</span>
+                            {isBeingEdited && (
+                              <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono">
+                                Editando
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 font-mono text-slate-400">{p.id}</td>
+                          <td className="px-3 py-2 text-center">
+                            <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
+                              {p.categoria}
+                            </span>
+                          </td>
+                          <td className="py-2 pr-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => handleSelectPlayerToEdit(p)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                                title="Editar Jogador"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePlayer(p.id, p.nome)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                title="Excluir Jogador"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
@@ -865,19 +1131,38 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
       {/* 3. ABA DECKS & META */}
       {activeTab === "decks" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Formulário Novo Deck */}
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4">
-            <h3 className="text-base font-black text-white flex items-center gap-2">
-              <Plus className="h-4 w-4 text-amber-400" /> Cadastrar Arquétipo
-            </h3>
-            <form onSubmit={handleAddDeck} className="space-y-3">
+          <div className={`rounded-3xl border ${editingDeckId ? "border-amber-500/40 bg-amber-500/5" : "border-white/10 bg-slate-900/60"} p-6 backdrop-blur-xl shadow-xl space-y-4`}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                {editingDeckId ? (
+                  <>
+                    <Pencil className="h-4 w-4 text-amber-400" /> Editar Arquétipo
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 text-amber-400" /> Cadastrar Arquétipo
+                  </>
+                )}
+              </h3>
+              {editingDeckId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEditDeck}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded-lg cursor-pointer"
+                >
+                  <X className="h-3 w-3" /> Cancelar
+                </button>
+              )}
+            </div>
+
+            <form onSubmit={handleSaveDeck} className="space-y-3">
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
                   Nome do Deck:
                 </label>
                 <input
                   type="text"
-                  placeholder="Ex: Mega Rayquaza Ex"
+                  placeholder="Ex: Dragapult Ex"
                   value={newDeckName}
                   onChange={(e) => setNewDeckName(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-amber-500"
@@ -904,6 +1189,9 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                   <option value="metal">Metálico (Metal)</option>
                   <option value="dragon">Dragão (Dragon)</option>
                   <option value="colorless">Incolor (Colorless)</option>
+                  <option value="fire+psychic">Fogo + Psíquico (Dual)</option>
+                  <option value="darkness+fire">Noturno + Fogo (Dual)</option>
+                  <option value="lightning+colorless">Elétrico + Incolor (Dual)</option>
                 </select>
               </div>
 
@@ -933,26 +1221,26 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 />
               </div>
 
-              {deckMessage && (
-                <p className="text-xs font-bold text-emerald-400">{deckMessage}</p>
-              )}
+              {deckMessage && <p className="text-xs font-bold text-emerald-400">{deckMessage}</p>}
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-amber-600 py-2.5 text-xs font-black text-white hover:bg-amber-500 transition-colors shadow-md shadow-amber-600/30"
+                className="w-full rounded-xl bg-amber-600 py-2.5 text-xs font-black text-white hover:bg-amber-500 transition-colors shadow-md shadow-amber-600/30 cursor-pointer"
               >
-                Salvar Arquétipo
+                {editingDeckId ? "Salvar Alterações" : "Salvar Arquétipo"}
               </button>
             </form>
           </div>
 
-          {/* Grid/Lista de Decks Cadastrados */}
           <div className="lg:col-span-2 rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <h3 className="text-base font-black text-white flex items-center gap-2">
-                <Flame className="h-4 w-4 text-amber-400" />
-                Catálogo de Decks Cadastrados ({decks.length})
-              </h3>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Flame className="h-4 w-4 text-amber-400" />
+                  Catálogo de Decks Cadastrados ({decks.length})
+                </h3>
+                <p className="text-[11px] text-slate-400">Clique em qualquer arquétipo ou no botão para editar</p>
+              </div>
               <input
                 type="text"
                 placeholder="Buscar deck..."
@@ -969,38 +1257,70 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                     <th className="py-2.5 pl-3">Deck</th>
                     <th className="px-3 py-2.5">Energia</th>
                     <th className="px-3 py-2.5 text-right">Limitless</th>
+                    <th className="py-2.5 pr-3 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {decks
                     .filter((d) => d.nome.toLowerCase().includes(deckSearch.toLowerCase()))
-                    .map((d) => (
-                      <tr key={d.id} className="hover:bg-slate-800/40">
-                        <td className="py-2 pl-3 font-bold text-white flex items-center gap-2">
-                          {d.imagem && (
-                            <img src={d.imagem} alt={d.nome} className="h-6 w-6 object-contain rounded" />
-                          )}
-                          <span>{d.nome}</span>
-                        </td>
-                        <td className="px-3 py-2">
-                          <EnergyBadge energyRaw={d.tipoEnergia} size="sm" />
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {d.limitless && d.limitless !== "#" ? (
-                            <a
-                              href={d.limitless}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 font-bold"
-                            >
-                              Link
-                            </a>
-                          ) : (
-                            <span className="text-slate-600">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    .map((d) => {
+                      const isBeingEdited = editingDeckId === d.id;
+                      return (
+                        <tr
+                          key={d.id}
+                          onClick={() => handleSelectDeckToEdit(d)}
+                          className={`hover:bg-slate-800/50 cursor-pointer transition-colors ${
+                            isBeingEdited ? "bg-amber-500/10 border-l-2 border-amber-400" : ""
+                          }`}
+                        >
+                          <td className="py-2 pl-3 font-bold text-white flex items-center gap-2">
+                            {d.imagem && (
+                              <img src={d.imagem} alt={d.nome} className="h-6 w-6 object-contain rounded" />
+                            )}
+                            <span>{d.nome}</span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <EnergyBadge energyRaw={d.tipoEnergia} size="sm" />
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {d.limitless && d.limitless !== "#" ? (
+                              <a
+                                href={d.limitless}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-blue-400 hover:text-blue-300 font-bold inline-flex items-center gap-1"
+                              >
+                                <span>Ver</span>
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              <span className="text-slate-600">—</span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => handleSelectDeckToEdit(d)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                                title="Editar Arquétipo"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDeck(d)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                title="Excluir Arquétipo"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
@@ -1008,42 +1328,312 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
         </div>
       )}
 
-      {/* 4. ABA CONFIGURAÇÕES */}
-      {activeTab === "config" && (
-        <div className="max-w-2xl rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-5">
-          <h3 className="text-lg font-black text-white flex items-center gap-2">
-            <Settings className="h-5 w-5 text-purple-400" /> Parâmetros da Liga
-          </h3>
+      {/* 4. ABA CALENDÁRIO & EVENTOS */}
+      {activeTab === "calendario" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className={`rounded-3xl border ${editingCalId ? "border-amber-500/40 bg-amber-500/5" : "border-white/10 bg-slate-900/60"} p-6 backdrop-blur-xl shadow-xl space-y-4`}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                {editingCalId ? (
+                  <>
+                    <Pencil className="h-4 w-4 text-amber-400" /> Editar Evento
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="h-4 w-4 text-blue-400" /> Adicionar Evento Futuro
+                  </>
+                )}
+              </h3>
+              {editingCalId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEditCal}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded-lg cursor-pointer"
+                >
+                  <X className="h-3 w-3" /> Cancelar
+                </button>
+              )}
+            </div>
 
-          <form onSubmit={handleSaveConfig} className="space-y-4">
+            <form onSubmit={handleSaveCalendarEvent} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                  Data do Evento:
+                </label>
+                <input
+                  type="date"
+                  value={newCalDate}
+                  onChange={(e) => setNewCalDate(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                  Nome do Torneio:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Etapa #4 - Liga Regular"
+                  value={newCalEvento}
+                  onChange={(e) => setNewCalEvento(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                    Horário:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="14:00"
+                    value={newCalHorario}
+                    onChange={(e) => setNewCalHorario(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                    Status:
+                  </label>
+                  <select
+                    value={newCalStatus}
+                    onChange={(e) => setNewCalStatus(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="confirmado">Confirmado</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="cancelado">Cancelado</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                  Local:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Livraria Atlântica +"
+                  value={newCalLocal}
+                  onChange={(e) => setNewCalLocal(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                  Link Google Maps:
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://maps.google.com/..."
+                  value={newCalLinkMaps}
+                  onChange={(e) => setNewCalLinkMaps(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                  Link de Inscrição / WhatsApp:
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://chat.whatsapp.com/..."
+                  value={newCalLinkInscricao}
+                  onChange={(e) => setNewCalLinkInscricao(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {calendarMessage && (
+                <p className="text-xs font-bold text-emerald-400">{calendarMessage}</p>
+              )}
+
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-blue-600 py-2.5 text-xs font-black text-white hover:bg-blue-500 transition-colors shadow-md shadow-blue-600/30 cursor-pointer"
+              >
+                {editingCalId ? "Salvar Alterações" : "Salvar Evento"}
+              </button>
+            </form>
+          </div>
+
+          <div className="lg:col-span-2 rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4">
+            <h3 className="text-base font-black text-white flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-blue-400" />
+              Eventos no Calendário ({calendarEvents.length})
+            </h3>
+
+            <div className="overflow-y-auto max-h-96 space-y-3">
+              {calendarEvents.length === 0 ? (
+                <p className="text-xs text-slate-500 py-8 text-center">Nenhum evento agendado no calendário.</p>
+              ) : (
+                calendarEvents.map((ev) => (
+                  <div
+                    key={ev.id}
+                    className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-white/10 bg-slate-950/80 hover:bg-slate-800/40 transition-all"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-black uppercase">
+                          {ev.data}
+                        </span>
+                        <h4 className="text-xs font-black text-white">{ev.evento}</h4>
+                      </div>
+                      <div className="flex items-center gap-4 text-[11px] text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {ev.horario || "14:00"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {ev.local || "Livraria Atlântica +"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectCalToEdit(ev)}
+                        className="p-2 rounded-xl text-slate-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                        title="Editar Evento"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCalendarEvent(ev.id)}
+                        className="p-2 rounded-xl text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                        title="Excluir Evento"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. ABA CONFIGURAÇÕES GLOBAIS */}
+      {activeTab === "config" && (
+        <div className="max-w-3xl rounded-3xl border border-white/10 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
+          <div>
+            <h3 className="text-lg font-black text-white flex items-center gap-2">
+              <Settings className="h-5 w-5 text-purple-400" /> Parâmetros Globais do Site
+            </h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Edite as identidades visuais, mensagens de aviso, redes sociais e senhas administrativas
+            </p>
+          </div>
+
+          <form onSubmit={handleSaveAllConfig} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Nome Oficial da Liga:
+                </label>
+                <input
+                  type="text"
+                  value={nomeLiga}
+                  onChange={(e) => setNomeLiga(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Número da Temporada Ativa:
+                </label>
+                <input
+                  type="text"
+                  value={temporadaAtual}
+                  onChange={(e) => setTemporadaAtual(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-                Aviso do Topo (Banner):
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                Faixa de Aviso do Topo (Marquee/Banner):
               </label>
               <input
                 type="text"
-                placeholder="Texto que aparece na faixa superior do site..."
+                placeholder="Ex: ⚡ Inscrições abertas para o League Challenge deste sábado!"
                 value={avisoTopo}
                 onChange={(e) => setAvisoTopo(e.target.value)}
                 className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
-                Link do Grupo do WhatsApp:
-              </label>
-              <input
-                type="text"
-                placeholder="https://chat.whatsapp.com/..."
-                value={linkWhatsApp}
-                onChange={(e) => setLinkWhatsApp(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Link do Grupo do WhatsApp:
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://chat.whatsapp.com/..."
+                  value={linkWhatsApp}
+                  onChange={(e) => setLinkWhatsApp(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Link do Instagram Oficial:
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://instagram.com/ligaatlantica"
+                  value={linkInstagram}
+                  onChange={(e) => setLinkInstagram(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Chave PIX / Instruções:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: liga@pix.com.br ou CNPJ"
+                  value={chavePix}
+                  onChange={(e) => setChavePix(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  PIN de Acesso Admin:
+                </label>
+                <input
+                  type="text"
+                  placeholder="1234"
+                  value={adminPin}
+                  onChange={(e) => setAdminPin(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-mono text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                 Status da Temporada:
               </label>
               <select
@@ -1051,21 +1641,199 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 onChange={(e) => setStatusTemporada(e.target.value)}
                 className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-purple-500"
               >
-                <option value="ativa">Ativa (Online)</option>
-                <option value="congelada">Congelada (Pódio Fixo)</option>
+                <option value="ativa">Ativa (Online e pontuando)</option>
+                <option value="congelada">Congelada (Pódio final fixado)</option>
                 <option value="offseason">Off-Season (Fora de Temporada)</option>
               </select>
             </div>
 
             {configMessage && (
-              <p className="text-xs font-bold text-emerald-400">{configMessage}</p>
+              <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-bold">
+                {configMessage}
+              </div>
             )}
 
             <button
               type="submit"
-              className="rounded-xl bg-purple-600 px-6 py-2.5 text-xs font-black text-white hover:bg-purple-500 transition-colors shadow-lg shadow-purple-600/30"
+              disabled={isSavingConfig}
+              className="flex items-center gap-2 rounded-xl bg-purple-600 px-6 py-3 text-xs font-black text-white hover:bg-purple-500 transition-all shadow-lg shadow-purple-600/30 cursor-pointer disabled:opacity-50"
             >
-              Salvar Alterações
+              {isSavingConfig ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              <span>Salvar Todas as Configurações</span>
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* 6. ABA FECHADOR DE TEMPORADA */}
+      {activeTab === "fechamento" && (
+        <div className="max-w-3xl rounded-3xl border border-amber-500/30 bg-slate-900/80 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="border-b border-white/10 pb-4">
+            <div className="flex items-center gap-2 text-amber-400">
+              <Trophy className="h-6 w-6" />
+              <h3 className="text-xl font-black text-white">Fechador de Temporadas & Virada Oficial</h3>
+            </div>
+            <p className="text-xs text-slate-300 mt-1">
+              Transponha o ranking final da <strong>Temporada {closureCurrentSeason}</strong> para a memória histórica de <em>Scores Antigos</em>, coroe o Campeão no <em>Hall da Fama</em> e abra a nova <strong>Temporada {closureNextSeason}</strong> mantendo 100% dos Decks e Jogadores salvos.
+            </p>
+          </div>
+
+          {closureMessage && (
+            <div
+              className={`p-4 rounded-2xl border text-xs font-bold leading-relaxed ${
+                closureSuccess
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                  : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+              }`}
+            >
+              {closureMessage}
+            </div>
+          )}
+
+          <form onSubmit={handleExecuteSeasonClosure} className="space-y-5">
+            {/* Linha das Temporadas */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl border border-white/10 bg-slate-950/60 space-y-2">
+                <label className="block text-xs font-black uppercase tracking-wider text-amber-400">
+                  Temporada Atual a Encerrar:
+                </label>
+                <input
+                  type="number"
+                  value={closureCurrentSeason}
+                  onChange={(e) => setClosureCurrentSeason(Number(e.target.value))}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-sm font-bold text-white focus:outline-none focus:border-amber-500"
+                  required
+                />
+                <p className="text-[10px] text-slate-400">
+                  O ranking consolidado desta temporada será arquivado com a colocação final de cada participante.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl border border-white/10 bg-slate-950/60 space-y-2">
+                <label className="block text-xs font-black uppercase tracking-wider text-emerald-400">
+                  Nova Temporada a Iniciar:
+                </label>
+                <input
+                  type="number"
+                  value={closureNextSeason}
+                  onChange={(e) => setClosureNextSeason(Number(e.target.value))}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-sm font-bold text-white focus:outline-none focus:border-emerald-500"
+                  required
+                />
+                <p className="text-[10px] text-slate-400">
+                  A temporada do site passará a ser a #{closureNextSeason} em todas as telas e cabeçalhos.
+                </p>
+              </div>
+            </div>
+
+            {/* Dados do Campeão a Coroar */}
+            <div className="p-4 rounded-2xl border border-white/10 bg-slate-950/60 space-y-4">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4 text-amber-400" />
+                Dados do Campeão & Vice para o Hall da Fama:
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                    Nome do Campeão (1º Lugar):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Auto (detecta do ranking)"
+                    value={closureCampeao}
+                    onChange={(e) => setClosureCampeao(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                    Nome do Vice-Campeão (2º Lugar):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Auto (detecta do ranking)"
+                    value={closureVice}
+                    onChange={(e) => setClosureVice(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                    Deck do Campeão:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Dragapult Ex"
+                    value={closureDeck}
+                    onChange={(e) => setClosureDeck(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                  Data Oficial do Fechamento:
+                </label>
+                <input
+                  type="date"
+                  value={closureDate}
+                  onChange={(e) => setClosureDate(e.target.value)}
+                  className="rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Checkbox de Reset */}
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-white/10 bg-slate-950/60">
+              <input
+                type="checkbox"
+                id="resetRank"
+                checked={closureResetRanking}
+                onChange={(e) => setClosureResetRanking(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-700 text-amber-600 focus:ring-amber-500"
+              />
+              <label htmlFor="resetRank" className="text-xs text-slate-300 select-none cursor-pointer">
+                <strong>Zerar ranking consolidado ativo</strong> para a Temporada {closureNextSeason} (os dados históricos ficam salvos com segurança em <em>Scores Antigos</em>).
+              </label>
+            </div>
+
+            {/* Campo de Segurança com Texto de Confirmação */}
+            <div className="p-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 space-y-2">
+              <label className="block text-xs font-black uppercase tracking-wider text-rose-300">
+                Confirmação de Segurança (Obrigatório):
+              </label>
+              <p className="text-[11px] text-slate-300">
+                Para evitar cliques acidentais, digite exatamente <code className="text-rose-400 font-black bg-slate-900 px-1.5 py-0.5 rounded">ENCERRAR TEMPORADA {closureCurrentSeason}</code> no campo abaixo:
+              </p>
+              <input
+                type="text"
+                placeholder={`Digite "ENCERRAR TEMPORADA ${closureCurrentSeason}"`}
+                value={closureConfirmText}
+                onChange={(e) => setClosureConfirmText(e.target.value)}
+                className="w-full rounded-xl border border-rose-500/40 bg-slate-950 py-2.5 px-3 text-xs font-mono font-bold text-white focus:outline-none focus:border-rose-400"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={closureLoading}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-600 to-rose-600 py-3.5 text-xs font-black uppercase tracking-wider text-white hover:from-amber-500 hover:to-rose-500 transition-all shadow-xl shadow-amber-600/30 disabled:opacity-50 cursor-pointer"
+            >
+              {closureLoading ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trophy className="h-4 w-4" />
+              )}
+              <span>Encerrar Temporada {closureCurrentSeason} & Abrir Temporada {closureNextSeason}</span>
             </button>
           </form>
         </div>
