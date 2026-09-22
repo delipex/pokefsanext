@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { etapas, etapaResultados, rankingConsolidado, jogadores } from "@/db/schema";
+import { etapas, etapaResultados, rankingConsolidado, jogadores, metagame } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(req: Request) {
@@ -35,9 +35,12 @@ export async function POST(req: Request) {
 
     // 2. Limpar resultados anteriores da mesma data
     await db.delete(etapaResultados).where(eq(etapaResultados.etapaData, data));
+    await db.delete(metagame).where(eq(metagame.etapaData, data));
 
     // 3. Inserir os resultados da etapa
     for (const res of resultados) {
+      const deckName = res.deckNome && res.deckNome !== "Não registrado" && res.deckNome !== "Sem deck registrado" ? res.deckNome.trim() : null;
+
       await db.insert(etapaResultados).values({
         etapaId,
         etapaData: data,
@@ -49,7 +52,18 @@ export async function POST(req: Request) {
         vitorias: Number(res.vitorias) || 0,
         empates: Number(res.empates) || 0,
         derrotas: Number(res.derrotas) || 0,
+        deckNome: deckName,
+        dropou: res.isDnf || false,
       });
+
+      if (deckName) {
+        await db.insert(metagame).values({
+          etapaData: data,
+          sessionCode: `${data}-${tipo || "Liga"}`,
+          jogadorNome: String(res.jogador).trim(),
+          deckNome: deckName,
+        });
+      }
     }
 
     // 4. Recalcular o ranking consolidado da temporada a partir de todas as etapas em ordem cronológica
@@ -75,6 +89,7 @@ export async function POST(req: Request) {
           empates: 0,
           derrotas: 0,
           podios: 0,
+          ultimoDeck: null as string | null,
           etapaColocacoes: new Map<string, number>(),
         };
       }
@@ -88,6 +103,7 @@ export async function POST(req: Request) {
       playerStatsMap[key].empates += r.empates;
       playerStatsMap[key].derrotas += r.derrotas;
       if (r.colocacao <= 4) playerStatsMap[key].podios += 1;
+      if (r.deckNome) playerStatsMap[key].ultimoDeck = r.deckNome;
       playerStatsMap[key].etapaColocacoes.set(r.etapaData, r.colocacao);
     }
 
@@ -125,6 +141,7 @@ export async function POST(req: Request) {
         mediaColocacao,
         participacoes,
         historicoColocacoes,
+        ultimoDeck: p.ultimoDeck,
       };
     });
 
@@ -151,7 +168,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Etapa publicada e ranking consolidado recalculado com sucesso!",
+      message: "Etapa publicada, metagame atualizado e ranking consolidado recalculado com sucesso!",
     });
   } catch (error: any) {
     console.error("Erro ao publicar etapa:", error);

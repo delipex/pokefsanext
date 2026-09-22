@@ -1,9 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { Lock, Unlock, Upload, UserPlus, Settings, CheckCircle2, AlertTriangle, FileText, RefreshCw, Trophy, Users, Flame, Plus, ExternalLink } from "lucide-react";
+import { useState, useMemo } from "react";
+import {
+  Lock,
+  Unlock,
+  Upload,
+  UserPlus,
+  Settings,
+  CheckCircle2,
+  AlertTriangle,
+  FileText,
+  RefreshCw,
+  Trophy,
+  Users,
+  Flame,
+  Plus,
+  ExternalLink,
+  Sparkles,
+  Swords,
+  Medal,
+  Sliders,
+  HelpCircle,
+} from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
-import { parseTDFContent } from "@/lib/tdf-parser";
+import { parseTDFContent, ParsedPlayerRow } from "@/lib/tdf-parser";
 
 interface AdminDashboardProps {
   initialPlayers: any[];
@@ -21,10 +41,12 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
   // Estado da aba TDF
   const [stageDate, setStageDate] = useState(new Date().toISOString().split("T")[0]);
   const [stageType, setStageType] = useState("Liga");
+  const [customStageTitle, setCustomStageTitle] = useState("");
   const [multiplier, setMultiplier] = useState(1.0);
-  const [parsedRows, setParsedRows] = useState<any[]>([]);
+  const [parsedRows, setParsedRows] = useState<(ParsedPlayerRow & { deckNome?: string })[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState("");
+  const [resolvedNamesMap, setResolvedNamesMap] = useState<Record<string, string>>({});
 
   // Estado de Jogadores
   const [players, setPlayers] = useState(initialPlayers);
@@ -32,6 +54,7 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
   const [newPlayerName, setNewPlayerName] = useState("");
   const [newPlayerCategory, setNewPlayerCategory] = useState("Master");
   const [playerSearch, setPlayerSearch] = useState("");
+  const [playerMessage, setPlayerMessage] = useState("");
 
   // Estado de Decks
   const [decks, setDecks] = useState(initialDecks);
@@ -48,6 +71,15 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
   const [statusTemporada, setStatusTemporada] = useState(initialConfig.statusTemporada || "ativa");
   const [configMessage, setConfigMessage] = useState("");
 
+  // Normalizador de nomes
+  const normalizeName = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+  };
+
   // Autenticação por PIN
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,26 +91,129 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
     }
   };
 
-  // Leitura robusta de arquivos TDF (XML nativo do TOM e TSV tabulado)
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Mudança do tipo de evento com multiplicador automático
+  const handleEventTypeSelect = (type: string) => {
+    setStageType(type);
+    if (type === "Liga") {
+      setMultiplier(1.0);
+    } else if (type === "Challenge") {
+      setMultiplier(1.5);
+    } else if (type === "Cup") {
+      setMultiplier(1.5);
+    } else if (type === "Especial") {
+      setMultiplier(1.0);
+    }
+  };
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      if (!text) return;
+  // Leitura de um ou múltiplos arquivos TDF (XML TOM e TSV)
+  const handleFilesProcess = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return;
 
-      const parsedResult = parseTDFContent(text, file.name);
+    let combinedPlayers: (ParsedPlayerRow & { deckNome?: string })[] = [];
+    let detectedDate: string | null = null;
 
-      if (parsedResult.dataTorneio) {
-        setStageDate(parsedResult.dataTorneio);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const text = await file.text();
+      const parsed = parseTDFContent(text, file.name);
+
+      if (parsed.dataTorneio && !detectedDate) {
+        detectedDate = parsed.dataTorneio;
       }
 
-      setParsedRows(parsedResult.jogadores);
-    };
+      combinedPlayers = combinedPlayers.concat(
+        parsed.jogadores.map((j) => ({
+          ...j,
+          deckNome: "Não registrado",
+        }))
+      );
+    }
 
-    reader.readAsText(file);
+    if (detectedDate) {
+      setStageDate(detectedDate);
+    }
+
+    // Ordenação Estrita Oficial:
+    // 1. Pontos DESC -> 2. Vitórias DESC -> 3. OMW DESC -> 4. Colocação ASC -> 5. Nome ASC
+    combinedPlayers.sort((a, b) => {
+      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+      if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
+      if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
+      if (a.colocacao !== b.colocacao) return a.colocacao - b.colocacao;
+      return a.jogador.localeCompare(b.jogador, "pt-BR");
+    });
+
+    // Reatribuir colocação sequencial
+    combinedPlayers.forEach((p, idx) => {
+      p.colocacao = idx + 1;
+    });
+
+    setParsedRows(combinedPlayers);
+    setPublishMessage("");
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      handleFilesProcess(e.target.files);
+    }
+  };
+
+  // Identificar jogadores não cadastrados no banco
+  const unresolvedPlayers = useMemo(() => {
+    if (parsedRows.length === 0) return [];
+
+    const dbNamesNormalized = new Set(players.map((p) => normalizeName(p.nome)));
+    const dbIds = new Set(players.map((p) => String(p.id).trim()).filter(Boolean));
+
+    const unresolved: (ParsedPlayerRow & { deckNome?: string })[] = [];
+
+    parsedRows.forEach((row) => {
+      const rowId = row.id ? String(row.id).trim() : "";
+      const isMatchedById = rowId && dbIds.has(rowId);
+      const isMatchedByName = dbNamesNormalized.has(normalizeName(row.jogador));
+
+      if (!isMatchedById && !isMatchedByName) {
+        // Se ainda não foi resolvido manualmente
+        if (!resolvedNamesMap[row.jogador]) {
+          unresolved.push(row);
+        }
+      }
+    });
+
+    return unresolved;
+  }, [parsedRows, players, resolvedNamesMap]);
+
+  // Ação rápida: Cadastrar jogador não resolvido
+  const handleQuickRegisterPlayer = async (p: ParsedPlayerRow) => {
+    const idToRegister = p.id || String(Date.now()).slice(-7);
+    try {
+      const res = await fetch("/api/admin/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: idToRegister,
+          nome: p.jogador,
+          categoria: p.categoria || "Master",
+        }),
+      });
+
+      if (res.ok) {
+        const newEntry = { id: idToRegister, nome: p.jogador, categoria: p.categoria || "Master" };
+        setPlayers((prev) => [...prev.filter((item) => item.id !== idToRegister), newEntry]);
+        setResolvedNamesMap((prev) => ({ ...prev, [p.jogador]: p.jogador }));
+      }
+    } catch (err) {
+      console.error("Erro ao cadastrar jogador rapidamente:", err);
+    }
+  };
+
+  // Atualizar deck de um jogador na pré-visualização
+  const handlePlayerDeckChange = (index: number, deckName: string) => {
+    setParsedRows((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], deckNome: deckName };
+      return updated;
+    });
   };
 
   // Publicação da Etapa
@@ -88,20 +223,25 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
     setPublishMessage("");
 
     try {
+      const finalEventName = stageType === "Personalizado" && customStageTitle ? customStageTitle : stageType;
+
       const res = await fetch("/api/admin/stage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: stageDate,
-          tipo: stageType,
+          tipo: finalEventName,
           multiplicador: multiplier,
-          resultados: parsedRows,
+          resultados: parsedRows.map((r) => ({
+            ...r,
+            jogador: resolvedNamesMap[r.jogador] || r.jogador,
+          })),
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setPublishMessage("✅ Etapa publicada e ranking consolidado recalculado com sucesso!");
+        setPublishMessage("✅ Etapa publicada, metagame atualizado e ranking consolidado recalculado com sucesso!");
         setParsedRows([]);
       } else {
         setPublishMessage(`❌ Erro: ${data.error}`);
@@ -117,6 +257,7 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlayerId || !newPlayerName) return;
+    setPlayerMessage("");
 
     try {
       const res = await fetch("/api/admin/players", {
@@ -136,9 +277,10 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
         ]);
         setNewPlayerId("");
         setNewPlayerName("");
+        setPlayerMessage("✅ Jogador cadastrado com sucesso!");
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setPlayerMessage(`❌ Erro: ${err.message}`);
     }
   };
 
@@ -262,7 +404,7 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
             <h1 className="text-2xl sm:text-3xl font-black text-white">Painel Administrativo</h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Gestão de etapas TOM, ranking, jogadores e decks da Liga Atlântica
+            Gestão oficial de etapas TOM, cálculo de ranking, metagame, jogadores e decks
           </p>
         </div>
 
@@ -317,10 +459,88 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
           <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-6">
             <h3 className="text-lg font-black text-white flex items-center gap-2">
               <Upload className="h-5 w-5 text-blue-400" />
-              Upload de Arquivo Oficial do TOM (.tdf)
+              Upload & Processamento de Arquivos TDF (TOM XML / TSV)
             </h3>
 
-            {/* Inputs de Configuração da Etapa */}
+            {/* Grid de Seleção de Tipo de Evento */}
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                Tipo de Torneio / Sessão:
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleEventTypeSelect("Liga")}
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
+                    stageType === "Liga"
+                      ? "border-blue-500 bg-blue-600/20 text-white shadow-lg shadow-blue-500/20"
+                      : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
+                  }`}
+                >
+                  <Swords className="h-5 w-5 mb-1 text-blue-400" />
+                  <span className="text-xs font-black text-white">Sessão de Liga</span>
+                  <span className="text-[10px] text-blue-300 font-semibold">1.0x (Fixo)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleEventTypeSelect("Challenge")}
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
+                    stageType === "Challenge"
+                      ? "border-amber-500 bg-amber-600/20 text-white shadow-lg shadow-amber-500/20"
+                      : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
+                  }`}
+                >
+                  <Medal className="h-5 w-5 mb-1 text-amber-400" />
+                  <span className="text-xs font-black text-white">Challenge</span>
+                  <span className="text-[10px] text-amber-300 font-semibold">1.5x (Fixo)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleEventTypeSelect("Cup")}
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
+                    stageType === "Cup"
+                      ? "border-yellow-500 bg-yellow-600/20 text-white shadow-lg shadow-yellow-500/20"
+                      : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
+                  }`}
+                >
+                  <Trophy className="h-5 w-5 mb-1 text-yellow-400" />
+                  <span className="text-xs font-black text-white">League Cup</span>
+                  <span className="text-[10px] text-yellow-300 font-semibold">1.5x (Fixo)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleEventTypeSelect("Especial")}
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
+                    stageType === "Especial"
+                      ? "border-purple-500 bg-purple-600/20 text-white shadow-lg shadow-purple-500/20"
+                      : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
+                  }`}
+                >
+                  <Sparkles className="h-5 w-5 mb-1 text-purple-400" />
+                  <span className="text-xs font-black text-white">Sessão Especial</span>
+                  <span className="text-[10px] text-purple-300 font-semibold">1.0x (Ajustável)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleEventTypeSelect("Personalizado")}
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all ${
+                    stageType === "Personalizado"
+                      ? "border-emerald-500 bg-emerald-600/20 text-white shadow-lg shadow-emerald-500/20"
+                      : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
+                  }`}
+                >
+                  <Sliders className="h-5 w-5 mb-1 text-emerald-400" />
+                  <span className="text-xs font-black text-white">Personalizado</span>
+                  <span className="text-[10px] text-emerald-300 font-semibold">Livre</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Configurações da Etapa */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
@@ -334,60 +554,108 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Tipo de Evento:
-                </label>
-                <select
-                  value={stageType}
-                  onChange={(e) => setStageType(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="Liga">Sessão de Liga</option>
-                  <option value="Challenge">League Challenge</option>
-                  <option value="Cup">League Cup</option>
-                  <option value="Off-meta">Off-meta</option>
-                  <option value="Especial">Torneio Especial</option>
-                </select>
-              </div>
+              {stageType === "Personalizado" ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Título do Evento:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Torneio de Férias #1"
+                    value={customStageTitle}
+                    onChange={(e) => setCustomStageTitle(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Multiplicador Oficial:
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.5"
+                    max="5.0"
+                    value={multiplier}
+                    onChange={(e) => setMultiplier(Number(e.target.value))}
+                    disabled={stageType === "Liga" || stageType === "Challenge" || stageType === "Cup"}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Multiplicador de Pontos:
+                  Multiplicador Aplicado:
                 </label>
-                <select
-                  value={multiplier}
-                  onChange={(e) => setMultiplier(Number(e.target.value))}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value={1.0}>1.0x (Padrão Liga)</option>
-                  <option value={1.5}>1.5x (Challenge / Especial)</option>
-                  <option value={2.0}>2.0x (League Cup)</option>
-                </select>
+                <div className="flex h-10 items-center justify-between rounded-xl border border-white/10 bg-slate-800/80 px-3 text-xs font-black text-amber-400">
+                  <span>{stageType}</span>
+                  <span className="rounded bg-amber-500/20 px-2 py-0.5 border border-amber-500/30">
+                    {multiplier}x
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Dropzone */}
+            {/* Dropzone com suporte a múltiplos arquivos */}
             <div className="relative border-2 border-dashed border-white/20 rounded-2xl p-8 text-center hover:border-blue-500 transition-colors bg-slate-950/40">
               <input
                 type="file"
-                accept=".tdf,.txt,.tsv"
-                onChange={handleFileUpload}
+                multiple
+                accept=".tdf,.txt,.tsv,.xml"
+                onChange={handleFileInputChange}
                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
               />
               <FileText className="mx-auto h-10 w-10 text-slate-500 mb-2" />
               <p className="text-sm font-bold text-white">
-                Arraste o arquivo .TDF do TOM aqui ou clique para selecionar
+                Arraste o arquivo oficial .TDF (ou múltiplos arquivos) aqui ou clique para selecionar
               </p>
-              <p className="text-xs text-slate-500 mt-1">Formato oficial tabulado gerado pelo TOM</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Suporte automático a XML nativo do TOM, cálculo de Byes, OMW% e ordenação oficial Play! Pokémon
+              </p>
             </div>
 
-            {/* Preview da Tabela */}
+            {/* Painel de Resolução de Jogadores Não Encontrados */}
+            {unresolvedPlayers.length > 0 && (
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-950/20 p-5 space-y-3">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                  <AlertTriangle className="h-5 w-5" />
+                  <span>{unresolvedPlayers.length} Jogadores Não Cadastrados no Banco:</span>
+                </div>
+                <p className="text-xs text-slate-300">
+                  Esses jogadores foram encontrados no TDF mas ainda não possuem registro oficial no banco de jogadores.
+                  Você pode cadastrá-los com 1 clique abaixo:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-2">
+                  {unresolvedPlayers.map((unr, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between gap-2 p-2.5 rounded-xl border border-white/10 bg-slate-900 text-xs"
+                    >
+                      <div>
+                        <div className="font-black text-white">{unr.jogador}</div>
+                        <div className="text-[10px] text-slate-400">ID: {unr.id || "Sem ID"} • {unr.categoria}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickRegisterPlayer(unr)}
+                        className="rounded-lg bg-blue-600 hover:bg-blue-500 px-2.5 py-1.5 font-bold text-white text-[11px] whitespace-nowrap shadow"
+                      >
+                        ⚡ Cadastrar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Preview da Tabela com Gestão de Decks */}
             {parsedRows.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between flex-wrap gap-3">
                   <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4" /> {parsedRows.length} competidores identificados
+                    <CheckCircle2 className="h-4 w-4" /> {parsedRows.length} competidores carregados e ordenados
                   </span>
                   <button
                     onClick={handlePublishStage}
@@ -406,7 +674,7 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                   </button>
                 </div>
 
-                <div className="overflow-x-auto max-h-72 rounded-xl border border-white/10 bg-slate-950/80">
+                <div className="overflow-x-auto max-h-96 rounded-xl border border-white/10 bg-slate-950/80">
                   <table className="w-full text-left text-xs text-slate-200">
                     <thead className="sticky top-0 bg-slate-950 border-b border-white/10 text-[10px] uppercase font-bold text-slate-400">
                       <tr>
@@ -414,23 +682,60 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                         <th className="px-3 py-2.5">Jogador</th>
                         <th className="px-3 py-2.5">POP ID</th>
                         <th className="px-2 py-2.5 text-center">Cat</th>
-                        <th className="px-3 py-2.5 text-right font-bold text-yellow-400">Pontos</th>
+                        <th className="px-3 py-2.5 text-center font-bold text-yellow-400">Pontos ({multiplier}x)</th>
                         <th className="px-3 py-2.5 text-center">V / E / D</th>
+                        <th className="px-3 py-2.5 min-w-[200px]">Deck Usado na Etapa</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {parsedRows.map((r, idx) => (
-                        <tr key={idx} className="hover:bg-blue-600/10">
-                          <td className="py-2 pl-3 pr-2 text-center font-mono">{r.colocacao}º</td>
-                          <td className="px-3 py-2 font-bold text-white">{r.jogador}</td>
-                          <td className="px-3 py-2 font-mono text-slate-400">{r.id || "—"}</td>
-                          <td className="px-2 py-2 text-center">{r.categoria}</td>
-                          <td className="px-3 py-2 text-right font-black text-yellow-400">{r.pontos}</td>
-                          <td className="px-3 py-2 text-center font-mono text-slate-300">
-                            {r.vitorias}/{r.empates}/{r.derrotas}
-                          </td>
-                        </tr>
-                      ))}
+                      {parsedRows.map((r, idx) => {
+                        const multipliedPts = Math.round(r.pontos * multiplier);
+                        return (
+                          <tr key={idx} className="hover:bg-blue-600/10 transition-colors">
+                            <td className="py-2 pl-3 pr-2 text-center font-mono font-bold">{r.colocacao}º</td>
+                            <td className="px-3 py-2 font-bold text-white">
+                              {resolvedNamesMap[r.jogador] || r.jogador}
+                              {r.isDnf && (
+                                <span className="ml-1.5 rounded bg-rose-500/20 px-1 py-0.2 text-[9px] text-rose-400 border border-rose-500/30">
+                                  DNF
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-slate-400">{r.id || "—"}</td>
+                            <td className="px-2 py-2 text-center">{r.categoria}</td>
+                            <td className="px-3 py-2 text-center">
+                              <span className="font-black text-yellow-400 text-sm">{multipliedPts} PTS</span>
+                              {multiplier !== 1.0 && (
+                                <div className="text-[10px] text-slate-400">
+                                  ({r.pontos} × {multiplier}x)
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-center font-mono text-slate-300">
+                              <span className="text-emerald-400 font-bold">{r.vitorias}V</span>{" "}
+                              <span className="text-amber-400 font-bold">{r.empates}E</span>{" "}
+                              <span className="text-rose-400 font-bold">{r.derrotas}D</span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <select
+                                value={r.deckNome || "Não registrado"}
+                                onChange={(e) => handlePlayerDeckChange(idx, e.target.value)}
+                                className="w-full rounded-lg border border-white/10 bg-slate-900 py-1.5 px-2 text-xs font-semibold text-white focus:outline-none focus:border-blue-500"
+                              >
+                                <option value="Não registrado">Não registrado</option>
+                                {decks
+                                  .slice()
+                                  .sort((a, b) => a.nome.localeCompare(b.nome))
+                                  .map((d) => (
+                                    <option key={d.id || d.nome} value={d.nome}>
+                                      {d.nome} ({d.tipoEnergia})
+                                    </option>
+                                  ))}
+                              </select>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -497,6 +802,8 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 </select>
               </div>
 
+              {playerMessage && <p className="text-xs font-bold text-emerald-400">{playerMessage}</p>}
+
               <button
                 type="submit"
                 className="w-full rounded-xl bg-blue-600 py-2.5 text-xs font-black text-white hover:bg-blue-500 transition-colors shadow-md shadow-blue-600/30"
@@ -532,9 +839,10 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {players
-                    .filter((p) =>
-                      p.nome.toLowerCase().includes(playerSearch.toLowerCase()) ||
-                      p.id.includes(playerSearch)
+                    .filter(
+                      (p) =>
+                        p.nome.toLowerCase().includes(playerSearch.toLowerCase()) ||
+                        p.id.includes(playerSearch)
                     )
                     .map((p) => (
                       <tr key={p.id} className="hover:bg-slate-800/40">
