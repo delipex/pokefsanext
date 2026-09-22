@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Search, Calendar, Sparkles, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
 import { formatCategoryAbbr } from "@/lib/theme/energy-tokens";
 
@@ -43,6 +43,67 @@ interface RankingTableProps {
   allDecks?: DeckItemInfo[];
 }
 
+// Renderizador da Posição com cores oficiais da Liga
+function renderPosNumber(pos: number) {
+  if (pos === 1) {
+    return (
+      <span className="text-base font-black text-[#ffcb05] drop-shadow-[0_0_8px_rgba(255,203,5,0.4)]">
+        1
+      </span>
+    );
+  }
+  if (pos === 2) {
+    return <span className="text-base font-black text-[#cbd5e1]">2</span>;
+  }
+  if (pos === 3) {
+    return <span className="text-base font-black text-[#c2410c]">3</span>;
+  }
+  if (pos <= 8) {
+    return <span className="text-base font-bold text-[#3b82f6]">{pos}</span>;
+  }
+  return <span className="text-sm font-semibold text-slate-400">{pos}</span>;
+}
+
+// Renderizador da Tag de Categoria (ME, SE, JR)
+function renderCategoryBadge(catRaw?: string | null) {
+  const cat = formatCategoryAbbr(catRaw);
+  if (cat === "SE") {
+    return (
+      <span className="inline-flex items-center justify-center min-w-[34px] px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/25">
+        SE
+      </span>
+    );
+  }
+  if (cat === "JR") {
+    return (
+      <span className="inline-flex items-center justify-center min-w-[34px] px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/25">
+        JR
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center justify-center min-w-[34px] px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-pink-500/10 text-pink-400 border border-pink-500/25">
+      ME
+    </span>
+  );
+}
+
+// Renderizador do Badge compacto de Deck (usado na visualização de etapas)
+function renderDeckBadge(deckNome?: string | null, allDecks: DeckItemInfo[] = []) {
+  if (!deckNome) return null;
+  const deck = allDecks.find((d) => d.nome.toLowerCase() === deckNome.toLowerCase());
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.05] border border-white/10 px-2 py-0.5 text-xs text-slate-300">
+      {deck?.icone ? (
+        <img src={deck.icone} alt={deckNome} className="h-4 w-4 object-contain rounded shrink-0" />
+      ) : null}
+      <span className="max-w-[130px] truncate text-[11px] font-medium text-slate-300">
+        {deckNome}
+      </span>
+    </span>
+  );
+}
+
 export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: RankingTableProps) {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("TODOS");
@@ -59,9 +120,9 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
   }, [etapas, selectedStageDate]);
 
   // Helper para buscar energia de um deck
-  const getDeckEnergy = (deckName?: string | null): string => {
-    if (!deckName) return "colorless";
-    const found = allDecks.find((d) => d.nome.toLowerCase() === deckName.toLowerCase());
+  const getDeckEnergy = (deckNome?: string | null): string => {
+    if (!deckNome) return "colorless";
+    const found = allDecks.find((d) => d.nome.toLowerCase() === deckNome.toLowerCase());
     return found?.tipoEnergia || "colorless";
   };
 
@@ -210,31 +271,30 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         </div>
       </div>
 
-      {/* Badge Informativo da Etapa Selecionada */}
+      {/* Banner Informativo da Etapa Selecionada (Visual Idêntico ao Original) */}
       {!isGeneralRanking && currentStage && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-xs text-blue-300 backdrop-blur-md">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            <span className="rounded-md bg-blue-600/30 px-2 py-0.5 text-[11px] font-black text-blue-200 border border-blue-400/40">
-              Temporada 5
-            </span>
-            <span className="flex items-center gap-1 font-bold text-white">
-              <Calendar className="h-3.5 w-3.5 text-blue-400" /> {currentStage.data}
-            </span>
-            <span className="rounded-md bg-blue-900/60 px-2 py-0.5 text-[11px] font-semibold border border-blue-400/30">
-              Formato: {currentStage.tipo}
-            </span>
-            <span className="rounded-md bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-300 border border-amber-500/30">
-              Multiplicador: {currentStage.multiplicador}x
-            </span>
-            <span className="text-slate-300">
-              <strong>{currentStage.totalJogadores}</strong> jogadores inscritos
-            </span>
-          </div>
-
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-xs text-slate-300 backdrop-blur-md">
+          <span className="text-slate-400">Você está visualizando:</span>
+          <span className="rounded bg-amber-500/20 px-2 py-0.5 font-bold text-amber-300">
+            {currentStage.data}
+          </span>
+          <span className="text-slate-500">•</span>
+          <span className="text-slate-400">Evento:</span>
+          <span className="rounded bg-amber-500/20 px-2 py-0.5 font-bold text-amber-300">
+            {currentStage.tipo}
+          </span>
+          <span className="text-slate-500">•</span>
+          <span className="text-slate-400">Multiplicador:</span>
+          <span className="rounded bg-amber-500/20 px-2 py-0.5 font-bold text-amber-300">
+            {currentStage.multiplicador}x
+          </span>
           {currentStage.campeaoNome && (
-            <div className="flex items-center gap-1.5 font-bold text-yellow-400">
-              <Sparkles className="h-4 w-4 text-yellow-400" /> Campeão: {currentStage.campeaoNome}
-            </div>
+            <>
+              <span className="text-slate-500">•</span>
+              <span className="font-bold text-amber-400">
+                🏆 Campeão: {currentStage.campeaoNome}
+              </span>
+            </>
           )}
         </div>
       )}
@@ -262,33 +322,24 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         </div>
       </div>
 
-      {/* Micro-hint de Usabilidade (UI/UX Affordance) */}
-      <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/40 border border-white/5 rounded-xl px-3.5 py-2">
-        <span className="text-amber-400 shrink-0">💡</span>
-        <span>
-          Clique em qualquer treinador para abrir o <strong>perfil completo</strong> (histórico, cartel V/E/D e decks utilizados).
-        </span>
-      </div>
-
-      {/* Tabela de Classificação Responsiva com Glassmorphism */}
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/70 shadow-2xl backdrop-blur-xl">
+      {/* Tabela de Classificação Responsiva com Design Autêntico da Liga Atlântica */}
+      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#0f172a]/70 shadow-2xl backdrop-blur-xl">
         {isGeneralRanking ? (
-          /* TABELA 1: RANKING GERAL CONSOLIDADO - APENAS POSIÇÃO, NOME + CATEGORIA, PONTOS */
+          /* TABELA 1: RANKING GERAL CONSOLIDADO */
           <table className="w-full text-left text-sm text-slate-200">
-            <thead className="border-b border-white/10 bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <thead className="border-b border-white/10 bg-slate-950/40 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
-                <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-14">#</th>
-                <th scope="col" className="px-4 py-3.5">Treinador</th>
-                <th scope="col" className="px-4 py-3.5 text-right font-extrabold text-amber-400">PTS</th>
-                <th scope="col" className="py-3.5 pr-4 pl-2 text-right w-16">
-                  <span className="sr-only">Ação</span>
-                </th>
+                <th scope="col" className="py-4 pl-6 pr-2 text-left w-16">POS</th>
+                <th scope="col" className="px-6 py-4">TREINADOR</th>
+                <th scope="col" className="px-4 py-4 text-center w-24">CAT</th>
+                <th scope="col" className="px-6 py-4 text-center w-36">PONTOS</th>
+                <th scope="col" className="py-4 pr-6 pl-2 text-center w-28">V-E-D</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {paginatedGeneralPlayers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-12 text-center text-slate-400">
+                  <td colSpan={5} className="py-12 text-center text-slate-400">
                     Nenhum jogador encontrado com os filtros selecionados.
                   </td>
                 </tr>
@@ -296,68 +347,59 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                 paginatedGeneralPlayers.map((player, index) => {
                   const globalIndex = (currentPage - 1) * pageSize + index;
                   const pos = globalIndex + 1;
-                  const isTop1 = pos === 1;
-                  const isTop4 = pos <= 4;
+                  const v = player.vitorias || 0;
+                  const e = player.empates || 0;
+                  const d = player.derrotas || 0;
+                  const total = v + e + d;
+                  const winRate = total > 0 ? Math.round((v / total) * 100) : 0;
+                  const vPercent = total > 0 ? (v / total) * 100 : 0;
+                  const ePercent = total > 0 ? (e / total) * 100 : 0;
+                  const dPercent = total > 0 ? (d / total) * 100 : 0;
 
                   return (
                     <tr
                       key={player.jogadorId || globalIndex}
                       onClick={() => setSelectedPlayer(player)}
-                      className={`group cursor-pointer transition-all duration-150 hover:bg-white/[0.05] active:bg-white/[0.08] ${
-                        isTop1
-                          ? "bg-yellow-500/5 font-semibold"
-                          : isTop4
-                          ? "bg-slate-800/20"
-                          : ""
-                      }`}
+                      className="group cursor-pointer transition-all duration-150 hover:bg-white/[0.06] hover:shadow-[inset_4px_0_0_0_#ffcb05] even:bg-black/15"
                     >
-                      {/* Posição com Medalha / Badge */}
-                      <td className="py-3.5 pl-4 pr-2 text-center font-mono">
-                        {isTop1 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-yellow-500/20 text-sm font-black text-yellow-400 border border-yellow-500/40 shadow-sm shadow-yellow-500/20">
-                            🥇
-                          </span>
-                        ) : pos === 2 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-400/20 text-sm font-black text-slate-300 border border-slate-400/30">
-                            🥈
-                          </span>
-                        ) : pos === 3 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-600/20 text-sm font-black text-amber-500 border border-amber-600/30">
-                            🥉
-                          </span>
-                        ) : isTop4 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-400 border border-blue-500/30">
-                            4º
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-400 font-bold">{pos}º</span>
-                        )}
+                      {/* POS */}
+                      <td className="py-4 pl-6 pr-2 text-left font-mono">
+                        {renderPosNumber(pos)}
                       </td>
 
-                      {/* Treinador: Nome + Categoria (ME / SE / JR) */}
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
-                            {player.jogadorNome}
-                          </span>
-                          <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-black text-blue-300 uppercase tracking-wider">
-                            {formatCategoryAbbr(player.categoria)}
-                          </span>
-                        </div>
+                      {/* TREINADOR */}
+                      <td className="px-6 py-4 font-bold text-white group-hover:text-amber-400 transition-colors">
+                        {player.jogadorNome}
                       </td>
 
-                      {/* Pontos Totais */}
-                      <td className="px-4 py-3.5 text-right font-black text-base text-amber-400">
-                        {player.pontos}
+                      {/* CAT */}
+                      <td className="px-4 py-4 text-center">
+                        {renderCategoryBadge(player.categoria)}
                       </td>
 
-                      {/* Indicador de Clique / Affordance */}
-                      <td className="py-3.5 pr-4 pl-2 text-right">
-                        <div className="flex items-center justify-end gap-1 text-slate-500 group-hover:text-amber-400 transition-colors">
-                          <span className="text-[11px] font-semibold hidden sm:inline-block opacity-0 group-hover:opacity-100 transition-opacity">
-                            Ver
-                          </span>
-                          <ChevronRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform" />
+                      {/* PONTOS */}
+                      <td className="px-6 py-4 text-center">
+                        <span className="font-bold text-base text-[#ffcb05] tracking-wide">
+                          {player.pontos} PTS
+                        </span>
+                      </td>
+
+                      {/* V-E-D */}
+                      <td className="py-4 pr-6 pl-2 text-center">
+                        <div
+                          className="inline-flex flex-col items-center gap-1"
+                          title={`${v} Vitórias, ${e} Empates, ${d} Derrotas`}
+                        >
+                          <span className="text-xs font-bold text-slate-300">{winRate}%</span>
+                          {total > 0 ? (
+                            <div className="flex h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
+                              {vPercent > 0 && <div className="bg-[#10b981] h-full" style={{ width: `${vPercent}%` }} />}
+                              {ePercent > 0 && <div className="bg-[#f59e0b] h-full" style={{ width: `${ePercent}%` }} />}
+                              {dPercent > 0 && <div className="bg-[#ef4444] h-full" style={{ width: `${dPercent}%` }} />}
+                            </div>
+                          ) : (
+                            <div className="h-1.5 w-12 rounded-full bg-white/10" />
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -369,85 +411,90 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         ) : (
           /* TABELA 2: CLASSIFICAÇÃO DA ETAPA SELECIONADA */
           <table className="w-full text-left text-sm text-slate-200">
-            <thead className="border-b border-white/10 bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <thead className="border-b border-white/10 bg-slate-950/40 text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
-                <th scope="col" className="py-3.5 pl-4 pr-2 text-center w-14">#</th>
-                <th scope="col" className="px-4 py-3.5">Treinador</th>
-                <th scope="col" className="px-4 py-3.5 text-right font-extrabold text-amber-400">PTS</th>
-                <th scope="col" className="py-3.5 pr-4 pl-2 text-right w-16">
-                  <span className="sr-only">Ação</span>
-                </th>
+                <th scope="col" className="py-4 pl-6 pr-2 text-left w-16">POS</th>
+                <th scope="col" className="px-6 py-4">TREINADOR</th>
+                <th scope="col" className="px-4 py-4 text-center w-24">CAT</th>
+                <th scope="col" className="px-6 py-4 text-center w-36">PONTOS</th>
+                <th scope="col" className="py-4 pr-6 pl-2 text-center w-28">V-E-D</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {paginatedStageResults.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-12 text-center text-slate-400">
-                    Nenhum jogador encontrado para esta etapa com os filtros selecionados.
+                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                    Nenhum resultado para esta etapa com os filtros selecionados.
                   </td>
                 </tr>
               ) : (
                 paginatedStageResults.map((result, idx) => {
-                  const isTop1 = result.colocacao === 1;
-                  const isTop4 = result.colocacao <= 4;
+                  const pos = result.colocacao;
+                  const v = result.vitorias || 0;
+                  const e = result.empates || 0;
+                  const d = result.derrotas || 0;
+                  const total = v + e + d;
+                  const winRate = total > 0 ? Math.round((v / total) * 100) : 0;
+                  const vPercent = total > 0 ? (v / total) * 100 : 0;
+                  const ePercent = total > 0 ? (e / total) * 100 : 0;
+                  const dPercent = total > 0 ? (d / total) * 100 : 0;
+                  const mult = currentStage?.multiplicador || 1;
+                  const basePts = mult > 0 ? result.pontos / mult : result.pontos;
 
                   return (
                     <tr
                       key={result.id || idx}
                       onClick={() => handleOpenStagePlayerModal(result)}
-                      className={`group cursor-pointer transition-all duration-150 hover:bg-white/[0.05] active:bg-white/[0.08] ${
-                        isTop1 ? "bg-yellow-500/10 font-bold" : isTop4 ? "bg-slate-800/30" : ""
-                      }`}
+                      className="group cursor-pointer transition-all duration-150 hover:bg-white/[0.06] hover:shadow-[inset_4px_0_0_0_#ffcb05] even:bg-black/15"
                     >
-                      {/* Posição na Etapa */}
-                      <td className="py-3.5 pl-4 pr-2 text-center font-mono">
-                        {isTop1 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-yellow-500/20 text-sm font-black text-yellow-400 border border-yellow-500/40 shadow-sm shadow-yellow-500/20">
-                            🥇
+                      {/* POS */}
+                      <td className="py-4 pl-6 pr-2 text-left font-mono">
+                        {renderPosNumber(pos)}
+                      </td>
+
+                      {/* TREINADOR + DECK BADGE */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
+                            {result.jogadorNome}
                           </span>
-                        ) : result.colocacao === 2 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-400/20 text-sm font-black text-slate-300 border border-slate-400/30">
-                            🥈
-                          </span>
-                        ) : result.colocacao === 3 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-600/20 text-sm font-black text-amber-500 border border-amber-600/30">
-                            🥉
-                          </span>
-                        ) : result.colocacao === 4 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-400 border border-blue-500/30">
-                            4º
-                          </span>
-                        ) : (
-                          <span className="text-xs font-mono font-medium text-slate-400">
-                            {result.colocacao}º
+                          {result.deckNome && renderDeckBadge(result.deckNome, allDecks)}
+                        </div>
+                      </td>
+
+                      {/* CAT */}
+                      <td className="px-4 py-4 text-center">
+                        {renderCategoryBadge(result.categoria)}
+                      </td>
+
+                      {/* PONTOS COM BASE × MULTIPLICADOR */}
+                      <td className="px-6 py-4 text-center">
+                        <span className="font-bold text-base text-[#ffcb05] tracking-wide block">
+                          {result.pontos} PTS
+                        </span>
+                        {mult !== 1 && (
+                          <span className="text-[11px] font-semibold text-[#ffcb05]/80 block mt-0.5">
+                            {Number.isInteger(basePts) ? basePts : basePts.toFixed(1)} &times; {mult}x
                           </span>
                         )}
                       </td>
 
-                      {/* Treinador: Nome + Categoria (ME / SE / JR) */}
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
-                            {result.jogadorNome}
-                          </span>
-                          <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.5 text-[10px] font-black text-blue-300 uppercase tracking-wider">
-                            {formatCategoryAbbr(result.categoria)}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Pontos Obtidos */}
-                      <td className="px-4 py-3.5 text-right font-black text-base text-amber-400">
-                        {result.pontos}
-                      </td>
-
-                      {/* Indicador de Clique / Affordance */}
-                      <td className="py-3.5 pr-4 pl-2 text-right">
-                        <div className="flex items-center justify-end gap-1 text-slate-500 group-hover:text-amber-400 transition-colors">
-                          <span className="text-[11px] font-semibold hidden sm:inline-block opacity-0 group-hover:opacity-100 transition-opacity">
-                            Ver
-                          </span>
-                          <ChevronRight className="h-4 w-4 transform group-hover:translate-x-0.5 transition-transform" />
+                      {/* V-E-D */}
+                      <td className="py-4 pr-6 pl-2 text-center">
+                        <div
+                          className="inline-flex flex-col items-center gap-1"
+                          title={`${v} Vitórias, ${e} Empates, ${d} Derrotas`}
+                        >
+                          <span className="text-xs font-bold text-slate-300">{winRate}%</span>
+                          {total > 0 ? (
+                            <div className="flex h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
+                              {vPercent > 0 && <div className="bg-[#10b981] h-full" style={{ width: `${vPercent}%` }} />}
+                              {ePercent > 0 && <div className="bg-[#f59e0b] h-full" style={{ width: `${ePercent}%` }} />}
+                              {dPercent > 0 && <div className="bg-[#ef4444] h-full" style={{ width: `${dPercent}%` }} />}
+                            </div>
+                          ) : (
+                            <div className="h-1.5 w-12 rounded-full bg-white/10" />
+                          )}
                         </div>
                       </td>
                     </tr>
