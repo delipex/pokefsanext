@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Lock, Unlock, Upload, UserPlus, Settings, CheckCircle2, AlertTriangle, FileText, RefreshCw, Trophy, Users, Flame, Plus, ExternalLink } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
+import { parseTDFContent } from "@/lib/tdf-parser";
 
 interface AdminDashboardProps {
   initialPlayers: any[];
@@ -58,43 +59,23 @@ export function AdminDashboard({ initialPlayers, initialDecks, initialConfig }: 
     }
   };
 
-  // Leitura do arquivo TDF
+  // Leitura robusta de arquivos TDF (XML nativo do TOM e TSV tabulado)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const dateMatch = file.name.match(/(\d{4}-\d{2}-\d{2})/);
-    if (dateMatch) {
-      setStageDate(dateMatch[1]);
-    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (!text) return;
 
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      const rows = lines.slice(1);
-      const parsed: any[] = [];
+      const parsedResult = parseTDFContent(text, file.name);
 
-      for (const row of rows) {
-        const cols = row.split("\t");
-        if (cols.length < 5) continue;
-        const [pos, id, jogador, categoria, pontos, vitorias, empates, derrotas] = cols;
-
-        parsed.push({
-          colocacao: Number(pos) || 99,
-          id: id ? id.trim() : "",
-          jogador: jogador ? jogador.trim() : "",
-          categoria: categoria ? categoria.trim() : "Master",
-          pontos: Number(pontos) || 0,
-          vitorias: Number(vitorias) || 0,
-          empates: Number(empates) || 0,
-          derrotas: Number(derrotas) || 0,
-        });
+      if (parsedResult.dataTorneio) {
+        setStageDate(parsedResult.dataTorneio);
       }
 
-      setParsedRows(parsed);
+      setParsedRows(parsedResult.jogadores);
     };
 
     reader.readAsText(file);
