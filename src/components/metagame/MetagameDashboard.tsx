@@ -78,12 +78,15 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
       })
       .sort((a, b) => b.count - a.count);
 
-    const withImages = stats.filter((d) => d.imagem && d.deckName.toLowerCase() !== "outros");
+    // Carrossel contém todos os decks registrados (exceto o agrupamento genérico 'outros')
+    const validDecks = stats.filter(
+      (d) => d.deckName.toLowerCase() !== "outros" && d.deckName.toLowerCase() !== "outros decks"
+    );
 
     return {
       deckStats: stats,
       totalDecks: metagameEntries.length,
-      carouselDecks: withImages.length > 0 ? withImages : stats.slice(0, 8),
+      carouselDecks: validDecks.length > 0 ? validDecks : stats,
     };
   }, [metagameEntries, decksInfo]);
 
@@ -170,7 +173,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     return currentSlices;
   }, [deckStats, totalDecks, isOutrosExpanded]);
 
-  // 3. Geometria Trigonométrica dos Arcos e Rótulos do Donut (Área ampliada e limpa)
+  // 3. Geometria Trigonométrica dos Arcos e Rótulos do Donut
   const cx = 220;
   const cy = 220;
   const outerRadius = 165;
@@ -252,6 +255,19 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     setCarouselIndex((prev) => (prev + 1) % carouselDecks.length);
   };
 
+  // Sincronização direta de HOVER nas fatias do Donut com a carta ativa do Carrossel 3D
+  const handleSliceHover = (deckName: string) => {
+    setHoveredDeck(deckName);
+    if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+
+    const foundIdx = carouselDecks.findIndex(
+      (d) => d.deckName.toLowerCase() === deckName.toLowerCase()
+    );
+    if (foundIdx !== -1) {
+      setCarouselIndex(foundIdx);
+    }
+  };
+
   const activeDeck = carouselDecks[carouselIndex] || deckStats[0] || null;
   const activeHoverSlice = chartSlices.find((c) => c.name === hoveredDeck);
   const activeCenterDeckName = hoveredDeck || activeDeck?.deckName || "Mega Lucario Ex";
@@ -287,7 +303,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
 
   return (
     <div className="w-full">
-      {/* Card Unificado com Donut Chart com Imagem Embutida e Carrossel 3D */}
+      {/* Card Unificado com Donut Chart e Carrossel 3D */}
       <div
         className="glass-card rounded-3xl p-6 sm:p-8 backdrop-blur-2xl transition-all"
         onMouseEnter={() => {
@@ -363,7 +379,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                         stroke={isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.25)"}
                         strokeWidth={isHovered ? 2.5 : 1}
                         className="transition-all duration-200 cursor-pointer"
-                        onMouseEnter={() => setHoveredDeck(slice.name)}
+                        onMouseEnter={() => handleSliceHover(slice.name)}
                         onMouseLeave={() => setHoveredDeck(null)}
                         onClick={() => handleSliceClick(slice)}
                       />
@@ -395,11 +411,10 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                   })}
                 </g>
 
-                {/* 3. Rótulos de Porcentagem Dentro das Fatias (Com Visibilidade Otimizada) */}
+                {/* 3. Rótulos de Porcentagem Dentro das Fatias */}
                 <g className="pointer-events-none">
                   {computedSlices.map((slice) => {
                     if (slice.isBack) return null;
-                    // Só exibe texto se houver espaço suficiente para não poluir
                     const hasRoom = slice.sliceAngle > 0.12 || slice.isOutros;
                     if (!hasRoom) return null;
 
@@ -433,7 +448,6 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                     boxShadow: "0 10px 30px -4px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.25)",
                   }}
                 >
-                  {/* Ícone Oficial Nítido do Pokémon Ativo */}
                   {activeCenterIcon && (
                     <img
                       src={activeCenterIcon}
@@ -460,8 +474,8 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
             {/* Dica de Interatividade */}
             <p className="text-[11px] text-slate-400 font-medium text-center mt-3">
               {isOutrosExpanded
-                ? "💡 Clique em uma fatia para focar ou em 'Voltar' para o resumo."
-                : "💡 Passe o mouse ou clique em qualquer fatia para ver os detalhes."}
+                ? "💡 Passe o mouse em uma fatia para focar ou em 'Voltar' para o resumo."
+                : "💡 Passe o mouse ou clique em qualquer fatia para focar a carta no carrossel."}
             </p>
           </div>
 
@@ -485,7 +499,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                 <ChevronRight className="h-5 w-5" />
               </button>
 
-              {/* Pilha 3D das Cartas */}
+              {/* Pilha 3D das Cartas (Sem borda amarela cafona) */}
               <div className="relative w-full h-full flex items-center justify-center">
                 {carouselDecks.map((deck, idx) => {
                   const offset = (idx - carouselIndex + carouselDecks.length) % carouselDecks.length;
@@ -500,10 +514,10 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                     transformStyle = "scale-100 opacity-100 z-20 translate-x-0";
                     zIndex = 20;
                   } else if (isRight) {
-                    transformStyle = "scale-85 opacity-50 z-10 translate-x-12 sm:translate-x-16 rotate-6";
+                    transformStyle = "scale-85 opacity-40 z-10 translate-x-12 sm:translate-x-16 rotate-6";
                     zIndex = 10;
                   } else if (isLeft) {
-                    transformStyle = "scale-85 opacity-50 z-10 -translate-x-12 sm:-translate-x-16 -rotate-6";
+                    transformStyle = "scale-85 opacity-40 z-10 -translate-x-12 sm:-translate-x-16 -rotate-6";
                     zIndex = 10;
                   }
 
@@ -515,7 +529,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                       onClick={() => setCarouselIndex(idx)}
                     >
                       {deck.imagem ? (
-                        <div className="relative w-full h-full bg-slate-950 flex items-center justify-center border-2 border-white/20 rounded-2xl overflow-hidden">
+                        <div className="relative w-full h-full bg-slate-950 flex items-center justify-center border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
                           <img
                             src={deck.imagem}
                             alt={deck.deckName}
@@ -524,7 +538,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                         </div>
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-950 border-2 border-white/20 rounded-2xl flex flex-col items-center justify-center p-6 text-center">
+                        <div className="w-full h-full bg-gradient-to-br from-slate-900 to-[#0a0f1d] border border-white/10 rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-2xl">
                           <span className="text-4xl mb-3">⚡</span>
                           <span className="font-bold text-white text-base">{deck.deckName}</span>
                         </div>
@@ -559,7 +573,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600/20 border border-blue-500/30 px-3.5 py-1.5 text-xs font-bold text-blue-300 hover:bg-blue-600 hover:text-white transition-all shadow-md"
                     >
-                      <span>Ver listas no Limitless TCG</span>
+                      <span>Ver no Limitless</span>
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>
