@@ -234,7 +234,7 @@ export function HeroSeasonHub({
     <div className="w-full">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-stretch">
         {/* =========================================================
-            COLUNA 1: PÓDIO DA TEMPORADA ATUAL (Esquerda - Compacta 5 Colunas)
+            COLUNA 1: PÓDIO DA TEMPORADA ATUAL (Uma Caixa Única com Divisórias Sutis)
            ========================================================= */}
         <div className="lg:col-span-5 flex flex-col space-y-2">
           {/* Header da Coluna */}
@@ -260,8 +260,8 @@ export function HeroSeasonHub({
             </span>
           </div>
 
-          {/* Lista dos 4 Cards Compactos e Transparentes */}
-          <div className="flex-1 flex flex-col justify-between space-y-1.5">
+          {/* Caixa Única com Divisórias em Linhas Sutis */}
+          <div className="flex-1 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03] p-2 sm:p-3 backdrop-blur-2xl shadow-xl flex flex-col justify-between divide-y divide-white/[0.04] transition-all">
             {top4.slice(0, 4).map((player, index) => {
               const pos = index + 1;
               const cardCfg = getPodiumCardConfig(pos);
@@ -271,7 +271,7 @@ export function HeroSeasonHub({
                 <div
                   key={player.jogadorId || player.jogadorNome}
                   onClick={() => setSelectedPlayer(player)}
-                  className={`group relative flex items-center justify-between gap-2.5 rounded-2xl border p-2 sm:p-2.5 backdrop-blur-xl transition-all duration-200 hover:scale-[1.01] cursor-pointer ${cardCfg.containerClass}`}
+                  className="group relative flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-2xl hover:bg-white/[0.04] transition-all duration-200 cursor-pointer"
                 >
                   {/* Badge Numérico da Posição */}
                   <div
@@ -281,7 +281,7 @@ export function HeroSeasonHub({
                   </div>
 
                   {/* Informações do Jogador e Deck */}
-                  <div className="min-w-0 flex-1 pl-0.5">
+                  <div className="min-w-0 flex-1 pl-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors truncate">
                         {player.jogadorNome}

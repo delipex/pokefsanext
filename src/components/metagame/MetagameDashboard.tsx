@@ -98,10 +98,12 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     const outrosList: typeof deckStats = [];
     const mainList: typeof deckStats = [];
 
-    deckStats.forEach((d) => {
+    // Modo Principal: Agrupa decks minoritários para manter no máximo os Top 6 mais expressivos
+    const TOP_ARCHETYPES_LIMIT = 6;
+    deckStats.forEach((d, index) => {
       const isOutrosVal =
         d.deckName.toLowerCase() === "outros" || d.deckName.toLowerCase() === "outros decks";
-      const isMinor = d.count === 1 || isOutrosVal || d.percent < 1.5;
+      const isMinor = index >= TOP_ARCHETYPES_LIMIT || d.count < 2 || d.percent < 3.5 || isOutrosVal;
 
       if (isMinor) {
         outrosCount += d.count;
@@ -348,9 +350,9 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-          {/* Lado Esquerdo: Carrossel 3D das Cartas Pokémon (Alinhado e sem cortes) */}
+          {/* Lado Esquerdo: Carrossel 3D das Cartas Pokémon (Proporção oficial 63:88 sem corte de bordas) */}
           <div className="md:col-span-6 flex flex-col items-center justify-center relative overflow-visible py-4">
-            <div className="relative w-full max-w-[300px] sm:max-w-[340px] aspect-[3/4] flex items-center justify-center overflow-visible">
+            <div className="relative w-full max-w-[280px] sm:max-w-[310px] aspect-[63/88] flex items-center justify-center overflow-visible">
               {/* Controles de Navegação */}
               <button
                 onClick={handlePrev}
@@ -393,16 +395,16 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                   return (
                     <div
                       key={deck.deckName}
-                      className={`absolute w-[230px] sm:w-[255px] aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-500 ease-out shadow-2xl cursor-pointer ${transformStyle}`}
+                      className={`absolute w-[220px] sm:w-[245px] aspect-[63/88] rounded-2xl overflow-hidden transition-all duration-500 ease-out shadow-2xl cursor-pointer ${transformStyle}`}
                       style={{ zIndex }}
                       onClick={() => setCarouselIndex(idx)}
                     >
                       {deck.imagem ? (
-                        <div className="relative w-full h-full bg-slate-950 flex items-center justify-center border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl">
+                        <div className="relative w-full h-full bg-slate-950 flex items-center justify-center border border-white/[0.1] rounded-2xl overflow-hidden shadow-2xl">
                           <img
                             src={deck.imagem}
                             alt={deck.deckName}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain select-none"
                           />
                         </div>
                       ) : (
@@ -493,7 +495,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                     if (slice.isOutros || slice.isBack || !slice.icone) return null;
                     const isHovered = hoveredDeck === slice.name;
                     // Ícone supergrande para criar o corte de close conceitual na fatia
-                    const iconSize = slice.sliceAngle > 0.3 ? 90 : 72;
+                    const iconSize = slice.sliceAngle > 0.4 ? 120 : slice.sliceAngle > 0.25 ? 100 : 80;
 
                     return (
                       <g key={`embedded-icon-${slice.idx}`} clipPath={`url(#sliceClip-${slice.idx})`}>
@@ -504,7 +506,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                           width={iconSize}
                           height={iconSize}
                           preserveAspectRatio="xMidYMid slice"
-                          opacity={isHovered ? 1 : 0.9}
+                          opacity={isHovered ? 1 : 0.92}
                           className="transition-all duration-300 filter brightness-110 contrast-105"
                         />
                       </g>
