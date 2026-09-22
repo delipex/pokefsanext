@@ -1,9 +1,10 @@
 import { getRanking, getTop4Podium, getMetagameData, getEtapasWithSummary, getConfigMap, getNextEvent, getSeasonAwards } from "@/lib/queries";
+import { HeroSeasonHub } from "@/components/home/HeroSeasonHub";
 import { PodiumSection } from "@/components/ranking/PodiumSection";
 import { MetagameDashboard } from "@/components/metagame/MetagameDashboard";
 import { NextEventCard } from "@/components/home/NextEventCard";
 import { SeasonAwardsSection } from "@/components/ranking/SeasonAwardsSection";
-import { Flame, ShieldCheck, ArrowRight, Trophy } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { PlayerModalData } from "@/components/ranking/PlayerModal";
 
@@ -19,6 +20,37 @@ export default async function HomePage() {
     getNextEvent(),
     getSeasonAwards(),
   ]);
+
+  // Top Deck calculation
+  const deckCounts: Record<string, number> = {};
+  metaData.metagameEntries.forEach((m) => {
+    const d = m.deckNome?.trim();
+    if (d && d.toLowerCase() !== "outros") {
+      deckCounts[d] = (deckCounts[d] || 0) + 1;
+    }
+  });
+  const totalMetaEntries = metaData.metagameEntries.length;
+  let topDeckName = "";
+  let topDeckMax = 0;
+  for (const [d, count] of Object.entries(deckCounts)) {
+    if (count > topDeckMax) {
+      topDeckMax = count;
+      topDeckName = d;
+    }
+  }
+  const topDeck = topDeckName
+    ? {
+        nome: topDeckName,
+        porcentagem: totalMetaEntries > 0 ? `${((topDeckMax / totalMetaEntries) * 100).toFixed(0)}%` : "0%",
+      }
+    : null;
+
+  const lider = rankingRaw[0]
+    ? {
+        nome: rankingRaw[0].jogadorNome,
+        pontos: rankingRaw[0].pontos,
+      }
+    : null;
 
   const top4: PlayerModalData[] = top4Raw.map((r) => ({
     jogadorNome: r.jogadorNome,
@@ -36,24 +68,15 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-12 sm:space-y-16">
-      {/* Hero Section Limpo e Elegante */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-blue-950/40 via-slate-900/60 to-slate-950/80 p-6 sm:p-10 backdrop-blur-2xl shadow-xl">
-        <div className="relative z-10 max-w-2xl space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-bold text-blue-400">
-            <ShieldCheck className="h-4 w-4" />
-            Circuito Oficial Pokémon TCG • Feira de Santana
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
-            Liga Atlântica <br />
-            <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-amber-300 bg-clip-text text-transparent">
-              Temporada {config.temporadaAtual || 5}
-            </span>
-          </h1>
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-            Acompanhe a classificação dos competidores, as premiações da temporada, o metagame dos torneios e as datas dos próximos confrontos oficiais.
-          </p>
-        </div>
-      </section>
+      {/* Hero Dinâmico: KPIs da Temporada + Ticker de Títulos & Premiações */}
+      <HeroSeasonHub
+        temporada={Number(config.temporadaAtual) || 5}
+        totalEtapas={etapas.length}
+        totalJogadores={rankingRaw.length}
+        lider={lider}
+        topDeck={topDeck}
+        awards={awards}
+      />
 
       {/* 1. Card de Próximo Evento Conectado ao Calendário */}
       <NextEventCard event={nextEvent} />
