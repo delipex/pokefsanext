@@ -171,7 +171,7 @@ export default function PlayerLoginPage() {
                     placeholder="Ex: 5685779"
                     value={loginPopId}
                     onChange={(e) => setLoginPopId(e.target.value.replace(/\D/g, ""))}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 pl-10 pr-4 py-2.5 text-sm font-mono text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 pl-10 pr-4 py-2.5 text-sm tabular-nums font-semibold text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none font-sans"
                     required
                   />
                 </div>
@@ -186,7 +186,7 @@ export default function PlayerLoginPage() {
                   placeholder="PIN pessoal (4 a 8 dígitos)"
                   value={loginPin}
                   onChange={(e) => setLoginPin(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-2.5 text-sm font-mono text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-2.5 text-sm tabular-nums font-semibold text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none font-sans"
                   required
                 />
               </div>
@@ -279,7 +279,7 @@ export default function PlayerLoginPage() {
                     placeholder="Ex: 5685779"
                     value={cadPopId}
                     onChange={(e) => setCadPopId(e.target.value.replace(/\D/g, ""))}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs font-mono text-white focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs tabular-nums font-semibold text-white focus:border-blue-500 focus:outline-none font-sans"
                     required
                   />
                 </div>
@@ -293,7 +293,7 @@ export default function PlayerLoginPage() {
                     placeholder="Ex: 75999999999"
                     value={cadWhatsapp}
                     onChange={(e) => setCadWhatsapp(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans"
                     required
                   />
                 </div>
@@ -308,7 +308,7 @@ export default function PlayerLoginPage() {
                   placeholder="Nome e Sobrenome"
                   value={cadNome}
                   onChange={(e) => setCadNome(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans"
                   required
                 />
               </div>
@@ -322,7 +322,7 @@ export default function PlayerLoginPage() {
                     type="date"
                     value={cadDataNasc}
                     onChange={(e) => setCadDataNasc(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans"
                     required
                   />
                   <span className="text-[10px] text-slate-400 block">Define automaticamente Master/Senior/Junior</span>
@@ -337,7 +337,7 @@ export default function PlayerLoginPage() {
                     placeholder="4 a 8 dígitos"
                     value={cadPin}
                     onChange={(e) => setCadPin(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs font-mono text-white focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs tabular-nums font-semibold text-white focus:border-blue-500 focus:outline-none font-sans"
                     required
                   />
                 </div>

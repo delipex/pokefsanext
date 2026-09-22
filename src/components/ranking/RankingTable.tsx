@@ -341,7 +341,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                       className="group cursor-pointer transition-all duration-150 hover:bg-white/[0.06] hover:shadow-[inset_4px_0_0_0_#ffcb05] even:bg-black/15"
                     >
                       {/* POS */}
-                      <td className="py-4 pl-6 pr-2 text-left font-mono">
+                      <td className="py-4 pl-6 pr-2 text-left tabular-nums">
                         {renderPosNumber(pos)}
                       </td>
 
@@ -425,7 +425,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                       className="group cursor-pointer transition-all duration-150 hover:bg-white/[0.06] hover:shadow-[inset_4px_0_0_0_#ffcb05] even:bg-black/15"
                     >
                       {/* POS */}
-                      <td className="py-4 pl-6 pr-2 text-left font-mono">
+                      <td className="py-4 pl-6 pr-2 text-left tabular-nums">
                         {renderPosNumber(pos)}
                       </td>
 

@@ -875,7 +875,7 @@ export function AdminDashboard({
                   >
                     <div>
                       <p className="text-xs font-bold text-white">{p.jogador}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">ID: {p.id || "Gerar auto"}</p>
+                      <p className="text-[10px] text-slate-400 tabular-nums">ID: {p.id || "Gerar auto"}</p>
                     </div>
                     <button
                       type="button"
@@ -940,11 +940,11 @@ export function AdminDashboard({
                   <tbody className="divide-y divide-white/5">
                     {parsedRows.map((row, idx) => (
                       <tr key={idx} className="hover:bg-slate-800/40">
-                        <td className="py-2.5 pl-4 text-center font-bold text-white">{row.colocacao}º</td>
+                        <td className="py-2.5 pl-4 text-center font-bold text-white tabular-nums">{row.colocacao}º</td>
                         <td className="py-2.5 px-3 font-bold text-white">
                           {resolvedNamesMap[row.jogador] || row.jogador}
                         </td>
-                        <td className="py-2.5 px-3 font-mono text-slate-400">{row.id || "—"}</td>
+                        <td className="py-2.5 px-3 tabular-nums font-semibold text-slate-400">{row.id || "—"}</td>
                         <td className="py-2.5 px-3 text-center font-bold text-slate-300">
                           {row.vitorias}-{row.derrotas}-{row.empates}
                         </td>
@@ -1013,7 +1013,7 @@ export function AdminDashboard({
                   value={newPlayerId}
                   onChange={(e) => setNewPlayerId(e.target.value)}
                   disabled={Boolean(editingPlayerId)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-mono text-white focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs tabular-nums font-semibold text-white focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed font-sans"
                   required
                 />
               </div>
@@ -1027,7 +1027,7 @@ export function AdminDashboard({
                   placeholder="Ex: Pedro Henrique"
                   value={newPlayerName}
                   onChange={(e) => setNewPlayerName(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500 font-sans"
                   required
                 />
               </div>
@@ -1115,7 +1115,7 @@ export function AdminDashboard({
                               </span>
                             )}
                           </td>
-                          <td className="px-3 py-2 font-mono text-slate-400">{p.id}</td>
+                          <td className="px-3 py-2 tabular-nums font-semibold text-slate-400">{p.id}</td>
                           <td className="px-3 py-2 text-center">
                             <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
                               {p.categoria}
@@ -1604,7 +1604,7 @@ export function AdminDashboard({
                         <tr key={dl.id} className="hover:bg-slate-800/40 transition-colors">
                           <td className="py-3 pl-4">
                             <div className="font-bold text-white">{dl.jogadorNome}</div>
-                            <div className="text-[11px] font-mono text-slate-400">POP ID: {dl.jogadorId}</div>
+                            <div className="text-[11px] tabular-nums font-semibold text-slate-400">POP ID: {dl.jogadorId}</div>
                           </td>
                           <td className="py-3 px-3">
                             <div className="flex items-center gap-2">
@@ -1614,9 +1614,9 @@ export function AdminDashboard({
                           </td>
                           <td className="py-3 px-3 text-xs text-slate-400">
                             <div>{dl.eventoNome || "Etapa Oficial"}</div>
-                            <div className="font-mono text-[11px] text-slate-500">{dl.etapaData}</div>
+                            <div className="tabular-nums text-[11px] text-slate-500">{dl.etapaData}</div>
                           </td>
-                          <td className="py-3 px-3 text-center font-bold text-emerald-400">
+                          <td className="py-3 px-3 text-center font-bold text-emerald-400 tabular-nums">
                             {dl.totalCartas || 60} / 60
                           </td>
                           <td className="py-3 pr-4 text-right">
@@ -1669,8 +1669,8 @@ export function AdminDashboard({
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div>
                     <h4 className="text-base font-black text-white">{previewDecklist.jogadorNome}</h4>
-                    <p className="text-xs text-slate-400 font-mono">
-                      {previewDecklist.deckNome} • POP ID: {previewDecklist.jogadorId}
+                    <p className="text-xs text-slate-400">
+                      {previewDecklist.deckNome} • POP ID: <strong className="tabular-nums font-bold text-slate-200">{previewDecklist.jogadorId}</strong>
                     </p>
                   </div>
                   <button
@@ -1682,7 +1682,7 @@ export function AdminDashboard({
                 </div>
 
                 <div className="flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-slate-950 p-4">
-                  <pre className="text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed">
+                  <pre className="text-xs text-slate-200 whitespace-pre-wrap leading-relaxed font-sans">
                     {previewDecklist.decklistRaw}
                   </pre>
                 </div>
@@ -1829,7 +1829,7 @@ export function AdminDashboard({
                   placeholder="1234"
                   value={adminPin}
                   onChange={(e) => setAdminPin(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-mono text-white focus:outline-none focus:border-purple-500"
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs tabular-nums font-semibold text-white focus:outline-none focus:border-purple-500 font-sans"
                 />
               </div>
             </div>
@@ -2020,7 +2020,7 @@ export function AdminDashboard({
                 placeholder={`Digite "ENCERRAR TEMPORADA ${closureCurrentSeason}"`}
                 value={closureConfirmText}
                 onChange={(e) => setClosureConfirmText(e.target.value)}
-                className="w-full rounded-xl border border-rose-500/40 bg-slate-950 py-2.5 px-3 text-xs font-mono font-bold text-white focus:outline-none focus:border-rose-400"
+                className="w-full rounded-xl border border-rose-500/40 bg-slate-950 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-rose-400 font-sans"
                 required
               />
             </div>

@@ -152,10 +152,10 @@ export function PlayerPortalDashboard({
                 </h1>
                 <CategoryBadge category={player.categoria} />
               </div>
-              <p className="text-xs text-slate-400 font-mono mt-0.5 flex items-center gap-3">
-                <span>POP ID: <strong className="text-white">{player.id}</strong></span>
+              <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-3 flex-wrap">
+                <span>POP ID: <strong className="text-white tabular-nums font-bold">{player.id}</strong></span>
                 <span>•</span>
-                <span className="text-amber-300 font-semibold">{player.categoria.toUpperCase()} DIVISION</span>
+                <span className="text-amber-300 font-bold">{player.categoria.toUpperCase()} DIVISION</span>
                 <span>•</span>
                 <span>{player.cidade || "Feira de Santana - BA"}</span>
               </p>
@@ -302,7 +302,7 @@ export function PlayerPortalDashboard({
                 placeholder={`Pokémon: 14\n4 Dragapult Ex TWM 130\n...\n\nTreinador: 34\n4 Arven OBF 186\n...\n\nEnergia: 12\n...`}
                 value={decklistText}
                 onChange={(e) => setDecklistText(e.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950 p-3.5 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 leading-relaxed"
+                className="w-full rounded-2xl border border-white/10 bg-slate-950 p-3.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 leading-relaxed font-sans"
                 required
               />
             </div>
@@ -367,12 +367,12 @@ export function PlayerPortalDashboard({
               <tbody className="divide-y divide-white/5">
                 {stageResults.map((r, idx) => (
                   <tr key={idx} className="hover:bg-slate-800/40">
-                    <td className="py-2.5 pl-4 font-mono text-slate-300">{r.etapaData}</td>
-                    <td className="py-2.5 px-3 text-center font-bold text-white">{r.colocacao}º</td>
-                    <td className="py-2.5 px-3 text-center text-slate-300 font-mono">
+                    <td className="py-2.5 pl-4 tabular-nums text-slate-300">{r.etapaData}</td>
+                    <td className="py-2.5 px-3 text-center font-bold text-white tabular-nums">{r.colocacao}º</td>
+                    <td className="py-2.5 px-3 text-center text-slate-300 tabular-nums">
                       {r.vitorias}-{r.derrotas}-{r.empates}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-black text-amber-400">{Math.round(r.pontos)}</td>
+                    <td className="py-2.5 px-3 text-center font-black text-amber-400 tabular-nums">{Math.round(r.pontos)}</td>
                     <td className="py-2.5 pr-4 font-medium text-slate-300">{r.deckNome || "—"}</td>
                   </tr>
                 ))}

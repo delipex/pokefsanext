@@ -370,7 +370,7 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
               <tbody className="divide-y divide-white/5">
                 {filteredScores.map((score, idx) => (
                   <tr key={score.id || idx} className="hover:bg-white/[0.04] transition-colors even:bg-black/15">
-                    <td className="py-3.5 pl-4 pr-2 text-center font-mono font-bold text-xs">
+                    <td className="py-3.5 pl-4 pr-2 text-center tabular-nums font-bold text-xs">
                       {score.pos === 1 ? "🥇" : score.pos === 2 ? "🥈" : score.pos === 3 ? "🥉" : `${score.pos}º`}
                     </td>
                     <td className="px-4 py-3.5">

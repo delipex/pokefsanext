@@ -301,7 +301,7 @@ export function HeroSeasonHub({
                       {player.vitorias !== undefined && player.derrotas !== undefined && (
                         <>
                           <span className="text-slate-600">•</span>
-                          <span className="font-mono text-[11px] text-slate-400 shrink-0">
+                          <span className="tabular-nums font-semibold text-[11px] text-slate-400 shrink-0">
                             {player.vitorias}V - {player.derrotas}D
                           </span>
                         </>
@@ -311,11 +311,11 @@ export function HeroSeasonHub({
 
                   {/* Pontos e Estatísticas */}
                   <div className="text-right shrink-0">
-                    <div className={`font-title font-black text-base sm:text-lg tracking-wide ${cardCfg.ptsColor}`}>
+                    <div className={`font-black text-base sm:text-lg tracking-wide tabular-nums ${cardCfg.ptsColor}`}>
                       {player.pontos}{" "}
                       <span className="text-[11px] font-semibold text-slate-400">PTS</span>
                     </div>
-                    <div className="text-[11px] text-slate-400 font-medium">
+                    <div className="text-[11px] text-slate-400 font-medium tabular-nums">
                       {player.podios} pódio(s) &bull; méd{" "}
                       {player.mediaColocacao
                         ? player.mediaColocacao.toFixed(1).replace(".", ",")
@@ -361,7 +361,7 @@ export function HeroSeasonHub({
                 <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
                 <span>Próximo Torneio</span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black text-[#ffcb05]">
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black text-[#ffcb05] tabular-nums">
                 <Clock className="h-3.5 w-3.5" />
                 <span>{formattedEventDate} às {eventTime}</span>
               </div>
@@ -397,7 +397,7 @@ export function HeroSeasonHub({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-400 px-1">
                 <span>Contagem Regressiva</span>
-                <span className="text-[#ffcb05] font-mono font-bold">Faltam Poucos Dias</span>
+                <span className="text-[#ffcb05] font-bold">Faltam Poucos Dias</span>
               </div>
               <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
                 {[
@@ -410,7 +410,7 @@ export function HeroSeasonHub({
                     key={i}
                     className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-[#060a17]/90 py-3 px-2 shadow-inner"
                   >
-                    <span className="font-mono text-xl sm:text-2xl font-black text-[#ffcb05] drop-shadow-[0_0_6px_rgba(255,203,5,0.3)]">
+                    <span className="tabular-nums text-xl sm:text-2xl font-black text-[#ffcb05] drop-shadow-[0_0_6px_rgba(255,203,5,0.3)]">
                       {item.value}
                     </span>
                     <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 mt-0.5">

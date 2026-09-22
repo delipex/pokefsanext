@@ -429,7 +429,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                         fill="#ffffff"
                         fontSize={slice.isOutros ? 9.5 : slice.percent >= 10 ? 11 : 9}
                         fontWeight="900"
-                        className="font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
+                        className="tabular-nums font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
                       >
                         {slice.isOutros ? "Outros" : slice.percentStr}
                       </text>

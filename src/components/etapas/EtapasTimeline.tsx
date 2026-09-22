@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Calendar, Trophy, Users, CheckCircle2, ChevronRight, X, Award, Shield } from "lucide-react";
 import { formatCategoryAbbr } from "@/lib/theme/energy-tokens";
+import { CategoryBadge } from "@/components/ui/CategoryBadge";
 
 export interface StageResult {
   id: number;
@@ -81,7 +82,7 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                    <p className="text-xs text-slate-400 tabular-nums flex items-center gap-1 mt-0.5">
                       <Calendar className="h-3 w-3 text-slate-500" />
                       {formattedDate}
                     </p>
@@ -113,7 +114,7 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                   <span className="flex items-center gap-1">
                     <Users className="h-3.5 w-3.5 text-slate-500" /> Participantes:
                   </span>
-                  <span className="font-bold text-slate-200">
+                  <span className="font-bold text-slate-200 tabular-nums">
                     {etapa.totalJogadores > 0 ? `${etapa.totalJogadores} jogadores` : "Ver Tabela"}
                   </span>
                 </div>
@@ -155,7 +156,7 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                     {selectedEtapa.multiplicador}x Pontos
                   </span>
                 )}
-                <span className="text-xs text-slate-400 font-mono">
+                <span className="text-xs text-slate-400 tabular-nums">
                   Data: {selectedEtapa.data}
                 </span>
               </div>
@@ -163,7 +164,7 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                 Classificação Oficial da Etapa
               </h3>
               <p className="text-xs text-slate-400">
-                Total de <strong>{selectedEtapa.resultados.length}</strong> jogadores participaram desta rodada oficial TOM
+                Total de <strong className="tabular-nums">{selectedEtapa.resultados.length}</strong> jogadores participaram desta rodada oficial TOM
               </p>
             </div>
 
@@ -173,8 +174,7 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                 <thead className="sticky top-0 bg-slate-950 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/10">
                   <tr>
                     <th className="py-2.5 pl-3 pr-2 text-center w-10">#</th>
-                    <th className="px-3 py-2.5">Jogador</th>
-                    <th className="px-2 py-2.5 text-center">Cat</th>
+                    <th className="px-3 py-2.5">Treinador</th>
                     <th className="px-3 py-2.5 text-right font-bold text-yellow-400">PTS</th>
                     <th className="px-3 py-2.5 text-center">V / E / D</th>
                   </tr>
@@ -191,7 +191,7 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                           isWinner ? "bg-yellow-500/10 font-bold" : isTop4 ? "bg-slate-800/30" : ""
                         }`}
                       >
-                        <td className="py-2.5 pl-3 pr-2 text-center">
+                        <td className="py-2.5 pl-3 pr-2 text-center tabular-nums">
                           {isWinner ? (
                             <span className="text-sm">🥇</span>
                           ) : res.colocacao === 2 ? (
@@ -201,21 +201,19 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                           ) : res.colocacao === 4 ? (
                             <span className="text-xs font-bold text-blue-400">4º</span>
                           ) : (
-                            <span className="text-slate-400 font-mono">{res.colocacao}º</span>
+                            <span className="text-slate-400 font-bold">{res.colocacao}º</span>
                           )}
                         </td>
                         <td className="px-3 py-2.5">
-                          <div className="font-bold text-white">{res.jogadorNome}</div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-white">{res.jogadorNome}</span>
+                            <CategoryBadge category={res.categoria} size="sm" />
+                          </div>
                         </td>
-                        <td className="px-2 py-2.5 text-center">
-                          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">
-                            {formatCategoryAbbr(res.categoria)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-black text-sm text-yellow-400">
+                        <td className="px-3 py-2.5 text-right font-black text-sm text-yellow-400 tabular-nums">
                           {res.pontos}
                         </td>
-                        <td className="px-3 py-2.5 text-center font-mono text-slate-300">
+                        <td className="px-3 py-2.5 text-center tabular-nums text-slate-300">
                           <span className="text-emerald-400 font-bold">{res.vitorias}</span>
                           <span className="text-slate-500"> / </span>
                           <span className="text-yellow-400 font-bold">{res.empates}</span>

@@ -81,7 +81,7 @@ export default function LoginPage() {
                   placeholder="Digite o PIN do Organizador..."
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/80 pl-10 pr-4 py-3 text-sm font-mono text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/80 pl-10 pr-4 py-3 text-sm tabular-nums font-semibold text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-sans"
                   autoFocus
                   required
                 />

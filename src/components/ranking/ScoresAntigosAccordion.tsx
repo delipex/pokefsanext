@@ -138,7 +138,7 @@ export function ScoresAntigosAccordion({ scores }: ScoresAntigosAccordionProps) 
                           ) : score.pos === 3 ? (
                             <span className="text-sm">🥉</span>
                           ) : (
-                            <span className="font-mono text-slate-400">{score.pos}º</span>
+                            <span className="tabular-nums font-bold text-slate-400">{score.pos}º</span>
                           )}
                         </td>
                         <td className="px-4 py-2.5">

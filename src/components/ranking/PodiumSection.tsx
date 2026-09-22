@@ -161,7 +161,7 @@ export function PodiumSection({ top4, onSelectPlayer, showFullLink = true }: Pod
               </div>
 
               {/* Rodapé Compacto com Estatísticas */}
-              <div className="flex items-center justify-between text-xs pt-2.5 border-t border-white/5 font-mono text-slate-300">
+              <div className="flex items-center justify-between text-xs pt-2.5 border-t border-white/5 tabular-nums text-slate-300">
                 <span className="font-bold text-white">
                   <span className="text-emerald-400">{player.vitorias}V</span> - <span className="text-rose-400">{player.derrotas}D</span>
                 </span>
