@@ -236,14 +236,14 @@ export function HeroSeasonHub({
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
         {/* =========================================================
             COLUNA 1: PÓDIO DA TEMPORADA ATUAL (Esquerda)
            ========================================================= */}
-        <div className="lg:col-span-7 flex flex-col space-y-3">
+        <div className="lg:col-span-7 flex flex-col space-y-2.5">
           {/* Header da Coluna */}
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <svg
                 className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400 stroke-current fill-none stroke-[2.2]"
                 viewBox="0 0 24 24"
@@ -264,8 +264,8 @@ export function HeroSeasonHub({
             </span>
           </div>
 
-          {/* Lista dos 4 Cards com Cores Diferenciadas de Pódio e Capricho Visual */}
-          <div className="flex-1 flex flex-col justify-between space-y-2.5">
+          {/* Lista dos 4 Cards Compacta e Limpa */}
+          <div className="flex-1 flex flex-col justify-between space-y-2">
             {top4.slice(0, 4).map((player, index) => {
               const pos = index + 1;
               const cardCfg = getPodiumCardConfig(pos);
@@ -275,11 +275,11 @@ export function HeroSeasonHub({
                 <div
                   key={player.jogadorId || player.jogadorNome}
                   onClick={() => setSelectedPlayer(player)}
-                  className={`group relative flex items-center justify-between gap-3.5 rounded-2xl border p-3.5 sm:p-4 backdrop-blur-xl transition-all duration-200 hover:scale-[1.01] cursor-pointer ${cardCfg.containerClass}`}
+                  className={`group relative flex items-center justify-between gap-3 rounded-2xl border p-2.5 sm:p-3 backdrop-blur-xl transition-all duration-200 hover:scale-[1.01] cursor-pointer ${cardCfg.containerClass}`}
                 >
                   {/* Badge Numérico da Posição */}
                   <div
-                    className={`h-10 w-10 sm:h-11 sm:w-11 rounded-full flex items-center justify-center text-base sm:text-lg shrink-0 border ${cardCfg.badgeStyle.bg} ${cardCfg.badgeStyle.border}`}
+                    className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-sm sm:text-base shrink-0 border ${cardCfg.badgeStyle.bg} ${cardCfg.badgeStyle.border}`}
                   >
                     {pos}
                   </div>
@@ -294,7 +294,7 @@ export function HeroSeasonHub({
                       {cardCfg.seal}
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate mt-1">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate mt-0.5">
                       {/* Energy Dot / Ícone de Energia */}
                       <div className="flex items-center -space-x-1 shrink-0">
                         {energyCfg.types.map((t, i) => (
@@ -305,32 +305,17 @@ export function HeroSeasonHub({
                           />
                         ))}
                       </div>
-                      <span className="truncate max-w-[200px] sm:max-w-[260px] text-slate-300">
+                      <span className="truncate max-w-[220px] sm:max-w-[280px] text-slate-300 font-medium">
                         {player.ultimoDeck || "Sem deck registrado"}
                       </span>
-                      {player.vitorias !== undefined && player.derrotas !== undefined && (
-                        <>
-                          <span className="text-slate-600">•</span>
-                          <span className="tabular-nums font-semibold text-[11px] text-slate-400 shrink-0">
-                            {player.vitorias}V - {player.derrotas}D
-                          </span>
-                        </>
-                      )}
                     </div>
                   </div>
 
-                  {/* Pontos e Estatísticas */}
+                  {/* Pontos Limpos */}
                   <div className="text-right shrink-0">
                     <div className={`font-black text-base sm:text-lg tracking-wide tabular-nums ${cardCfg.ptsColor}`}>
                       {player.pontos}{" "}
                       <span className="text-[11px] font-semibold text-slate-400">PTS</span>
-                    </div>
-                    <div className="text-[11px] text-slate-400 font-medium tabular-nums">
-                      {player.podios} pódio(s) &bull; méd{" "}
-                      {player.mediaColocacao
-                        ? player.mediaColocacao.toFixed(1).replace(".", ",")
-                        : "0"}
-                      &deg;
                     </div>
                   </div>
                 </div>

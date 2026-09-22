@@ -71,8 +71,14 @@ export default async function HomePage() {
   });
 
   return (
-    <div className="space-y-12 sm:space-y-16 lg:space-y-20">
-      {/* 1. Banner Principal: Pódio da Temporada + Próximo Evento */}
+    <div className="space-y-10 sm:space-y-14 lg:space-y-16">
+      {/* 1. Radar Panorâmico de Metagame (Logo abaixo da Navbar) */}
+      <MetagameBanner
+        metagameEntries={metaData.metagameEntries}
+        decksInfo={metaData.decksInfo}
+      />
+
+      {/* 2. Pódio da Temporada + Próximo Evento */}
       <HeroSeasonHub
         temporada={Number(config.temporadaAtual) || 5}
         totalEtapas={etapas.length}
@@ -82,12 +88,6 @@ export default async function HomePage() {
         topDeck={topDeck}
         awards={awards}
         nextEvent={nextEvent}
-      />
-
-      {/* 2. Radar Panorâmico de Metagame (Banner Rápido & Fluido) */}
-      <MetagameBanner
-        metagameEntries={metaData.metagameEntries}
-        decksInfo={metaData.decksInfo}
       />
 
       {/* 3. Premiações Projetadas da Temporada */}

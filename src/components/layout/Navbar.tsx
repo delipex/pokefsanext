@@ -17,7 +17,7 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: "/", label: "Início", icon: Trophy },
+    { href: "/", label: "Início", icon: null },
     { href: "/ranking", label: "Ranking", icon: Trophy },
     { href: "/metagame", label: "Metagame", icon: Flame },
     { href: "/calendario", label: "Calendário", icon: Calendar },
@@ -26,7 +26,7 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#090e1a]/85 backdrop-blur-2xl transition-all shadow-xl shadow-black/40">
+    <header className="sticky top-0 z-50 w-full border-b border-white/[0.05] bg-[#090e1a]/85 backdrop-blur-2xl transition-all shadow-xl shadow-black/40">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4 lg:px-8">
         {/* Logo & Marca Oficial Ampliada com Alto Contraste e Glow */}
         <Link href="/" className="group flex items-center gap-3 sm:gap-3.5 transition-transform hover:scale-[1.02]">
@@ -35,7 +35,7 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
         </Link>
 
         {/* Links de Navegação Desktop em Pílula Centralizada */}
-        <nav className="hidden lg:flex items-center gap-1.5 rounded-full border border-white/10 bg-[#0f172a]/70 p-1.5 backdrop-blur-xl shadow-inner">
+        <nav className="hidden lg:flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-[#0f172a]/70 p-1.5 backdrop-blur-xl shadow-inner">
           {navLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
@@ -43,14 +43,14 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-bold tracking-tight transition-all duration-200 ${
+                className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold tracking-tight transition-all duration-200 ${
                   isActive
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 font-extrabold"
-                    : "text-slate-300 hover:text-white hover:bg-white/[0.08]"
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold"
+                    : "text-slate-300 hover:text-white hover:bg-white/[0.06]"
                 }`}
               >
-                <Icon className="h-4 w-4" />
-                {link.label}
+                {Icon && <Icon className="h-4 w-4" />}
+                <span>{link.label}</span>
               </Link>
             );
           })}
@@ -93,14 +93,14 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3.5 rounded-2xl px-4 py-3 text-sm font-bold transition-all ${
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${
                     isActive
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold"
                       : "text-slate-300 hover:bg-white/5 hover:text-white"
                   }`}
                 >
-                  <Icon className="h-5 w-5" />
-                  {link.label}
+                  {Icon && <Icon className="h-5 w-5" />}
+                  <span>{link.label}</span>
                 </Link>
               );
             })}
