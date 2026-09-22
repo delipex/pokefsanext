@@ -1,9 +1,7 @@
 import { getRanking, getTop4Podium, getMetagameData, getEtapasWithSummary, getConfigMap, getNextEvent, getSeasonAwards } from "@/lib/queries";
 import { HeroSeasonHub } from "@/components/home/HeroSeasonHub";
-import { MetagameDashboard } from "@/components/metagame/MetagameDashboard";
+import { MetagameBanner } from "@/components/home/MetagameBanner";
 import { SeasonAwardsSection } from "@/components/ranking/SeasonAwardsSection";
-import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 import { PlayerModalData } from "@/components/ranking/PlayerModal";
 
 export const dynamic = "force-dynamic";
@@ -73,8 +71,8 @@ export default async function HomePage() {
   });
 
   return (
-    <div className="space-y-16 sm:space-y-20 lg:space-y-24">
-      {/* Banner Principal: Top 4 da Temporada + Próximo Evento */}
+    <div className="space-y-12 sm:space-y-16 lg:space-y-20">
+      {/* 1. Banner Principal: Pódio da Temporada + Próximo Evento */}
       <HeroSeasonHub
         temporada={Number(config.temporadaAtual) || 5}
         totalEtapas={etapas.length}
@@ -86,28 +84,14 @@ export default async function HomePage() {
         nextEvent={nextEvent}
       />
 
-      {/* 2. Premiações Projetadas da Temporada */}
+      {/* 2. Radar Panorâmico de Metagame (Banner Rápido & Fluido) */}
+      <MetagameBanner
+        metagameEntries={metaData.metagameEntries}
+        decksInfo={metaData.decksInfo}
+      />
+
+      {/* 3. Premiações Projetadas da Temporada */}
       <SeasonAwardsSection awards={awards} />
-
-      {/* 4. Metagame Atual (Donut + Carrossel 3D) */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            Metagame Atual
-          </h2>
-          <Link
-            href="/metagame"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl"
-          >
-            Ver Detalhes <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-
-        <MetagameDashboard
-          metagameEntries={metaData.metagameEntries}
-          decksInfo={metaData.decksInfo}
-        />
-      </section>
     </div>
   );
 }
