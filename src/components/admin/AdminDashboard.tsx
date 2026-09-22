@@ -652,85 +652,102 @@ export function AdminDashboard({
         </div>
       </div>
 
-      {/* Navegação por Abas */}
-      <div className="flex items-center gap-2 flex-wrap bg-slate-900/60 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl">
-        <button
-          onClick={() => setActiveTab("tdf")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "tdf"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-              : "text-slate-400 hover:text-white hover:bg-white/5"
-          }`}
-        >
-          <Upload className="h-3.5 w-3.5" />
-          <span>Publicar TDF</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("jogadores")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "jogadores"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-              : "text-slate-400 hover:text-white hover:bg-white/5"
-          }`}
-        >
-          <UserPlus className="h-3.5 w-3.5" />
-          <span>Jogadores</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("decks")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "decks"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-              : "text-slate-400 hover:text-white hover:bg-white/5"
-          }`}
-        >
-          <Flame className="h-3.5 w-3.5" />
-          <span>Metagame</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("calendario")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "calendario"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-              : "text-slate-400 hover:text-white hover:bg-white/5"
-          }`}
-        >
-          <Calendar className="h-3.5 w-3.5" />
-          <span>Calendário & Eventos</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("inscricoes")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "inscricoes"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-              : "text-slate-400 hover:text-white hover:bg-white/5"
-          }`}
-        >
-          <ClipboardList className="h-3.5 w-3.5" />
-          <span>Inscrições & Decklists ({decklists.length})</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("config")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "config"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-              : "text-slate-400 hover:text-white hover:bg-white/5"
-          }`}
-        >
-          <Settings className="h-3.5 w-3.5" />
-          <span>Configurações Globais</span>
-        </button>
-        <button
-          onClick={() => setActiveTab("fechamento")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-            activeTab === "fechamento"
-              ? "bg-amber-600 text-white shadow-md shadow-amber-600/30"
-              : "text-amber-400 hover:text-white hover:bg-amber-500/10 border border-amber-500/20"
-          }`}
-        >
-          <Trophy className="h-3.5 w-3.5 text-amber-400" />
-          <span>Fechador de Temporada</span>
-        </button>
+      {/* Navegação por Abas Segmentada & Responsiva (Design System) */}
+      <div className="w-full overflow-x-auto pb-1 no-scrollbar">
+        <div className="inline-flex min-w-full sm:min-w-0 items-center justify-between sm:justify-start gap-1.5 bg-slate-900/80 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl">
+          <button
+            onClick={() => setActiveTab("tdf")}
+            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "tdf"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Upload className="h-4 w-4" />
+            <span>Publicar TDF</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("jogadores")}
+            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "jogadores"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>Jogadores</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("decks")}
+            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "decks"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Flame className="h-4 w-4" />
+            <span>Metagame</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("calendario")}
+            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "calendario"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Calendário</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("inscricoes")}
+            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "inscricoes"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <ClipboardList className="h-4 w-4" />
+            <span>Inscrições</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                activeTab === "inscricoes" ? "bg-white/20 text-white" : "bg-slate-800 text-slate-400"
+              }`}
+            >
+              {decklists.length}
+            </span>
+          </button>
+
+          <div className="h-5 w-px bg-white/10 mx-1 hidden sm:block shrink-0" />
+
+          <button
+            onClick={() => setActiveTab("config")}
+            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "config"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400/40"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            <span>Configurações</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("fechamento")}
+            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "fechamento"
+                ? "bg-gradient-to-r from-amber-600 to-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/30 ring-1 ring-amber-300/50"
+                : "text-amber-400/90 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/20"
+            }`}
+          >
+            <Trophy className="h-4 w-4" />
+            <span>Fechar Temporada</span>
+          </button>
+        </div>
       </div>
 
       {/* 1. ABA TDF / ETAPAS */}
@@ -1728,145 +1745,170 @@ export function AdminDashboard({
 
       {/* 5. ABA CONFIGURAÇÕES GLOBAIS */}
       {activeTab === "config" && (
-        <div className="max-w-3xl rounded-3xl border border-white/10 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
-          <div>
-            <h3 className="text-lg font-black text-white flex items-center gap-2">
-              <Settings className="h-5 w-5 text-purple-400" /> Parâmetros Globais do Site
+        <div className="max-w-4xl rounded-3xl border border-white/[0.08] bg-slate-900/70 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+          <div className="border-b border-white/[0.08] pb-4">
+            <h3 className="text-xl font-black text-white flex items-center gap-2.5">
+              <Settings className="h-5 w-5 text-indigo-400" /> Parâmetros Globais do Site
             </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Edite as identidades visuais, mensagens de aviso, redes sociais e senhas administrativas
+            <p className="text-xs sm:text-sm text-slate-400 mt-1 font-normal">
+              Edite as identidades visuais, mensagens de aviso, canais de comunicação e credenciais administrativas.
             </p>
           </div>
 
-          <form onSubmit={handleSaveAllConfig} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Nome Oficial da Liga:
-                </label>
-                <input
-                  type="text"
-                  value={nomeLiga}
-                  onChange={(e) => setNomeLiga(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
-                />
+          <form onSubmit={handleSaveAllConfig} className="space-y-6">
+            {/* Seção: Dados Principais */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1.5">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
+                    Nome Oficial da Liga
+                  </label>
+                  <input
+                    type="text"
+                    value={nomeLiga}
+                    onChange={(e) => setNomeLiga(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
+                  <span className="text-[11px] text-slate-400 font-normal">Exibido na navbar, títulos e rodapé</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
+                    Número da Temporada Ativa
+                  </label>
+                  <input
+                    type="text"
+                    value={temporadaAtual}
+                    onChange={(e) => setTemporadaAtual(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm font-bold text-white tabular-nums placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
+                  <span className="text-[11px] text-slate-400 font-normal">Temporada corrente calculada nas etapas</span>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Número da Temporada Ativa:
+              {/* Faixa de Aviso do Topo */}
+              <div className="space-y-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-200">
+                  Faixa de Aviso do Topo (Banner de Alerta)
                 </label>
                 <input
                   type="text"
-                  value={temporadaAtual}
-                  onChange={(e) => setTemporadaAtual(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
+                  placeholder="Ex: ⚡ Inscrições abertas para o League Challenge deste sábado!"
+                  value={avisoTopo}
+                  onChange={(e) => setAvisoTopo(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                 />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                Faixa de Aviso do Topo (Marquee/Banner):
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: ⚡ Inscrições abertas para o League Challenge deste sábado!"
-                value={avisoTopo}
-                onChange={(e) => setAvisoTopo(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Link do Grupo do WhatsApp:
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://chat.whatsapp.com/..."
-                  value={linkWhatsApp}
-                  onChange={(e) => setLinkWhatsApp(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Link do Instagram Oficial:
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://instagram.com/ligaatlantica"
-                  value={linkInstagram}
-                  onChange={(e) => setLinkInstagram(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
-                />
+                <span className="text-[11px] text-slate-400 font-normal">Deixe em branco para ocultar o banner do topo</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Chave PIX / Instruções:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: liga@pix.com.br ou CNPJ"
-                  value={chavePix}
-                  onChange={(e) => setChavePix(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs text-white focus:outline-none focus:border-purple-500"
-                />
-              </div>
+            <div className="h-px bg-white/[0.06]" />
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  PIN de Acesso Admin:
-                </label>
-                <input
-                  type="text"
-                  placeholder="1234"
-                  value={adminPin}
-                  onChange={(e) => setAdminPin(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs tabular-nums font-semibold text-white focus:outline-none focus:border-purple-500 font-sans"
-                />
+            {/* Seção: Links & Redes Sociais */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1.5">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
+                    Link do Grupo no WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://chat.whatsapp.com/..."
+                    value={linkWhatsApp}
+                    onChange={(e) => setLinkWhatsApp(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
+                  <span className="text-[11px] text-slate-400 font-normal">Conecta os botões e links de comunidade</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
+                    Link do Instagram Oficial
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://instagram.com/ligaatlantica"
+                    value={linkInstagram}
+                    onChange={(e) => setLinkInstagram(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
+                  <span className="text-[11px] text-slate-400 font-normal">Perfil oficial de cobertura e fotos</span>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                Status da Temporada:
-              </label>
-              <select
-                value={statusTemporada}
-                onChange={(e) => setStatusTemporada(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-purple-500"
-              >
-                <option value="ativa">Ativa (Online e pontuando)</option>
-                <option value="congelada">Congelada (Pódio final fixado)</option>
-                <option value="offseason">Off-Season (Fora de Temporada)</option>
-              </select>
+            <div className="h-px bg-white/[0.06]" />
+
+            {/* Seção: Pagamentos & Segurança */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-1.5">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
+                    Chave PIX / Instruções de Pagamento
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: liga@pix.com.br ou CNPJ"
+                    value={chavePix}
+                    onChange={(e) => setChavePix(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
+                  <span className="text-[11px] text-slate-400 font-normal">Instrução padrão nas inscrições e eventos</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
+                    PIN de Acesso Administrativo
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="1234"
+                    value={adminPin}
+                    onChange={(e) => setAdminPin(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm tabular-nums font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
+                  <span className="text-[11px] text-slate-400 font-normal">Senha para acesso ao painel do organizador</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs sm:text-sm font-semibold text-slate-200">
+                  Status Operacional da Temporada
+                </label>
+                <select
+                  value={statusTemporada}
+                  onChange={(e) => setStatusTemporada(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm font-semibold text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                >
+                  <option value="ativa">Ativa (Online e pontuando em tempo real)</option>
+                  <option value="congelada">Congelada (Pódio final fixado para premiações)</option>
+                  <option value="offseason">Off-Season (Fora de Temporada / Em preparação)</option>
+                </select>
+                <span className="text-[11px] text-slate-400 font-normal">Controla a badge e o status na navegação global</span>
+              </div>
             </div>
 
             {configMessage && (
-              <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-bold">
-                {configMessage}
+              <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs sm:text-sm font-bold flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>{configMessage}</span>
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={isSavingConfig}
-              className="flex items-center gap-2 rounded-xl bg-purple-600 px-6 py-3 text-xs font-black text-white hover:bg-purple-500 transition-all shadow-lg shadow-purple-600/30 cursor-pointer disabled:opacity-50"
-            >
-              {isSavingConfig ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              <span>Salvar Todas as Configurações</span>
-            </button>
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isSavingConfig}
+                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 px-7 py-3 text-xs sm:text-sm font-bold text-white hover:from-indigo-500 hover:to-indigo-400 transition-all shadow-lg shadow-indigo-600/30 cursor-pointer disabled:opacity-50"
+              >
+                {isSavingConfig ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                <span>Salvar Todas as Configurações</span>
+              </button>
+            </div>
           </form>
         </div>
       )}

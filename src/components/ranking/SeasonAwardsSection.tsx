@@ -37,12 +37,12 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
         {gold && (
           <div
             onClick={() => setSelectedAward("gold")}
-            className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-xl shadow-xl transition-all duration-200 hover:border-yellow-400/40 hover:bg-slate-800/80 hover:scale-[1.01] cursor-pointer"
+            className="group relative flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-[#0f172a]/75 p-5 backdrop-blur-xl shadow-lg transition-all duration-200 hover:border-yellow-400/40 hover:bg-slate-800/60 hover:scale-[1.01] cursor-pointer"
           >
             <div className="space-y-3">
               {/* Header com Ícone e Título */}
               <div className="flex items-center gap-3">
-                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-yellow-500/15 border border-yellow-500/30 shadow-md">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/20 shadow-sm">
                   <img
                     src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
                     alt="Pokébola de Ouro"
@@ -51,7 +51,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                   />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-yellow-400 block">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-yellow-400/90 block">
                     POKÉBOLA DE OURO
                   </span>
                   <h3 className="text-base font-black text-white group-hover:text-yellow-400 transition-colors truncate">
@@ -60,21 +60,21 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 </div>
               </div>
 
-              {/* Descrição curta */}
-              <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+              {/* Descrição suave */}
+              <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
                 Maior saldo líquido de vitórias (+{gold.saldo}) com menor taxa de derrotas.
               </p>
             </div>
 
             {/* Rodapé e CTA */}
-            <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
+            <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-black text-[#ffcb05]">Saldo: +{gold.saldo}</span>
-                <span className="text-slate-400 font-medium">Cartel: {gold.wins}V - {gold.losses}D ({gold.participations} et.)</span>
+                <span className="font-bold text-amber-300">Saldo: +{gold.saldo}</span>
+                <span className="text-slate-400 font-medium tabular-nums">Cartel: {gold.wins}V - {gold.losses}D</span>
               </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-amber-400/90 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-all">
+              <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all">
                 <span>Ver classificação completa</span>
-                <ArrowRight className="h-3 w-3" />
+                <ArrowRight className="h-3 w-3 text-amber-400/70 group-hover:text-amber-400" />
               </div>
             </div>
           </div>
@@ -86,16 +86,16 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
         {gym && (
           <div
             onClick={() => setSelectedAward("gym")}
-            className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-xl shadow-xl transition-all duration-200 hover:border-blue-400/40 hover:bg-slate-800/80 hover:scale-[1.01] cursor-pointer"
+            className="group relative flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-[#0f172a]/75 p-5 backdrop-blur-xl shadow-lg transition-all duration-200 hover:border-blue-400/40 hover:bg-slate-800/60 hover:scale-[1.01] cursor-pointer"
           >
             <div className="space-y-3">
               {/* Header com Ícone e Título */}
               <div className="flex items-center gap-3">
-                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-500/15 border border-blue-500/30 shadow-md">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20 shadow-sm">
                   <span className="text-xl">🏛️</span>
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 block">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-blue-400/90 block">
                     LÍDER DE GINÁSIO
                   </span>
                   <h3 className="text-base font-black text-white group-hover:text-blue-400 transition-colors truncate">
@@ -104,21 +104,21 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 </div>
               </div>
 
-              {/* Descrição curta */}
-              <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+              {/* Descrição suave */}
+              <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
                 O treinador mais assíduo nas etapas e torneios oficiais da temporada.
               </p>
             </div>
 
             {/* Rodapé e CTA */}
-            <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
+            <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-300">Presenças: <strong className="text-blue-300">{gym.participations} et.</strong></span>
-                <span className="font-black text-[#ffcb05]">{gym.points} PTS</span>
+                <span className="font-medium text-slate-400">Presenças: <strong className="text-blue-300 font-semibold">{gym.participations} et.</strong></span>
+                <span className="font-bold text-amber-300 tabular-nums">{gym.points} PTS</span>
               </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-amber-400/90 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-all">
+              <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all">
                 <span>Ver classificação e detalhes</span>
-                <ArrowRight className="h-3 w-3" />
+                <ArrowRight className="h-3 w-3 text-blue-400/70 group-hover:text-blue-400" />
               </div>
             </div>
           </div>
@@ -130,12 +130,12 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
         {ditto && (
           <div
             onClick={() => setSelectedAward("ditto")}
-            className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-xl shadow-xl transition-all duration-200 hover:border-purple-400/40 hover:bg-slate-800/80 hover:scale-[1.01] cursor-pointer"
+            className="group relative flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-[#0f172a]/75 p-5 backdrop-blur-xl shadow-lg transition-all duration-200 hover:border-purple-400/40 hover:bg-slate-800/60 hover:scale-[1.01] cursor-pointer"
           >
             <div className="space-y-3">
               {/* Header com Ícone e Título */}
               <div className="flex items-center gap-3">
-                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-purple-500/15 border border-purple-500/30 shadow-md">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-purple-500/10 border border-purple-500/20 shadow-sm">
                   <img
                     src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/132.png"
                     alt="Ditto"
@@ -143,7 +143,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                   />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 block">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-400/90 block">
                     DITTO PLAYER
                   </span>
                   <h3 className="text-base font-black text-white group-hover:text-purple-400 transition-colors truncate">
@@ -152,8 +152,8 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 </div>
               </div>
 
-              {/* Descrição curta */}
-              <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+              {/* Descrição suave */}
+              <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
                 Mais decks diferentes usados ao longo de toda a temporada.
               </p>
 
@@ -165,14 +165,14 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                     return (
                       <span
                         key={i}
-                        className="rounded bg-purple-950/60 border border-purple-500/30 px-1.5 py-0.5 text-[9px] font-bold text-purple-200 truncate max-w-[110px]"
+                        className="rounded bg-purple-950/40 border border-purple-500/20 px-1.5 py-0.5 text-[9px] font-medium text-purple-300 truncate max-w-[110px]"
                       >
                         {dName}
                       </span>
                     );
                   })}
                   {ditto.decks.length > 3 && (
-                    <span className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-semibold text-slate-400">
+                    <span className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-normal text-slate-400">
                       +{ditto.decks.length - 3} decks
                     </span>
                   )}
@@ -181,14 +181,14 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
             </div>
 
             {/* Rodapé e CTA */}
-            <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
+            <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-purple-300">Variedade: {ditto.count} Decks</span>
-                <span className="text-slate-400 font-medium">Média: {ditto.mediaColocacao?.toFixed(1) || "0"}°</span>
+                <span className="font-semibold text-purple-300">Variedade: {ditto.count} Decks</span>
+                <span className="text-slate-400 font-medium tabular-nums">Média: {ditto.mediaColocacao?.toFixed(1) || "0"}°</span>
               </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-amber-400/90 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-all">
+              <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all">
                 <span>Ver classificação e detalhes</span>
-                <ArrowRight className="h-3 w-3" />
+                <ArrowRight className="h-3 w-3 text-purple-400/70 group-hover:text-purple-400" />
               </div>
             </div>
           </div>
@@ -200,12 +200,12 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
         {murcha && (
           <div
             onClick={() => setSelectedAward("murcha")}
-            className="group relative flex flex-col justify-between rounded-2xl border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-xl shadow-xl transition-all duration-200 hover:border-rose-400/40 hover:bg-slate-800/80 hover:scale-[1.01] cursor-pointer"
+            className="group relative flex flex-col justify-between rounded-2xl border border-white/[0.07] bg-[#0f172a]/75 p-5 backdrop-blur-xl shadow-lg transition-all duration-200 hover:border-rose-400/40 hover:bg-slate-800/60 hover:scale-[1.01] cursor-pointer"
           >
             <div className="space-y-3">
               {/* Header com Ícone e Título */}
               <div className="flex items-center gap-3">
-                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-500/15 border border-rose-500/30 shadow-md">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-500/10 border border-rose-500/20 shadow-sm">
                   <img
                     src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/black-sludge.png"
                     alt="Pokébola Murcha"
@@ -213,7 +213,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                   />
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-rose-400 block">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-rose-400/90 block">
                     POKÉBOLA MURCHA
                   </span>
                   <h3 className="text-base font-black text-white group-hover:text-rose-400 transition-colors truncate">
@@ -222,21 +222,21 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 </div>
               </div>
 
-              {/* Descrição curta */}
-              <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+              {/* Descrição suave */}
+              <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
                 Maior déficit de derrotas (+{murcha.deficit}) e persistência nas etapas.
               </p>
             </div>
 
             {/* Rodapé e CTA */}
-            <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
+            <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-black text-rose-400">Déficit: +{murcha.deficit}</span>
-                <span className="text-slate-400 font-medium">Cartel: {murcha.losses}D vs {murcha.wins}V</span>
+                <span className="font-bold text-rose-300">Déficit: +{murcha.deficit}</span>
+                <span className="text-slate-400 font-medium tabular-nums">Cartel: {murcha.losses}D vs {murcha.wins}V</span>
               </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold text-amber-400/90 group-hover:text-amber-300 group-hover:translate-x-0.5 transition-all">
+              <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all">
                 <span>Ver classificação e detalhes</span>
-                <ArrowRight className="h-3 w-3" />
+                <ArrowRight className="h-3 w-3 text-rose-400/70 group-hover:text-rose-400" />
               </div>
             </div>
           </div>
