@@ -368,7 +368,7 @@ export function HeroSeasonHub({
             </div>
 
             {/* Título e Descrição do Torneio */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <h3 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug">
                 {eventTitle}
               </h3>
@@ -377,24 +377,8 @@ export function HeroSeasonHub({
               </p>
             </div>
 
-            {/* Grid com Badges Informativos da Etapa */}
-            <div className="grid grid-cols-3 gap-2 py-1 text-center">
-              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-2 backdrop-blur-md">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Formato</span>
-                <span className="text-xs font-black text-white truncate block mt-0.5">{stageType}</span>
-              </div>
-              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-2 backdrop-blur-md">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Multiplicador</span>
-                <span className="text-xs font-black text-amber-400 truncate block mt-0.5">1.0x PTS</span>
-              </div>
-              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-2 backdrop-blur-md">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Etapa</span>
-                <span className="text-xs font-black text-blue-400 truncate block mt-0.5">#{totalEtapas + 1} Oficial</span>
-              </div>
-            </div>
-
             {/* Timer Regressivo com Visual Glassmorphism Escuro */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-400 px-1">
                 <span>Contagem Regressiva</span>
                 <span className="text-[#ffcb05] font-bold">Faltam Poucos Dias</span>
