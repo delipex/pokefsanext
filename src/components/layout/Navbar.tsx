@@ -31,17 +31,7 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
         {/* Logo & Marca Oficial */}
         <Link href="/" className="group flex items-center gap-2.5 sm:gap-3">
           <PokeballIcon className="w-8 h-8 drop-shadow-[0_0_8px_rgba(255,66,22,0.6)]" />
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <HeaderLogoSvg className="h-6 sm:h-7 w-auto text-white group-hover:text-blue-400 transition-colors" />
-              <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-bold text-blue-400 border border-blue-500/20">
-                Temporada {temporada}
-              </span>
-            </div>
-            <span className="text-[10px] font-semibold text-slate-400 tracking-wide uppercase">
-              Pokémon TCG • Feira de Santana
-            </span>
-          </div>
+          <HeaderLogoSvg className="h-6 sm:h-7 w-auto text-white group-hover:text-blue-400 transition-colors" />
         </Link>
 
         {/* Links de Navegação Desktop */}

@@ -136,29 +136,29 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
                 </div>
               </div>
 
-              {/* Deck Campeão */}
-              <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Deck Vencedor:
-                  </span>
-                  <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-black text-white border border-white/10">
-                    {c.deckCampeao}
-                  </span>
+              {/* Informações do Deck Vencedor integradas sem caixa aninhada */}
+              <div className="pt-3 border-t border-white/10 space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-semibold">Deck Vencedor:</span>
+                    <span className="rounded-lg bg-yellow-500/15 border border-yellow-500/30 px-2.5 py-1 text-xs font-black text-yellow-300">
+                      {c.deckCampeao}
+                    </span>
+                  </div>
+                  {c.urlDeck && (
+                    <a
+                      href={c.urlDeck}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-bold text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      Ver Lista <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
                 </div>
 
-                {c.imagemDeck && (
-                  <div className="relative h-44 w-full overflow-hidden rounded-xl bg-slate-900 flex items-center justify-center">
-                    <img
-                      src={c.imagemDeck}
-                      alt={c.deckCampeao}
-                      className="h-full w-full object-contain p-2"
-                    />
-                  </div>
-                )}
-
                 {c.observacaoDeck && (
-                  <p className="text-xs text-slate-400 italic leading-relaxed">
+                  <p className="text-xs text-slate-400 italic">
                     "{c.observacaoDeck}"
                   </p>
                 )}
