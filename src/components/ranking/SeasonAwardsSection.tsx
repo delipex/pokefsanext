@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Award, Trophy, Sparkles, Shield, Flame, X, Info, ChevronRight, Activity, Zap } from "lucide-react";
+import { Award, ChevronRight, X } from "lucide-react";
 
 interface SeasonAwardsSectionProps {
   awards: {
@@ -37,7 +37,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
         </div>
       </div>
 
-      {/* Grid Horizontal 2x2 Refinado (Layout Compacto & Distinto do Pódio) */}
+      {/* Grid Horizontal 2x2 com Títulos dos Prêmios em Evidência */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         {/* 1. POKÉBOLA DE OURO */}
         {gold && (
@@ -55,23 +55,21 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-yellow-400">
-                    Treinador Completo
-                  </span>
-                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-yellow-400 block">
+                  Treinador Completo
+                </span>
                 <h3 className="text-base font-black text-white group-hover:text-yellow-400 transition-colors truncate">
-                  {gold.player}
+                  Pokébola de Ouro
                 </h3>
-                <p className="text-[11px] text-slate-400 truncate">
-                  Maior saldo líquido: <strong className="text-yellow-400 font-bold">+{gold.saldo} vitórias</strong>
+                <p className="text-xs text-slate-300 font-bold truncate mt-0.5">
+                  Líder: <span className="text-white font-black">{gold.player}</span>
                 </p>
               </div>
             </div>
 
             <div className="shrink-0 text-right">
               <span className="inline-flex items-center gap-1 rounded-lg bg-yellow-500/15 border border-yellow-500/30 px-2.5 py-1 text-xs font-black text-yellow-300">
-                +{gold.saldo} <ChevronRight className="h-3 w-3 text-yellow-400 group-hover:translate-x-0.5 transition-transform" />
+                +{gold.saldo} Saldo <ChevronRight className="h-3 w-3 text-yellow-400 group-hover:translate-x-0.5 transition-transform" />
               </span>
               <span className="text-[10px] text-slate-400 block mt-1 font-semibold">
                 {gold.wins}V - {gold.losses}D ({gold.participations} et.)
@@ -91,16 +89,14 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 <span className="text-2xl">🏛️</span>
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
-                    Maior Assiduidade
-                  </span>
-                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 block">
+                  Maior Assiduidade
+                </span>
                 <h3 className="text-base font-black text-white group-hover:text-blue-400 transition-colors truncate">
-                  {gym.player}
+                  Líder de Ginásio
                 </h3>
-                <p className="text-[11px] text-slate-400 truncate">
-                  Presença máxima: <strong className="text-blue-400 font-bold">{gym.participations} etapas</strong>
+                <p className="text-xs text-slate-300 font-bold truncate mt-0.5">
+                  Líder: <span className="text-white font-black">{gym.player}</span>
                 </p>
               </div>
             </div>
@@ -131,16 +127,14 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-400">
-                    Maior Variedade
-                  </span>
-                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-purple-400 block">
+                  Maior Variedade
+                </span>
                 <h3 className="text-base font-black text-white group-hover:text-purple-400 transition-colors truncate">
-                  {ditto.player}
+                  Ditto Player
                 </h3>
-                <p className="text-[11px] text-slate-400 truncate">
-                  Diversidade: <strong className="text-purple-400 font-bold">{ditto.count} arquétipos</strong>
+                <p className="text-xs text-slate-300 font-bold truncate mt-0.5">
+                  Líder: <span className="text-white font-black">{ditto.player}</span>
                 </p>
               </div>
             </div>
@@ -171,16 +165,14 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                 />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-rose-400">
-                    Persistência & Garra
-                  </span>
-                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-rose-400 block">
+                  Persistência & Garra
+                </span>
                 <h3 className="text-base font-black text-white group-hover:text-rose-400 transition-colors truncate">
-                  {murcha.player}
+                  Pokébola Murcha
                 </h3>
-                <p className="text-[11px] text-slate-400 truncate">
-                  Superação: <strong className="text-rose-400 font-bold">+{murcha.deficit} derrotas</strong>
+                <p className="text-xs text-slate-300 font-bold truncate mt-0.5">
+                  Líder: <span className="text-white font-black">{murcha.player}</span>
                 </p>
               </div>
             </div>
@@ -214,7 +206,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                   <span>🥇</span> Pokébola de Ouro
                 </div>
                 <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                  Premiação anual concedida ao treinador com a melhor consistência e saldo líquido de vitórias (V - D) na temporada, exigindo um corte mínimo de participação em etapas oficiais.
+                  Premiação anual concedida ao treinador mais completo, com a melhor consistência e saldo líquido de vitórias (V - D) na temporada.
                 </p>
                 <div className="mt-4 rounded-2xl bg-slate-800/60 p-4 space-y-2 text-xs border border-white/5">
                   <div className="flex justify-between">
@@ -239,7 +231,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                   <span>🏛️</span> Líder de Ginásio
                 </div>
                 <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                  Concedida ao atleta com maior número de presenças oficiais e assiduidade nos torneios da Liga Atlântica ao longo de toda a temporada.
+                  Concedida ao atleta com maior número de presenças oficiais e assiduidade nos torneios da Liga Atlântica.
                 </p>
                 <div className="mt-4 rounded-2xl bg-slate-800/60 p-4 space-y-2 text-xs border border-white/5">
                   <div className="flex justify-between">
@@ -295,14 +287,14 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                   <span>🪵</span> Pokébola Murcha
                 </div>
                 <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                  Troféu humorístico e carinhoso de persistência, premiando o atleta que enfrentou o maior déficit de derrotas mas continuou comparecendo e prestigiando a liga com garra inabalável.
+                  Troféu carinhoso de persistência, premiando o atleta que enfrentou o maior déficit de derrotas mas continuou comparecendo e prestigiando a liga com garra inabalável.
                 </p>
                 <div className="mt-4 rounded-2xl bg-slate-800/60 p-4 space-y-2 text-xs border border-white/5">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Líder Atual:</span> <strong className="text-white">{murcha?.player}</strong>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Déficit:</span> <strong className="text-rose-400">+{murcha?.deficit} derrotas a mais</strong>
+                    <span className="text-slate-400">Déficit:</span> <strong className="text-rose-400">+{murcha?.deficit} derrotas</strong>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Cartel:</span> <span className="text-slate-200">{murcha?.losses}D vs {murcha?.wins}V</span>
