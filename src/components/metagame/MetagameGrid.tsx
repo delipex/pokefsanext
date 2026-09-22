@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Flame, ExternalLink, Sparkles } from "lucide-react";
+import { Search, Flame, ExternalLink } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
+import { getMultiEnergyConfig, BASE_ENERGIES } from "@/lib/theme/energy-tokens";
 
 export interface DeckItem {
   id: number;
@@ -47,21 +48,31 @@ export function MetagameGrid({ decks }: MetagameGridProps) {
     <div className="w-full space-y-6">
       {/* Filtros e Busca */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl">
-        {/* Pílulas de Energia */}
+        {/* Pílulas de Energia com Indicador de Cor */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0">
-          {energies.map((energy) => (
-            <button
-              key={energy}
-              onClick={() => setSelectedEnergy(energy)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all shrink-0 capitalize ${
-                selectedEnergy === energy
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                  : "bg-slate-800/60 text-slate-400 hover:bg-slate-800 hover:text-white border border-white/5"
-              }`}
-            >
-              {energy === "TODAS" ? "Todas Energias" : energy}
-            </button>
-          ))}
+          {energies.map((energy) => {
+            const isAll = energy === "TODAS";
+            const cfg = isAll ? null : BASE_ENERGIES[energy];
+            return (
+              <button
+                key={energy}
+                onClick={() => setSelectedEnergy(energy)}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all shrink-0 capitalize ${
+                  selectedEnergy === energy
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                    : "bg-slate-800/60 text-slate-400 hover:bg-slate-800 hover:text-white border border-white/5"
+                }`}
+              >
+                {cfg && (
+                  <span
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: cfg.hex, boxShadow: `0 0 5px ${cfg.hex}` }}
+                  />
+                )}
+                <span>{isAll ? "Todas" : cfg?.label || energy}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Input de Busca */}
@@ -85,20 +96,20 @@ export function MetagameGrid({ decks }: MetagameGridProps) {
           </div>
         ) : (
           filteredDecks.map((deck) => {
-            const energyTypes = deck.tipoEnergia.split("+");
+            const energyCfg = getMultiEnergyConfig(deck.tipoEnergia);
 
             return (
               <div
                 key={deck.id}
                 className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-4 backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-white/20 hover:bg-slate-900/90 shadow-lg"
               >
-                {/* Imagem / Arte do Deck */}
-                <div className="relative h-44 w-full overflow-hidden rounded-xl bg-slate-950/60 flex items-center justify-center">
+                {/* Imagem / Arte do Deck com cantos naturais de carta Pokémon (rounded-[10px]) */}
+                <div className="relative h-48 w-full overflow-hidden rounded-[10px] bg-slate-950/60 flex items-center justify-center border border-white/5">
                   {deck.imagem ? (
                     <img
                       src={deck.imagem}
                       alt={deck.nome}
-                      className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
+                      className="h-full w-full object-contain p-1.5 rounded-[10px] transition-transform duration-300 group-hover:scale-105 drop-shadow-md"
                       loading="lazy"
                     />
                   ) : (
@@ -108,29 +119,34 @@ export function MetagameGrid({ decks }: MetagameGridProps) {
                     </div>
                   )}
 
-                  {/* Badges de Energia sobrepostas */}
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    {energyTypes.map((en, idx) => (
-                      <EnergyBadge key={idx} energyRaw={en} size="sm" showLabel={false} />
-                    ))}
+                  {/* Badge Flutuante de Energia */}
+                  <div className="absolute top-2 right-2">
+                    <EnergyBadge energyRaw={deck.tipoEnergia} size="sm" showLabel={false} />
                   </div>
                 </div>
 
-                {/* Info do Deck */}
-                <div className="mt-4 flex-1">
-                  <h3 className="text-base font-black text-white group-hover:text-blue-400 transition-colors line-clamp-1">
-                    {deck.nome}
-                  </h3>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {energyTypes.map((en, idx) => (
-                      <EnergyBadge key={idx} energyRaw={en} size="sm" />
-                    ))}
+                {/* Info do Deck com Placa de Gradiente de Energia */}
+                <div className="mt-3.5 flex-1 space-y-2">
+                  <div
+                    className="px-3 py-1.5 rounded-xl border flex items-center justify-between gap-2 shadow-sm"
+                    style={{
+                      background: energyCfg.gradientBg,
+                      border: energyCfg.borderStyle,
+                    }}
+                  >
+                    <h3 className="text-sm font-black text-white truncate">
+                      {deck.nome}
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <EnergyBadge energyRaw={deck.tipoEnergia} size="sm" />
                   </div>
                 </div>
 
                 {/* Link Limitless TCG */}
                 {deck.limitless && (
-                  <div className="mt-4 pt-3 border-t border-white/10 flex justify-between items-center">
+                  <div className="mt-3.5 pt-2.5 border-t border-white/10 flex justify-between items-center">
                     <span className="text-[11px] text-slate-400">Limitless TCG</span>
                     <a
                       href={deck.limitless}

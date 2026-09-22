@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { ExternalLink, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
+import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 export interface MetagameEntry {
@@ -321,14 +322,14 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                       <img
                         src={deck.imagem}
                         alt={deck.deckName}
-                        className={`h-48 sm:h-56 object-contain rounded-2xl drop-shadow-2xl transition-transform ${
+                        className={`h-48 sm:h-56 object-contain rounded-[10px] drop-shadow-2xl transition-transform ${
                           isCurrent
                             ? "ring-2 ring-amber-400/90 shadow-[0_0_24px_rgba(245,158,11,0.4)]"
                             : "brightness-75 hover:brightness-100"
                         }`}
                       />
                     ) : (
-                      <div className="h-48 sm:h-56 w-34 rounded-2xl bg-slate-800 flex items-center justify-center p-3 text-center text-xs font-bold text-white border border-white/10">
+                      <div className="h-48 sm:h-56 w-34 rounded-[10px] bg-slate-800 flex items-center justify-center p-3 text-center text-xs font-bold text-white border border-white/10">
                         {deck.deckName}
                       </div>
                     )}
@@ -357,11 +358,19 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
               )}
             </div>
 
-            {/* Informação do Deck Ativo */}
+            {/* Informação do Deck Ativo com Gradiente dos Tipos */}
             {activeDeck && (
-              <div className="mt-3 text-center space-y-1">
-                <div className="flex items-center justify-center gap-2">
-                  <h4 className="text-base sm:text-lg font-black text-white">{activeDeck.deckName}</h4>
+              <div className="mt-3.5 text-center space-y-2">
+                <div
+                  className="inline-flex items-center justify-center gap-2.5 px-4 py-1.5 rounded-2xl border backdrop-blur-md shadow-lg"
+                  style={{
+                    background: getMultiEnergyConfig(activeDeck.tipoEnergia).gradientBg,
+                    border: getMultiEnergyConfig(activeDeck.tipoEnergia).borderStyle,
+                  }}
+                >
+                  <h4 className="text-base sm:text-lg font-black text-white tracking-wide">
+                    {activeDeck.deckName}
+                  </h4>
                   <EnergyBadge energyRaw={activeDeck.tipoEnergia} size="sm" />
                 </div>
                 <div className="flex items-center justify-center gap-3 text-xs text-slate-300">

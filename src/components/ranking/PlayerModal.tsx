@@ -1,7 +1,7 @@
 "use client";
 
 import { X, Trophy, Award, TrendingUp, Calendar, Zap } from "lucide-react";
-import { getEnergyConfig } from "@/lib/theme/energy-tokens";
+import { EnergyBadge } from "../ui/EnergyBadge";
 
 export interface PlayerModalData {
   jogadorNome: string;
@@ -31,7 +31,6 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
   const totalJogos = player.vitorias + player.empates + player.derrotas;
   const winRate = totalJogos > 0 ? Math.round((player.vitorias / totalJogos) * 100) : 0;
   const etapasArray = player.historicoColocacoes ? player.historicoColocacoes.split(";") : [];
-  const energyCfg = getEnergyConfig(player.ultimoDeckEnergia || "");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -60,9 +59,9 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
               </span>
             </div>
             {player.ultimoDeck ? (
-              <div className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-950/60 px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
-                <span>{energyCfg.iconSymbol}</span>
-                <span>Último Deck: {player.ultimoDeck}</span>
+              <div className="mt-1 flex items-center gap-2">
+                <EnergyBadge energyRaw={player.ultimoDeckEnergia || ""} size="sm" showLabel={false} />
+                <span className="text-xs text-slate-300 font-bold">Último Deck: {player.ultimoDeck}</span>
               </div>
             ) : (
               <p className="text-xs text-slate-400 mt-0.5">Atleta Oficial Liga Atlântica</p>

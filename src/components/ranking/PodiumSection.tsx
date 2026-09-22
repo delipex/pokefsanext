@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
-import { getEnergyConfig } from "@/lib/theme/energy-tokens";
+import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
 interface PodiumSectionProps {
   top4: PlayerModalData[];
@@ -55,8 +55,6 @@ export function PodiumSection({ top4, onSelectPlayer, showFullLink = true }: Pod
         {podiumOrder.map(({ rank, player, icon, label, border, glow, height, isChampion }) => {
           if (!player) return null;
 
-          const energyCfg = getEnergyConfig(player.ultimoDeckEnergia || "");
-
           return (
             <div
               key={player.jogadorId || rank}
@@ -103,9 +101,23 @@ export function PodiumSection({ top4, onSelectPlayer, showFullLink = true }: Pod
                 </h3>
 
                 {player.ultimoDeck && (
-                  <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-950/70 px-2.5 py-0.5 text-[11px] font-bold text-slate-200 shadow-sm backdrop-blur-md">
-                    <span className="text-xs">{energyCfg.iconSymbol}</span>
-                    <span className="text-slate-300 font-medium truncate max-w-[130px]">{player.ultimoDeck}</span>
+                  <div
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-slate-200 shadow-sm backdrop-blur-md"
+                    style={{
+                      background: getMultiEnergyConfig(player.ultimoDeckEnergia || "").gradientBg,
+                      border: getMultiEnergyConfig(player.ultimoDeckEnergia || "").borderStyle,
+                    }}
+                  >
+                    <div className="flex items-center -space-x-1 shrink-0">
+                      {getMultiEnergyConfig(player.ultimoDeckEnergia || "").types.map((t, i) => (
+                        <span
+                          key={i}
+                          className="h-2 w-2 rounded-full border border-black/40 shadow-sm shrink-0"
+                          style={{ backgroundColor: t.hex, boxShadow: `0 0 5px ${t.hex}` }}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-slate-200 font-medium truncate max-w-[130px]">{player.ultimoDeck}</span>
                   </div>
                 )}
               </div>

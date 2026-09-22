@@ -118,10 +118,10 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
                   <img
                     src={c.fotoCampeao}
                     alt={c.campeao}
-                    className="h-20 w-20 rounded-2xl object-contain bg-slate-950/60 p-2 border border-yellow-500/30 shadow-lg"
+                    className="h-20 w-20 rounded-[10px] object-contain bg-slate-950/60 p-1.5 border border-yellow-500/30 shadow-lg"
                   />
                 ) : (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-yellow-500/20 text-3xl font-black text-yellow-400">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-[10px] bg-yellow-500/20 text-3xl font-black text-yellow-400">
                     👑
                   </div>
                 )}
