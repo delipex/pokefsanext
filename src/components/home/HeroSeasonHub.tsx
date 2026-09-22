@@ -6,7 +6,15 @@ import {
   Calendar,
   MapPin,
   ExternalLink,
+  Crown,
+  Clock,
+  Swords,
+  Trophy,
+  ArrowRight,
+  Shield,
+  Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { PlayerModalData, PlayerModal } from "@/components/ranking/PlayerModal";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
@@ -86,6 +94,8 @@ function formatEventDate(rawDate?: string) {
 
 export function HeroSeasonHub({
   temporada = 5,
+  totalEtapas = 0,
+  totalJogadores = 0,
   top4 = [],
   nextEvent,
 }: HeroSeasonHubProps) {
@@ -160,34 +170,67 @@ export function HeroSeasonHub({
   // Fallbacks do Evento
   const formattedEventDate = formatEventDate(nextEvent?.data);
   const eventTime = nextEvent?.horario || "18:30";
-  const eventTitle = nextEvent?.evento || `Sessão #21 de Liga (Torneio TBT) [${temporada}ª Temporada]`;
-  const eventDesc = nextEvent?.descricao || "Formato Standard. Traga seu melhor deck!";
+  const eventTitle = nextEvent?.evento || `Sessão #${totalEtapas + 1} de Liga (Torneio TBT)`;
+  const eventDesc = nextEvent?.descricao || "Formato Standard oficial Play! Pokémon. Traga seu deck de 60 cartas!";
   const eventLocation = nextEvent?.local || "Livraria Atlântica";
   const eventMapUrl = nextEvent?.linkMaps || nextEvent?.linkLocal || "https://maps.google.com";
+  const stageType = nextEvent?.tipo || "Standard";
 
-  // Badges estilizados de Posição
-  const getBadgeStyle = (pos: number) => {
+  // Configuração visual personalizada para cada card de Pódio (1º ao 4º)
+  const getPodiumCardConfig = (pos: number) => {
     if (pos === 1) {
       return {
-        bg: "bg-gradient-to-br from-yellow-300 via-amber-400 to-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/30",
-        border: "border-yellow-300/60",
+        containerClass:
+          "border-amber-400/50 bg-gradient-to-r from-amber-500/20 via-[#0f172a]/95 to-[#0b1329]/95 shadow-[0_0_25px_rgba(245,158,11,0.16)] hover:border-amber-300 hover:shadow-[0_0_35px_rgba(245,158,11,0.26)]",
+        badgeStyle: {
+          bg: "bg-gradient-to-br from-yellow-300 via-amber-400 to-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/40 ring-2 ring-amber-400/30",
+          border: "border-yellow-300/80",
+        },
+        ptsColor: "text-[#ffcb05] drop-shadow-[0_0_8px_rgba(255,203,5,0.4)]",
+        crownSeal: (
+          <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-2 py-0.5 text-[9px] font-black uppercase text-slate-950 shadow-md shadow-amber-500/30 tracking-wider">
+            <Crown className="h-2.5 w-2.5" /> Atual Líder
+          </span>
+        ),
       };
     }
     if (pos === 2) {
       return {
-        bg: "bg-gradient-to-br from-slate-100 via-slate-300 to-slate-400 text-slate-950 font-black shadow-md shadow-slate-400/20",
-        border: "border-slate-300/50",
+        containerClass:
+          "border-slate-400/35 bg-gradient-to-r from-slate-400/10 via-[#0f172a]/95 to-[#0b1329]/95 shadow-md shadow-slate-400/5 hover:border-slate-300 hover:shadow-slate-400/15",
+        badgeStyle: {
+          bg: "bg-gradient-to-br from-slate-100 via-slate-300 to-slate-400 text-slate-950 font-black shadow-md shadow-slate-400/30",
+          border: "border-slate-300/60",
+        },
+        ptsColor: "text-slate-100",
+        crownSeal: (
+          <span className="inline-flex items-center gap-1 rounded-full bg-slate-400/15 border border-slate-300/30 px-2 py-0.5 text-[9px] font-bold uppercase text-slate-300 tracking-wider">
+            Vice-Líder
+          </span>
+        ),
       };
     }
     if (pos === 3) {
       return {
-        bg: "bg-gradient-to-br from-amber-600 via-amber-700 to-orange-800 text-white font-black shadow-md shadow-orange-600/20",
-        border: "border-amber-600/50",
+        containerClass:
+          "border-amber-700/35 bg-gradient-to-r from-amber-800/15 via-[#0f172a]/95 to-[#0b1329]/95 shadow-md shadow-amber-900/10 hover:border-amber-600 hover:shadow-amber-800/15",
+        badgeStyle: {
+          bg: "bg-gradient-to-br from-amber-600 via-amber-700 to-orange-800 text-white font-black shadow-md shadow-orange-600/30",
+          border: "border-amber-600/60",
+        },
+        ptsColor: "text-amber-300",
+        crownSeal: null,
       };
     }
     return {
-      bg: "bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700 text-white font-black shadow-md shadow-blue-500/20",
-      border: "border-blue-400/50",
+      containerClass:
+        "border-blue-500/30 bg-gradient-to-r from-blue-600/10 via-[#0f172a]/95 to-[#0b1329]/95 shadow-md shadow-blue-500/10 hover:border-blue-400 hover:shadow-blue-500/20",
+      badgeStyle: {
+        bg: "bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700 text-white font-black shadow-md shadow-blue-500/30",
+        border: "border-blue-400/60",
+      },
+      ptsColor: "text-blue-300",
+      crownSeal: null,
     };
   };
 
@@ -199,29 +242,34 @@ export function HeroSeasonHub({
            ========================================================= */}
         <div className="lg:col-span-7 flex flex-col space-y-3">
           {/* Header da Coluna */}
-          <div className="flex items-center gap-2 px-1">
-            <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-            <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
-              Top 4 da Temporada Atual
-            </h2>
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+                Top 4 da Temporada Atual
+              </h2>
+            </div>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Temporada #{temporada}
+            </span>
           </div>
 
-          {/* Lista dos 4 Cards */}
+          {/* Lista dos 4 Cards com Cores Diferenciadas de Pódio */}
           <div className="flex-1 flex flex-col justify-between space-y-2.5">
             {top4.slice(0, 4).map((player, index) => {
               const pos = index + 1;
-              const badgeStyle = getBadgeStyle(pos);
+              const cardCfg = getPodiumCardConfig(pos);
               const energyCfg = getMultiEnergyConfig(player.ultimoDeckEnergia || "colorless");
 
               return (
                 <div
                   key={player.jogadorId || player.jogadorNome}
                   onClick={() => setSelectedPlayer(player)}
-                  className="group relative flex items-center justify-between gap-3.5 rounded-2xl border border-white/10 bg-[#0f172a]/80 p-3.5 sm:p-4 backdrop-blur-xl shadow-lg transition-all duration-200 hover:border-white/20 hover:bg-slate-800/80 hover:scale-[1.01] cursor-pointer"
+                  className={`group relative flex items-center justify-between gap-3.5 rounded-2xl border p-3.5 sm:p-4 backdrop-blur-xl transition-all duration-200 hover:scale-[1.01] cursor-pointer ${cardCfg.containerClass}`}
                 >
                   {/* Badge Numérico da Posição */}
                   <div
-                    className={`h-10 w-10 sm:h-11 sm:w-11 rounded-full flex items-center justify-center text-base sm:text-lg shrink-0 border ${badgeStyle.bg} ${badgeStyle.border}`}
+                    className={`h-10 w-10 sm:h-11 sm:w-11 rounded-full flex items-center justify-center text-base sm:text-lg shrink-0 border ${cardCfg.badgeStyle.bg} ${cardCfg.badgeStyle.border}`}
                   >
                     {pos}
                   </div>
@@ -233,6 +281,7 @@ export function HeroSeasonHub({
                         {player.jogadorNome}
                       </span>
                       <CategoryBadge category={player.categoria} size="sm" />
+                      {cardCfg.crownSeal}
                     </div>
 
                     <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate mt-0.5">
@@ -249,17 +298,25 @@ export function HeroSeasonHub({
                       <span className="truncate max-w-[200px] sm:max-w-[260px] text-slate-300">
                         {player.ultimoDeck || "Sem deck registrado"}
                       </span>
+                      {player.vitorias !== undefined && player.derrotas !== undefined && (
+                        <>
+                          <span className="text-slate-600">•</span>
+                          <span className="font-mono text-[11px] text-slate-400 shrink-0">
+                            {player.vitorias}V - {player.derrotas}D
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   {/* Pontos e Estatísticas */}
                   <div className="text-right shrink-0">
-                    <div className="font-title font-black text-base sm:text-lg text-[#ffcb05] tracking-wide">
+                    <div className={`font-title font-black text-base sm:text-lg tracking-wide ${cardCfg.ptsColor}`}>
                       {player.pontos}{" "}
                       <span className="text-[11px] font-semibold text-slate-400">PTS</span>
                     </div>
                     <div className="text-[11px] text-slate-400 font-medium">
-                      {player.podios} pódio(s) &bull; média{" "}
+                      {player.podios} pódio(s) &bull; méd{" "}
                       {player.mediaColocacao
                         ? player.mediaColocacao.toFixed(1).replace(".", ",")
                         : "0"}
@@ -273,84 +330,126 @@ export function HeroSeasonHub({
         </div>
 
         {/* =========================================================
-            COLUNA 2: PRÓXIMO EVENTO (Direita)
+            COLUNA 2: PRÓXIMO EVENTO (Direita - Altura Total & Rica)
            ========================================================= */}
         <div className="lg:col-span-5 flex flex-col space-y-3">
           {/* Header da Coluna */}
-          <div className="flex items-center gap-2 px-1">
-            <Calendar className="h-4 w-4 text-amber-400" />
-            <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
-              Próximo Evento
-            </h2>
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-amber-400" />
+              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+                Próximo Evento
+              </h2>
+            </div>
+            <Link
+              href="/calendario"
+              className="text-[11px] font-bold text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1"
+            >
+              <span>Calendário</span>
+              <ArrowRight className="h-3 w-3" />
+            </Link>
           </div>
 
-          {/* Card do Evento */}
-          <div className="flex-1 rounded-2xl border border-white/10 bg-[#0f172a]/80 p-5 sm:p-6 backdrop-blur-xl shadow-xl flex flex-col justify-between space-y-4">
-            {/* Header com Alerta e Data */}
+          {/* Card do Evento Enriquecido e com Altura Perfeita */}
+          <div className="flex-1 rounded-2xl border border-white/10 bg-gradient-to-br from-[#0f172a]/95 via-[#0b1329]/95 to-[#060a17]/95 p-5 sm:p-6 backdrop-blur-2xl shadow-2xl flex flex-col justify-between space-y-4 relative overflow-hidden">
+            {/* Brilho decorativo no topo */}
+            <div className="absolute -top-16 -right-16 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Topo do Card: Alerta com Pulso e Data em Amarelo */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/10 border border-rose-500/25 px-2.5 py-1 text-xs font-bold text-rose-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
-                Próximo Torneio
+              <div className="inline-flex items-center gap-2 rounded-full bg-rose-500/15 border border-rose-500/30 px-3 py-1 text-xs font-bold text-rose-400 shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                <span>Próximo Torneio</span>
               </div>
-              <span className="text-xs sm:text-sm font-bold text-[#ffcb05]">
-                {formattedEventDate} às {eventTime}
-              </span>
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black text-[#ffcb05]">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{formattedEventDate} às {eventTime}</span>
+              </div>
             </div>
 
-            {/* Título e Descrição */}
-            <div className="space-y-1">
-              <h3 className="text-base sm:text-lg font-black text-white tracking-tight leading-snug">
+            {/* Título e Descrição do Torneio */}
+            <div className="space-y-1.5">
+              <h3 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug">
                 {eventTitle}
               </h3>
-              <p className="text-xs sm:text-sm text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 {eventDesc}
               </p>
             </div>
 
-            {/* Timer Regressivo (4 Blocos Quadrados) */}
-            <div className="grid grid-cols-4 gap-2 sm:gap-3 py-1">
-              {[
-                { label: "DIAS", value: timeLeft.days },
-                { label: "HORAS", value: timeLeft.hours },
-                { label: "MINS", value: timeLeft.mins },
-                { label: "SEGS", value: timeLeft.secs },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="flex flex-col items-center justify-center rounded-xl border border-white/5 bg-[#0a0f1d]/90 py-3 px-2 shadow-inner"
-                >
-                  <span className="font-mono text-xl sm:text-2xl font-black text-[#ffcb05]">
-                    {item.value}
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
-                    {item.label}
-                  </span>
-                </div>
-              ))}
+            {/* Grid com Badges Informativos da Etapa */}
+            <div className="grid grid-cols-3 gap-2 py-1 text-center">
+              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-2 backdrop-blur-md">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Formato</span>
+                <span className="text-xs font-black text-white truncate block mt-0.5">{stageType}</span>
+              </div>
+              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-2 backdrop-blur-md">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Multiplicador</span>
+                <span className="text-xs font-black text-amber-400 truncate block mt-0.5">1.0x PTS</span>
+              </div>
+              <div className="rounded-xl border border-white/5 bg-slate-900/60 p-2 backdrop-blur-md">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Etapa</span>
+                <span className="text-xs font-black text-blue-400 truncate block mt-0.5">#{totalEtapas + 1} Oficial</span>
+              </div>
             </div>
 
-            {/* Rodapé: Local e Inscrição */}
-            <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-white/5">
+            {/* Timer Regressivo com Visual Glassmorphism Escuro */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-400 px-1">
+                <span>Contagem Regressiva</span>
+                <span className="text-[#ffcb05] font-mono font-bold">Faltam Poucos Dias</span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                {[
+                  { label: "DIAS", value: timeLeft.days },
+                  { label: "HORAS", value: timeLeft.hours },
+                  { label: "MINS", value: timeLeft.mins },
+                  { label: "SEGS", value: timeLeft.secs },
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-[#060a17]/90 py-3 px-2 shadow-inner"
+                  >
+                    <span className="font-mono text-xl sm:text-2xl font-black text-[#ffcb05] drop-shadow-[0_0_6px_rgba(255,203,5,0.3)]">
+                      {item.value}
+                    </span>
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 mt-0.5">
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Rodapé: Local e Botão de Ação */}
+            <div className="flex items-center justify-between gap-3 text-xs text-slate-400 pt-3 border-t border-white/5">
               <a
                 href={eventMapUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                className="inline-flex items-center gap-1.5 font-bold text-amber-400 hover:text-amber-300 transition-colors truncate"
               >
-                <MapPin className="h-3.5 w-3.5 text-amber-400" />
-                <span>Local: {eventLocation}</span>
-                <ExternalLink className="h-3 w-3" />
+                <MapPin className="h-4 w-4 text-amber-400 shrink-0" />
+                <span className="truncate">Local: {eventLocation}</span>
+                <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
 
-              {nextEvent?.linkInscricao && (
+              {nextEvent?.linkInscricao ? (
                 <a
                   href={nextEvent.linkInscricao}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-lg bg-blue-600/20 border border-blue-500/30 px-2.5 py-1 text-[11px] font-bold text-blue-300 hover:bg-blue-600 hover:text-white transition-all"
+                  className="rounded-xl bg-blue-600 hover:bg-blue-500 px-3.5 py-1.5 text-xs font-black text-white shadow-lg shadow-blue-600/30 transition-all shrink-0"
                 >
                   Inscrever-se
                 </a>
+              ) : (
+                <Link
+                  href="/calendario"
+                  className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 text-xs font-bold text-slate-200 transition-all shrink-0"
+                >
+                  Ver Detalhes
+                </Link>
               )}
             </div>
           </div>
