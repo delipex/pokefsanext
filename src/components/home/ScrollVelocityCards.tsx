@@ -11,7 +11,7 @@ import {
   useAnimationFrame,
   useMotionValue,
 } from "framer-motion";
-import { Sparkles, Flame, ArrowRight, Layers, Trophy } from "lucide-react";
+import { Sparkles, Flame, ArrowRight, Layers, Eye } from "lucide-react";
 import { EnergyBadge } from "@/components/ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
@@ -47,13 +47,13 @@ function wrap(min: number, max: number, v: number) {
   return ((((v - min) % rangeSize) + rangeSize) % rangeSize) + min;
 }
 
-// Parâmetros estéticos para efeito editorial solto e dinâmico
+// Parâmetros estéticos para efeito 3D Planes / Wave Effect (Motion.dev)
 const ROTATIONS = [-5, 4, -2, 6, -6, 3, -4, 5, -3, 6];
-const Y_OFFSETS = [-16, 20, -10, 24, -14, 16, -20, 12, -8, 18];
+const Y_OFFSETS = [-14, 18, -8, 22, -12, 14, -18, 10, -6, 16];
 const SCALES = [1.02, 0.97, 1.04, 0.98, 1.02, 0.96, 1.03, 0.98];
 const Z_INDICES = [10, 25, 15, 30, 20, 35, 12, 28];
 
-function LooseCardsMarquee({
+function ScrollVelocity3DPlanes({
   decks,
   baseVelocity = 0.18,
   direction = 1,
@@ -65,21 +65,29 @@ function LooseCardsMarquee({
   const baseX = useMotionValue(0);
   const { scrollY } = useScroll();
   const scrollVelocity = useVelocity(scrollY);
+
+  // Física de mola fluida e responsiva (Motion.dev standard)
   const smoothVelocity = useSpring(scrollVelocity, {
-    damping: 60,
-    stiffness: 250,
+    damping: 50,
+    stiffness: 300,
   });
 
-  const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 2], {
+  // Fator de velocidade para aceleração contínua
+  const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 2.5], {
     clamp: false,
   });
 
+  // 3D Wave Tilt: Distorção / inclinação em perspectiva ligada à velocidade do scroll
+  const velocityTilt = useTransform(smoothVelocity, [-1500, 1500], [-12, 12]);
+  const velocitySkew = useTransform(smoothVelocity, [-1500, 1500], [-6, 6]);
+
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const directionFactor = useRef<number>(direction);
 
   useAnimationFrame((t, delta) => {
-    if (hoveredIdx !== null) {
-      // Quando o cursor está sobre uma carta, quase para a esteira para apreciação
+    if (hoveredIdx !== null || isDragging) {
+      // Quando o cursor está sobre uma carta ou arrastando, desacelera para contemplação
       const moveBy = directionFactor.current * (baseVelocity * 0.1) * (delta / 1000);
       baseX.set(baseX.get() + moveBy);
       return;
@@ -87,7 +95,7 @@ function LooseCardsMarquee({
 
     let moveBy = directionFactor.current * baseVelocity * (delta / 1000);
 
-    // Reage sutilmente ao scroll do usuário
+    // Reage fluidamente ao scroll da página (Motion.dev Linked Offset)
     const currentVelocity = velocityFactor.get();
     if (currentVelocity < 0) {
       directionFactor.current = -1 * direction;
@@ -102,12 +110,29 @@ function LooseCardsMarquee({
   // Repetição contínua suave entre -50% e 0%
   const x = useTransform(baseX, (v) => `${wrap(-50, 0, v)}%`);
 
-  // Repetição de decks para seamless loop infinito
+  // Repetição de decks para looping infinito contínuo
   const repeatedDecks = [...decks, ...decks, ...decks, ...decks];
 
   return (
-    <div className="relative w-full overflow-visible select-none py-10 sm:py-14">
-      <motion.div className="flex -space-x-3 sm:-space-x-5 shrink-0 items-center" style={{ x }}>
+    <div
+      className="relative w-full overflow-visible select-none py-10 sm:py-14 cursor-grab active:cursor-grabbing"
+      style={{ perspective: "1200px" }}
+    >
+      <motion.div
+        className="flex -space-x-3 sm:-space-x-5 shrink-0 items-center"
+        style={{
+          x,
+          rotateY: velocityTilt,
+          skewX: velocitySkew,
+          transformStyle: "preserve-3d",
+        }}
+        onPanStart={() => setIsDragging(true)}
+        onPanEnd={() => setIsDragging(false)}
+        onPan={(e, info) => {
+          // Permite arrastar horizontalmente diretamente a esteira com inércia física
+          baseX.set(baseX.get() + info.delta.x * 0.04);
+        }}
+      >
         {repeatedDecks.map((deck, idx) => {
           const energy = getMultiEnergyConfig(deck.tipoEnergia);
           const rot = ROTATIONS[idx % ROTATIONS.length];
@@ -117,37 +142,38 @@ function LooseCardsMarquee({
           const isCurrentHovered = hoveredIdx === idx;
 
           return (
-            <div
+            <motion.div
               key={`${deck.nome}-${idx}`}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
-              className="relative shrink-0 transition-all duration-500 ease-out cursor-pointer"
+              className="relative shrink-0 transition-transform duration-500 ease-out"
               style={{
                 zIndex: isCurrentHovered ? 60 : zIdx,
+                transformStyle: "preserve-3d",
                 transform: isCurrentHovered
-                  ? `translateY(${yOff - 20}px) scale(1.1) rotate(0deg)`
-                  : `translateY(${yOff}px) scale(${scl}) rotate(${rot}deg)`,
+                  ? `translateY(${yOff - 24}px) translateZ(80px) scale(1.12) rotate(0deg)`
+                  : `translateY(${yOff}px) translateZ(0px) scale(${scl}) rotate(${rot}deg)`,
               }}
             >
-              {/* Card Pokémon Físico / Editorial Loose */}
+              {/* Card Pokémon Físico 3D Plane */}
               <div
                 className="relative aspect-[63/88] w-[170px] sm:w-[205px] md:w-[235px] rounded-2xl overflow-hidden border border-white/15 bg-slate-950 shadow-[0_20px_50px_rgba(0,0,0,0.85)] transition-all duration-300"
                 style={{
                   boxShadow: isCurrentHovered
-                    ? `0 30px 60px -10px rgba(0, 0, 0, 0.95), 0 0 30px rgba(59, 130, 246, 0.3)`
+                    ? `0 35px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(59, 130, 246, 0.35)`
                     : `0 18px 40px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08)`,
                 }}
               >
-                {/* Imagem da Carta */}
+                {/* Imagem da Carta com Alto Brilho e Textura */}
                 {deck.imagem ? (
                   <img
                     src={deck.imagem}
                     alt={deck.nome}
-                    className="w-full h-full object-cover object-center select-none filter brightness-95 hover:brightness-105 transition-all duration-300"
+                    className="w-full h-full object-cover object-center select-none filter brightness-95 hover:brightness-105 transition-all duration-300 pointer-events-none"
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center p-4 text-center">
+                  <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center p-4 text-center select-none">
                     <span className="text-4xl mb-2">⚡</span>
                     <span className="font-bold text-white text-xs leading-tight">
                       {deck.nome}
@@ -155,16 +181,16 @@ function LooseCardsMarquee({
                   </div>
                 )}
 
-                {/* Efeito Foil Holográfico */}
+                {/* Efeito Foil Holográfico 3D */}
                 <div
                   className={`absolute inset-0 transition-opacity duration-300 pointer-events-none bg-gradient-to-tr from-transparent via-white/20 to-transparent mix-blend-overlay ${
                     isCurrentHovered ? "opacity-100" : "opacity-0"
                   }`}
                 />
 
-                {/* Badge Flutuante de Energia */}
+                {/* Badge Flutuante de Energia no Topo */}
                 <div className="absolute top-2.5 right-2.5">
-                  <div className="flex items-center -space-x-1 p-1 rounded-full bg-black/70 backdrop-blur-md border border-white/15 shadow-lg">
+                  <div className="flex items-center -space-x-1 p-1 rounded-full bg-black/75 backdrop-blur-md border border-white/15 shadow-lg">
                     {energy.types.map((t, i) => (
                       <span
                         key={i}
@@ -177,18 +203,18 @@ function LooseCardsMarquee({
                 </div>
 
                 {/* Tag Inferior Flutuante com Nome do Deck e Presença */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-transparent p-3 pt-8 flex flex-col justify-end">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/85 to-transparent p-3 pt-8 flex flex-col justify-end">
                   <span className="text-xs sm:text-sm font-bold text-white truncate drop-shadow-md">
                     {deck.nome}
                   </span>
                   {deck.count !== undefined && (
                     <span className="text-[10px] text-slate-400 font-medium">
-                      {deck.count} aparições
+                      {deck.count} aparições na temporada
                     </span>
                   )}
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </motion.div>
@@ -268,13 +294,13 @@ export function ScrollVelocityCards({
           </h3>
         </div>
         <span className="text-[10px] sm:text-xs text-slate-400 font-normal hidden sm:inline">
-          ⚡ Deslize o mouse ou role a página para interagir
+          ⚡ Arraste ou role a página para interagir
         </span>
       </div>
 
-      {/* Esteira com Cartas Soltas em Ângulos e Offsets Variados */}
+      {/* Esteira 3D Planes com Velocity-Linked Wave Offset (Motion.dev) */}
       <div className="relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]">
-        <LooseCardsMarquee decks={validDecks} baseVelocity={baseVelocity} direction={1} />
+        <ScrollVelocity3DPlanes decks={validDecks} baseVelocity={baseVelocity} direction={1} />
       </div>
 
       {/* Rodapé Bento Integrado com as Informações do Metagame */}
