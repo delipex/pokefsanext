@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Trophy,
   Award,
@@ -89,43 +90,73 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
 
   return (
     <div className="space-y-8">
-      {/* Abas Superiores de Navegação Bento */}
-      <div className="flex items-center gap-2 p-1.5 rounded-2xl border border-white/[0.04] bg-white/[0.02] backdrop-blur-2xl shadow-lg overflow-x-auto">
-        <button
+      {/* Abas Superiores de Navegação Bento com Indicador Deslizante iOS */}
+      <div className="flex items-center gap-2 p-1.5 rounded-2xl border border-white/[0.04] bg-white/[0.02] backdrop-blur-2xl shadow-lg overflow-x-auto relative">
+        <motion.button
+          whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab("campeoes")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+          className={`relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-colors shrink-0 cursor-pointer ${
             activeTab === "campeoes"
-              ? "bg-[#ffcb05] text-slate-950 shadow-lg shadow-yellow-500/20"
+              ? "text-slate-950 font-black"
               : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
           }`}
         >
-          <Trophy className="h-4 w-4" />
-          Galeria de Campeões
-        </button>
+          {activeTab === "campeoes" && (
+            <motion.span
+              layoutId="champions-active-pill"
+              className="absolute inset-0 rounded-xl bg-[#ffcb05] shadow-lg shadow-yellow-500/30"
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            />
+          )}
+          <span className="relative z-10 flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Galeria de Campeões
+          </span>
+        </motion.button>
 
-        <button
+        <motion.button
+          whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab("galeria")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+          className={`relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-colors shrink-0 cursor-pointer ${
             activeTab === "galeria"
-              ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+              ? "text-white font-bold"
               : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
           }`}
         >
-          <Camera className="h-4 w-4" />
-          Galeria de Fotos
-        </button>
+          {activeTab === "galeria" && (
+            <motion.span
+              layoutId="champions-active-pill"
+              className="absolute inset-0 rounded-xl bg-blue-600 shadow-lg shadow-blue-600/30"
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            />
+          )}
+          <span className="relative z-10 flex items-center gap-2">
+            <Camera className="h-4 w-4" />
+            Galeria de Fotos
+          </span>
+        </motion.button>
 
-        <button
+        <motion.button
+          whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab("historico")}
-          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+          className={`relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-colors shrink-0 cursor-pointer ${
             activeTab === "historico"
-              ? "bg-purple-600 text-white shadow-lg shadow-purple-600/20"
+              ? "text-white font-bold"
               : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
           }`}
         >
-          <History className="h-4 w-4" />
-          Scores das Temporadas Anteriores
-        </button>
+          {activeTab === "historico" && (
+            <motion.span
+              layoutId="champions-active-pill"
+              className="absolute inset-0 rounded-xl bg-purple-600 shadow-lg shadow-purple-600/30"
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            />
+          )}
+          <span className="relative z-10 flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Scores das Temporadas Anteriores
+          </span>
+        </motion.button>
       </div>
 
       {/* =========================================================
@@ -390,79 +421,108 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
       )}
 
       {/* =========================================================
-          MODAL DE VISUALIZAÇÃO DE DECKLIST DO CAMPEÃO
+          MODAL DE VISUALIZAÇÃO DE DECKLIST DO CAMPEÃO COM ANIMAÇÃO IOS
          ========================================================= */}
-      {deckModalChampion && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in"
-          onClick={() => setDeckModalChampion(null)}
-        >
-          <div
-            className="relative w-full max-w-lg rounded-3xl border border-white/10 bg-[#0f172a]/95 p-6 shadow-2xl backdrop-blur-2xl text-slate-100 space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
+      <AnimatePresence>
+        {deckModalChampion && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-xl"
               onClick={() => setDeckModalChampion(null)}
-              className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              transition={{ type: "spring", stiffness: 350, damping: 28 }}
+              className="relative w-full max-w-lg rounded-3xl border border-white/10 bg-[#0f172a]/95 p-6 shadow-2xl backdrop-blur-2xl text-slate-100 space-y-4 z-10"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="h-5 w-5" />
-            </button>
+              {/* iOS Handle */}
+              <div className="w-10 h-1.5 rounded-full bg-white/20 mx-auto -mt-2 mb-3" />
 
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🏆</span>
-              <div>
-                <h3 className="text-lg font-black text-white">Decklist Campeã — {deckModalChampion.temporada}</h3>
-                <p className="text-xs text-amber-400 font-bold">{deckModalChampion.campeao} &bull; {deckModalChampion.deckCampeao}</p>
-              </div>
-            </div>
-
-            {deckModalChampion.imagemDeck && (
-              <div className="rounded-2xl overflow-hidden border border-white/10 bg-slate-950 max-h-[380px] flex items-center justify-center">
-                <img
-                  src={deckModalChampion.imagemDeck}
-                  alt={`Deck de ${deckModalChampion.campeao}`}
-                  className="max-h-[380px] w-full object-contain"
-                />
-              </div>
-            )}
-
-            {deckModalChampion.observacaoDeck && (
-              <p className="text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-white/5 leading-relaxed">
-                {deckModalChampion.observacaoDeck}
-              </p>
-            )}
-
-            {deckModalChampion.urlDeck && (
-              <a
-                href={deckModalChampion.urlDeck}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-amber-500 py-2.5 text-xs font-black text-slate-950 hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20"
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setDeckModalChampion(null)}
+                className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
               >
-                Abrir Lista Oficial de 60 Cartas <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            )}
-          </div>
-        </div>
-      )}
+                <X className="h-5 w-5" />
+              </motion.button>
 
-      {/* Lightbox para Galeria de Fotos */}
-      {lightboxImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
-          onClick={() => setLightboxImage(null)}
-        >
-          <div className="relative max-w-4xl max-h-[90vh]">
-            <button
-              onClick={() => setLightboxImage(null)}
-              className="absolute -top-12 right-0 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
-            >
-              <X className="h-6 w-6" />
-            </button>
-            <img src={lightboxImage} alt="Foto Expandida" className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl" />
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🏆</span>
+                <div>
+                  <h3 className="text-lg font-black text-white">Decklist Campeã — {deckModalChampion.temporada}</h3>
+                  <p className="text-xs text-amber-400 font-bold">{deckModalChampion.campeao} &bull; {deckModalChampion.deckCampeao}</p>
+                </div>
+              </div>
+
+              {deckModalChampion.imagemDeck && (
+                <div className="rounded-2xl overflow-hidden border border-white/10 bg-slate-950 max-h-[380px] flex items-center justify-center">
+                  <img
+                    src={deckModalChampion.imagemDeck}
+                    alt={`Deck de ${deckModalChampion.campeao}`}
+                    className="max-h-[380px] w-full object-contain"
+                  />
+                </div>
+              )}
+
+              {deckModalChampion.observacaoDeck && (
+                <p className="text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-white/5 leading-relaxed">
+                  {deckModalChampion.observacaoDeck}
+                </p>
+              )}
+
+              {deckModalChampion.urlDeck && (
+                <motion.a
+                  whileTap={{ scale: 0.97 }}
+                  whileHover={{ scale: 1.01 }}
+                  href={deckModalChampion.urlDeck}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-amber-500 py-2.5 text-xs font-black text-slate-950 hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20"
+                >
+                  Abrir Lista Oficial de 60 Cartas <ExternalLink className="h-3.5 w-3.5" />
+                </motion.a>
+              )}
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
+
+      {/* Lightbox para Galeria de Fotos com Animação iOS */}
+      <AnimatePresence>
+        {lightboxImage && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/90 backdrop-blur-xl"
+              onClick={() => setLightboxImage(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 350, damping: 28 }}
+              className="relative max-w-4xl max-h-[90vh] z-10"
+            >
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setLightboxImage(null)}
+                className="absolute -top-12 right-0 rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors cursor-pointer"
+              >
+                <X className="h-6 w-6" />
+              </motion.button>
+              <img src={lightboxImage} alt="Foto Expandida" className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl" />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

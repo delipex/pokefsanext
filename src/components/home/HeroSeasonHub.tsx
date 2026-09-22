@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   Star,
   Calendar,
@@ -268,10 +269,12 @@ export function HeroSeasonHub({
               const energyCfg = getMultiEnergyConfig(player.ultimoDeckEnergia || "colorless");
 
               return (
-                <div
+                <motion.div
                   key={player.jogadorId || player.jogadorNome}
+                  whileHover={{ x: 4, transition: { type: "spring", stiffness: 400, damping: 25 } }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setSelectedPlayer(player)}
-                  className="group relative flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-2xl hover:bg-white/[0.04] transition-all duration-200 cursor-pointer"
+                  className="group relative flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-2xl hover:bg-white/[0.04] transition-colors cursor-pointer"
                 >
                   {/* Badge Numérico da Posição */}
                   <div
@@ -314,7 +317,7 @@ export function HeroSeasonHub({
                       <span className="text-[10px] font-semibold text-slate-400">PTS</span>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -378,9 +381,10 @@ export function HeroSeasonHub({
                   { label: "MINS", value: timeLeft.mins },
                   { label: "SEGS", value: timeLeft.secs },
                 ].map((item, i) => (
-                  <div
+                  <motion.div
                     key={i}
-                    className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.04] bg-white/[0.02] py-3 px-2 shadow-sm"
+                    whileHover={{ y: -2 }}
+                    className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.04] bg-white/[0.02] py-3 px-2 shadow-sm transition-all"
                   >
                     <span className="tabular-nums text-xl sm:text-2xl font-black text-slate-100">
                       {item.value}
@@ -388,7 +392,7 @@ export function HeroSeasonHub({
                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
                       {item.label}
                     </span>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -407,21 +411,25 @@ export function HeroSeasonHub({
               </a>
 
               {nextEvent?.linkInscricao ? (
-                <a
+                <motion.a
+                  whileTap={{ scale: 0.94 }}
+                  whileHover={{ scale: 1.02 }}
                   href={nextEvent.linkInscricao}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all shrink-0"
                 >
                   Inscrever-se
-                </a>
+                </motion.a>
               ) : (
-                <Link
-                  href="/calendario"
-                  className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3.5 py-1.5 text-xs font-semibold text-slate-200 hover:text-white transition-all shrink-0"
-                >
-                  Ver Detalhes
-                </Link>
+                <motion.div whileTap={{ scale: 0.94 }} whileHover={{ scale: 1.02 }}>
+                  <Link
+                    href="/calendario"
+                    className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3.5 py-1.5 text-xs font-semibold text-slate-200 hover:text-white transition-all shrink-0 inline-block"
+                  >
+                    Ver Detalhes
+                  </Link>
+                </motion.div>
               )}
             </div>
           </div>

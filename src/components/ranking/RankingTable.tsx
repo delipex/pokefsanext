@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { PlayerModalData, PlayerModal } from "./PlayerModal";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
@@ -219,21 +220,32 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
             </div>
           )}
 
-          {/* Filtro de Categoria em Pílulas */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                  selectedCategory === cat
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                    : "bg-white/[0.03] text-slate-400 hover:bg-white/[0.06] hover:text-white border border-white/[0.05]"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          {/* Filtro de Categoria em Pílulas com Indicador Deslizante iOS */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 relative">
+            {categories.map((cat) => {
+              const isActive = selectedCategory === cat;
+              return (
+                <motion.button
+                  key={cat}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`relative rounded-xl px-3.5 py-1.5 text-xs font-bold transition-colors shrink-0 cursor-pointer ${
+                    isActive
+                      ? "text-white font-bold"
+                      : "bg-white/[0.03] text-slate-400 hover:bg-white/[0.06] hover:text-white border border-white/[0.05]"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="active-ranking-cat"
+                      className="absolute inset-0 rounded-xl bg-blue-600 shadow-md shadow-blue-600/35"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10">{cat}</span>
+                </motion.button>
+              );
+            })}
           </div>
         </div>
 
@@ -488,24 +500,26 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
           <div className="flex items-center gap-1.5">
             {/* Primeira Página */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
               aria-label="Primeira página"
             >
               <ChevronsLeft className="h-4 w-4" />
-            </button>
+            </motion.button>
 
             {/* Página Anterior */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
               aria-label="Página anterior"
             >
               <ChevronLeft className="h-4 w-4" />
-            </button>
+            </motion.button>
 
             {/* Botões Numéricos de Páginas Próximas */}
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -521,8 +535,9 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
               }
 
               return (
-                <button
+                <motion.button
                   key={pageNum}
+                  whileTap={{ scale: 0.92 }}
                   onClick={() => setCurrentPage(pageNum)}
                   className={`min-w-[32px] h-8 rounded-xl px-2 text-xs font-bold transition-all cursor-pointer ${
                     currentPage === pageNum
@@ -531,29 +546,31 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                   }`}
                 >
                   {pageNum}
-                </button>
+                </motion.button>
               );
             })}
 
             {/* Próxima Página */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
               aria-label="Próxima página"
             >
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </motion.button>
 
             {/* Última Página */}
-            <button
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+              className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
               aria-label="Última página"
             >
               <ChevronsRight className="h-4 w-4" />
-            </button>
+            </motion.button>
           </div>
         </div>
       )}
