@@ -271,27 +271,27 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         </div>
       </div>
 
-      {/* Banner Informativo da Etapa Selecionada (Visual Idêntico ao Original) */}
+      {/* Banner Informativo da Etapa Selecionada (Exibido APENAS quando uma etapa individual for selecionada) */}
       {!isGeneralRanking && currentStage && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 px-4 py-2.5 text-xs text-slate-300 backdrop-blur-md">
-          <span className="text-slate-400">Você está visualizando:</span>
-          <span className="rounded bg-amber-500/20 px-2 py-0.5 font-bold text-amber-300">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-[#ffcb05]/40 bg-[#ffcb05]/10 px-4 py-2.5 text-xs text-slate-200 backdrop-blur-md shadow-sm">
+          <span className="text-slate-400 font-medium">Você está visualizando:</span>
+          <span className="rounded bg-[#ffcb05]/20 border border-[#ffcb05]/40 px-2.5 py-0.5 font-bold text-[#ffcb05]">
             {currentStage.data}
           </span>
-          <span className="text-slate-500">•</span>
-          <span className="text-slate-400">Evento:</span>
-          <span className="rounded bg-amber-500/20 px-2 py-0.5 font-bold text-amber-300">
+          <span className="text-yellow-500/50">•</span>
+          <span className="text-slate-400 font-medium">Evento:</span>
+          <span className="rounded bg-[#ffcb05]/20 border border-[#ffcb05]/40 px-2.5 py-0.5 font-bold text-[#ffcb05]">
             {currentStage.tipo}
           </span>
-          <span className="text-slate-500">•</span>
-          <span className="text-slate-400">Multiplicador:</span>
-          <span className="rounded bg-amber-500/20 px-2 py-0.5 font-bold text-amber-300">
+          <span className="text-yellow-500/50">•</span>
+          <span className="text-slate-400 font-medium">Multiplicador:</span>
+          <span className="rounded bg-[#ffcb05]/20 border border-[#ffcb05]/40 px-2.5 py-0.5 font-bold text-[#ffcb05]">
             {currentStage.multiplicador}x
           </span>
           {currentStage.campeaoNome && (
             <>
-              <span className="text-slate-500">•</span>
-              <span className="font-bold text-amber-400">
+              <span className="text-yellow-500/50">•</span>
+              <span className="font-bold text-[#ffcb05] flex items-center gap-1">
                 🏆 Campeão: {currentStage.campeaoNome}
               </span>
             </>
