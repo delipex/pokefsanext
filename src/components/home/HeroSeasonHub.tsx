@@ -181,15 +181,15 @@ export function HeroSeasonHub({
     if (pos === 1) {
       return {
         containerClass:
-          "border-amber-400/40 bg-gradient-to-r from-amber-500/[0.12] via-[#0f172a]/90 to-[#0b1329]/90 shadow-[0_4px_20px_rgba(245,158,11,0.12)] hover:border-amber-400/70 hover:shadow-[0_4px_28px_rgba(245,158,11,0.22)]",
+          "border-amber-400/20 bg-amber-500/[0.04] hover:bg-amber-500/[0.08] hover:border-amber-400/40 shadow-sm",
         badgeStyle: {
-          bg: "bg-gradient-to-br from-yellow-300 via-amber-400 to-amber-600 text-slate-950 font-black shadow-lg shadow-amber-500/30 ring-2 ring-amber-300/50",
-          border: "border-amber-200/80",
+          bg: "bg-gradient-to-br from-yellow-300 via-amber-400 to-amber-600 text-slate-950 font-black shadow-md shadow-amber-500/25 ring-1 ring-amber-300/40",
+          border: "border-amber-200/60",
         },
-        ptsColor: "text-[#ffcb05] drop-shadow-[0_0_8px_rgba(255,203,5,0.35)]",
+        ptsColor: "text-[#ffcb05]",
         seal: (
-          <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-2 py-0.5 text-[9px] font-black uppercase text-slate-950 shadow-md shadow-amber-500/25 tracking-wider">
-            <Crown className="h-2.5 w-2.5 fill-slate-950" /> Líder da Liga
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 border border-amber-400/30 px-1.5 py-0.2 text-[8px] sm:text-[9px] font-bold uppercase text-amber-300 tracking-wider">
+            <Crown className="h-2 w-2 text-amber-400" /> Líder
           </span>
         ),
       };
@@ -197,26 +197,22 @@ export function HeroSeasonHub({
     if (pos === 2) {
       return {
         containerClass:
-          "border-slate-300/25 bg-gradient-to-r from-slate-400/[0.08] via-[#0f172a]/90 to-[#0b1329]/90 shadow-[0_4px_16px_rgba(148,163,184,0.06)] hover:border-slate-300/50 hover:shadow-[0_4px_24px_rgba(148,163,184,0.14)]",
+          "border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.08] shadow-sm",
         badgeStyle: {
-          bg: "bg-gradient-to-br from-slate-100 via-slate-300 to-slate-400 text-slate-950 font-black shadow-md shadow-slate-300/25 ring-2 ring-slate-200/40",
-          border: "border-slate-200/60",
+          bg: "bg-gradient-to-br from-slate-100 via-slate-300 to-slate-400 text-slate-950 font-black shadow-sm ring-1 ring-slate-200/40",
+          border: "border-slate-200/50",
         },
         ptsColor: "text-slate-100",
-        seal: (
-          <span className="inline-flex items-center gap-1 rounded-full bg-slate-400/15 border border-slate-300/30 px-2 py-0.5 text-[9px] font-bold uppercase text-slate-300 tracking-wider">
-            🥈 Vice-Líder
-          </span>
-        ),
+        seal: null,
       };
     }
     if (pos === 3) {
       return {
         containerClass:
-          "border-amber-700/30 bg-gradient-to-r from-amber-800/[0.08] via-[#0f172a]/90 to-[#0b1329]/90 shadow-[0_4px_16px_rgba(180,83,9,0.06)] hover:border-amber-600/50 hover:shadow-[0_4px_24px_rgba(180,83,9,0.14)]",
+          "border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.08] shadow-sm",
         badgeStyle: {
-          bg: "bg-gradient-to-br from-amber-600 via-amber-700 to-amber-900 text-amber-100 font-black shadow-md shadow-amber-900/30 ring-2 ring-amber-600/30",
-          border: "border-amber-500/40",
+          bg: "bg-gradient-to-br from-amber-600 via-amber-700 to-amber-900 text-amber-100 font-black shadow-sm ring-1 ring-amber-600/30",
+          border: "border-amber-500/30",
         },
         ptsColor: "text-amber-200/90",
         seal: null,
@@ -224,10 +220,10 @@ export function HeroSeasonHub({
     }
     return {
       containerClass:
-        "border-blue-500/25 bg-gradient-to-r from-blue-600/[0.08] via-[#0f172a]/90 to-[#0b1329]/90 shadow-[0_4px_16px_rgba(37,99,235,0.06)] hover:border-blue-400/50 hover:shadow-[0_4px_24px_rgba(37,99,235,0.14)]",
+        "border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.08] shadow-sm",
       badgeStyle: {
-        bg: "bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 text-white font-black shadow-md shadow-blue-500/30 ring-2 ring-blue-400/30",
-        border: "border-blue-400/40",
+        bg: "bg-gradient-to-br from-blue-400 via-blue-600 to-blue-800 text-white font-black shadow-sm ring-1 ring-blue-400/30",
+        border: "border-blue-400/30",
       },
       ptsColor: "text-blue-200/90",
       seal: null,
@@ -236,11 +232,11 @@ export function HeroSeasonHub({
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-stretch">
         {/* =========================================================
-            COLUNA 1: PÓDIO DA TEMPORADA ATUAL (Esquerda)
+            COLUNA 1: PÓDIO DA TEMPORADA ATUAL (Esquerda - Compacta 5 Colunas)
            ========================================================= */}
-        <div className="lg:col-span-7 flex flex-col space-y-2.5">
+        <div className="lg:col-span-5 flex flex-col space-y-2">
           {/* Header da Coluna */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
@@ -255,17 +251,17 @@ export function HeroSeasonHub({
                 <path d="M9 19V6h6v13" />
                 <path d="M15 19v-5h5v5" />
               </svg>
-              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
-                Pódio Atual da Temporada
+              <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                Pódio Atual
               </h2>
             </div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Temporada #{temporada}
+            <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Temp. #{temporada}
             </span>
           </div>
 
-          {/* Lista dos 4 Cards Compacta e Limpa */}
-          <div className="flex-1 flex flex-col justify-between space-y-2">
+          {/* Lista dos 4 Cards Compactos e Transparentes */}
+          <div className="flex-1 flex flex-col justify-between space-y-1.5">
             {top4.slice(0, 4).map((player, index) => {
               const pos = index + 1;
               const cardCfg = getPodiumCardConfig(pos);
@@ -275,37 +271,37 @@ export function HeroSeasonHub({
                 <div
                   key={player.jogadorId || player.jogadorNome}
                   onClick={() => setSelectedPlayer(player)}
-                  className={`group relative flex items-center justify-between gap-3 rounded-2xl border p-2.5 sm:p-3 backdrop-blur-xl transition-all duration-200 hover:scale-[1.01] cursor-pointer ${cardCfg.containerClass}`}
+                  className={`group relative flex items-center justify-between gap-2.5 rounded-2xl border p-2 sm:p-2.5 backdrop-blur-xl transition-all duration-200 hover:scale-[1.01] cursor-pointer ${cardCfg.containerClass}`}
                 >
                   {/* Badge Numérico da Posição */}
                   <div
-                    className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-sm sm:text-base shrink-0 border ${cardCfg.badgeStyle.bg} ${cardCfg.badgeStyle.border}`}
+                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-xs sm:text-sm shrink-0 border ${cardCfg.badgeStyle.bg} ${cardCfg.badgeStyle.border}`}
                   >
                     {pos}
                   </div>
 
                   {/* Informações do Jogador e Deck */}
-                  <div className="min-w-0 flex-1 pl-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors truncate">
+                  <div className="min-w-0 flex-1 pl-0.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors truncate">
                         {player.jogadorNome}
                       </span>
                       <CategoryBadge category={player.categoria} size="sm" />
                       {cardCfg.seal}
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate mt-0.5">
+                    <div className="flex items-center gap-1 text-[11px] text-slate-400 truncate mt-0.5">
                       {/* Energy Dot / Ícone de Energia */}
                       <div className="flex items-center -space-x-1 shrink-0">
                         {energyCfg.types.map((t, i) => (
                           <span
                             key={i}
                             className="h-2 w-2 rounded-full border border-black/50 shadow-sm shrink-0"
-                            style={{ backgroundColor: t.hex, boxShadow: `0 0 4px ${t.hex}` }}
+                            style={{ backgroundColor: t.hex, boxShadow: `0 0 3px ${t.hex}` }}
                           />
                         ))}
                       </div>
-                      <span className="truncate max-w-[220px] sm:max-w-[280px] text-slate-300 font-medium">
+                      <span className="truncate max-w-[160px] sm:max-w-[200px] text-slate-300 font-medium">
                         {player.ultimoDeck || "Sem deck registrado"}
                       </span>
                     </div>
@@ -313,9 +309,9 @@ export function HeroSeasonHub({
 
                   {/* Pontos Limpos */}
                   <div className="text-right shrink-0">
-                    <div className={`font-black text-base sm:text-lg tracking-wide tabular-nums ${cardCfg.ptsColor}`}>
+                    <div className={`font-black text-sm sm:text-base tracking-wide tabular-nums ${cardCfg.ptsColor}`}>
                       {player.pontos}{" "}
-                      <span className="text-[11px] font-semibold text-slate-400">PTS</span>
+                      <span className="text-[10px] font-semibold text-slate-400">PTS</span>
                     </div>
                   </div>
                 </div>
@@ -325,14 +321,14 @@ export function HeroSeasonHub({
         </div>
 
         {/* =========================================================
-            COLUNA 2: PRÓXIMO EVENTO (Direita - Altura Total & Rica)
+            COLUNA 2: PRÓXIMO EVENTO (Direita - Mais Larga: 7 Colunas)
            ========================================================= */}
-        <div className="lg:col-span-5 flex flex-col space-y-3">
+        <div className="lg:col-span-7 flex flex-col space-y-2">
           {/* Header da Coluna */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-amber-400" />
-              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
+              <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
                 Próximo Evento
               </h2>
             </div>
@@ -345,26 +341,23 @@ export function HeroSeasonHub({
             </Link>
           </div>
 
-          {/* Card do Evento Enriquecido e com Altura Perfeita */}
-          <div className="flex-1 rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0f172a]/95 via-[#0b1329]/95 to-[#060a17]/95 p-5 sm:p-6 backdrop-blur-2xl shadow-2xl flex flex-col justify-between space-y-4 relative overflow-hidden">
-            {/* Brilho decorativo no topo */}
-            <div className="absolute -top-16 -right-16 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-            {/* Topo do Card: Alerta com Pulso e Data em Amarelo Dourado Exclusivo */}
+          {/* Card do Evento Transparente e Confortável */}
+          <div className="flex-1 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03] p-5 sm:p-6 backdrop-blur-2xl shadow-xl flex flex-col justify-between space-y-4 relative overflow-hidden transition-all">
+            {/* Topo do Card: Alerta com Pulso e Data */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="inline-flex items-center gap-2 rounded-full bg-rose-500/15 border border-rose-500/30 px-3 py-1 text-xs font-bold text-rose-400 shadow-sm">
+              <div className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-semibold text-rose-300">
                 <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
                 <span>Próximo Torneio</span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black text-[#ffcb05] tabular-nums">
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#ffcb05] tabular-nums">
                 <Clock className="h-3.5 w-3.5 text-[#ffcb05]" />
                 <span>{formattedEventDate} às {eventTime}</span>
               </div>
             </div>
 
             {/* Título e Descrição do Torneio */}
-            <div className="space-y-2">
-              <h3 className="text-lg sm:text-xl font-black text-white tracking-tight leading-snug">
+            <div className="space-y-1.5">
+              <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-snug">
                 {eventTitle}
               </h3>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-normal">
@@ -372,13 +365,13 @@ export function HeroSeasonHub({
               </p>
             </div>
 
-            {/* Timer Regressivo com Visual Glassmorphism Escuro e Números Claros Neutros */}
+            {/* Timer Regressivo com Visual Glassmorphism Transparente */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-400 px-1">
                 <span>Contagem Regressiva</span>
                 <span className="text-slate-400 font-semibold lowercase first-letter:uppercase">faltam poucos dias</span>
               </div>
-              <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+              <div className="grid grid-cols-4 gap-2 sm:gap-3">
                 {[
                   { label: "DIAS", value: timeLeft.days },
                   { label: "HORAS", value: timeLeft.hours },
@@ -387,9 +380,9 @@ export function HeroSeasonHub({
                 ].map((item, i) => (
                   <div
                     key={i}
-                    className="flex flex-col items-center justify-center rounded-xl border border-white/[0.08] bg-[#060a17]/90 py-3 px-2 shadow-inner"
+                    className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.04] bg-white/[0.02] py-3 px-2 shadow-sm"
                   >
-                    <span className="tabular-nums text-xl sm:text-2xl font-black text-slate-100 drop-shadow-sm">
+                    <span className="tabular-nums text-xl sm:text-2xl font-black text-slate-100">
                       {item.value}
                     </span>
                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
@@ -401,7 +394,7 @@ export function HeroSeasonHub({
             </div>
 
             {/* Rodapé: Local e Botão de Ação */}
-            <div className="flex items-center justify-between gap-3 text-xs text-slate-400 pt-3 border-t border-white/[0.06]">
+            <div className="flex items-center justify-between gap-3 text-xs text-slate-400 pt-3 border-t border-white/[0.04]">
               <a
                 href={eventMapUrl}
                 target="_blank"
@@ -418,14 +411,14 @@ export function HeroSeasonHub({
                   href={nextEvent.linkInscricao}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-xl bg-blue-600 hover:bg-blue-500 px-3.5 py-1.5 text-xs font-black text-white shadow-lg shadow-blue-600/30 transition-all shrink-0"
+                  className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all shrink-0"
                 >
                   Inscrever-se
                 </a>
               ) : (
                 <Link
                   href="/calendario"
-                  className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 text-xs font-bold text-slate-300 hover:text-white transition-all shrink-0"
+                  className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3.5 py-1.5 text-xs font-semibold text-slate-200 hover:text-white transition-all shrink-0"
                 >
                   Ver Detalhes
                 </Link>

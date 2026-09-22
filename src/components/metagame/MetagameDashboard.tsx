@@ -348,7 +348,77 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-          {/* Lado Esquerdo: Gráfico Donut com Imagens Recortadas nas Fatias */}
+          {/* Lado Esquerdo: Carrossel 3D das Cartas Pokémon (Alinhado e sem cortes) */}
+          <div className="md:col-span-6 flex flex-col items-center justify-center relative overflow-visible py-4">
+            <div className="relative w-full max-w-[300px] sm:max-w-[340px] aspect-[3/4] flex items-center justify-center overflow-visible">
+              {/* Controles de Navegação */}
+              <button
+                onClick={handlePrev}
+                className="absolute -left-3 sm:-left-5 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-all shadow-xl backdrop-blur-md cursor-pointer"
+                aria-label="Deck anterior"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+              <button
+                onClick={handleNext}
+                className="absolute -right-3 sm:-right-5 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-all shadow-xl backdrop-blur-md cursor-pointer"
+                aria-label="Próximo deck"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+
+              {/* Pilha 3D das Cartas (Sem corte nas bordas e sem sombra artificial no rodapé) */}
+              <div className="relative w-full h-full flex items-center justify-center overflow-visible">
+                {carouselDecks.map((deck, idx) => {
+                  const offset = (idx - carouselIndex + carouselDecks.length) % carouselDecks.length;
+                  const isCenter = offset === 0;
+                  const isRight = offset === 1;
+                  const isLeft = offset === carouselDecks.length - 1;
+
+                  let transformStyle = "scale-75 opacity-0 pointer-events-none";
+                  let zIndex = 0;
+
+                  if (isCenter) {
+                    transformStyle = "scale-100 opacity-100 z-20 translate-x-0";
+                    zIndex = 20;
+                  } else if (isRight) {
+                    transformStyle = "scale-90 opacity-40 z-10 translate-x-10 sm:translate-x-14 rotate-3";
+                    zIndex = 10;
+                  } else if (isLeft) {
+                    transformStyle = "scale-90 opacity-40 z-10 -translate-x-10 sm:-translate-x-14 -rotate-3";
+                    zIndex = 10;
+                  }
+
+                  return (
+                    <div
+                      key={deck.deckName}
+                      className={`absolute w-[230px] sm:w-[255px] aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-500 ease-out shadow-2xl cursor-pointer ${transformStyle}`}
+                      style={{ zIndex }}
+                      onClick={() => setCarouselIndex(idx)}
+                    >
+                      {deck.imagem ? (
+                        <div className="relative w-full h-full bg-slate-950 flex items-center justify-center border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl">
+                          <img
+                            src={deck.imagem}
+                            alt={deck.deckName}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-slate-900 to-[#0a0f1d] border border-white/[0.08] rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-2xl">
+                          <span className="text-4xl mb-3">⚡</span>
+                          <span className="font-bold text-white text-base">{deck.deckName}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Lado Direito: Gráfico Donut com Fatias em Gradiente e Recortes Conceituais Supergrandes */}
           <div className="md:col-span-6 flex flex-col items-center justify-center relative">
             {/* Botão de retorno do Drill-down */}
             {isOutrosExpanded && (
@@ -378,8 +448,8 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                         x2="100%"
                         y2="100%"
                       >
-                        <stop offset="0%" stopColor={colors.primary} stopOpacity={0.94} />
-                        <stop offset="100%" stopColor={colors.secondary} stopOpacity={0.82} />
+                        <stop offset="0%" stopColor={colors.primary} stopOpacity={0.96} />
+                        <stop offset="100%" stopColor={colors.secondary} stopOpacity={0.88} />
                       </linearGradient>
                     );
                   })}
@@ -391,7 +461,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                   ))}
                 </defs>
 
-                {/* 1. Fatias do Donut Mais Espesso */}
+                {/* 1. Fatias do Donut com Gradiente de Energia Vibrante */}
                 <g>
                   {computedSlices.map((slice) => {
                     const isHovered = hoveredDeck === slice.name;
@@ -406,7 +476,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                             ? "#475569"
                             : `url(#donutGrad-${slice.idx})`
                         }
-                        stroke={isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.18)"}
+                        stroke={isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.25)"}
                         strokeWidth={isHovered ? 2.5 : 1}
                         className="transition-all duration-200 cursor-pointer"
                         onMouseEnter={() => handleSliceHover(slice.name)}
@@ -417,12 +487,13 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                   })}
                 </g>
 
-                {/* 2. Sprites Recortados com Nitidez Total Dentro de Cada Fatia */}
+                {/* 2. Sprites Supergrandes com Recorte Conceitual no Rosto do Pokémon */}
                 <g className="pointer-events-none">
                   {computedSlices.map((slice) => {
                     if (slice.isOutros || slice.isBack || !slice.icone) return null;
                     const isHovered = hoveredDeck === slice.name;
-                    const iconSize = slice.sliceAngle > 0.3 ? 46 : 36;
+                    // Ícone supergrande para criar o corte de close conceitual na fatia
+                    const iconSize = slice.sliceAngle > 0.3 ? 90 : 72;
 
                     return (
                       <g key={`embedded-icon-${slice.idx}`} clipPath={`url(#sliceClip-${slice.idx})`}>
@@ -432,9 +503,9 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                           y={slice.midY - iconSize / 2}
                           width={iconSize}
                           height={iconSize}
-                          preserveAspectRatio="xMidYMid meet"
-                          opacity={isHovered ? 1 : 0.85}
-                          className="transition-opacity duration-200 filter brightness-105"
+                          preserveAspectRatio="xMidYMid slice"
+                          opacity={isHovered ? 1 : 0.9}
+                          className="transition-all duration-300 filter brightness-110 contrast-105"
                         />
                       </g>
                     );
@@ -452,14 +523,14 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                       <text
                         key={`text-${slice.idx}`}
                         x={slice.midX}
-                        y={slice.midY + (slice.icone ? 16 : 0)}
-                        transform={`rotate(${slice.textRotation}, ${slice.midX}, ${slice.midY + (slice.icone ? 16 : 0)})`}
+                        y={slice.midY + (slice.icone ? 18 : 0)}
+                        transform={`rotate(${slice.textRotation}, ${slice.midX}, ${slice.midY + (slice.icone ? 18 : 0)})`}
                         textAnchor="middle"
                         dominantBaseline="central"
                         fill="#ffffff"
                         fontSize={slice.isOutros ? 11 : slice.percent >= 10 ? 14 : 11.5}
                         fontWeight="500"
-                        className="tabular-nums font-normal drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
+                        className="tabular-nums font-normal drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
                       >
                         {slice.isOutros ? "Outros" : slice.percentStr}
                       </text>
@@ -468,7 +539,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                 </g>
               </svg>
 
-              {/* 4. Centro do Donut Minimalista: % e Nome do Deck nas Cores do Tipo */}
+              {/* 4. Centro do Donut Minimalista: % e Nome do Deck com Cores do Tipo */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                 <div className="text-center flex flex-col items-center justify-center max-w-[130px] px-2 animate-in fade-in zoom-in-95 duration-200">
                   <span
@@ -498,77 +569,6 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                 ? "💡 Passe o mouse em uma fatia para focar ou em 'Voltar' para o resumo."
                 : "💡 Passe o mouse ou clique em qualquer fatia para sincronizar com o carrossel."}
             </p>
-          </div>
-
-          {/* Lado Direito: Carrossel 3D das Cartas Pokémon (Alinhado) */}
-          <div className="md:col-span-6 flex flex-col items-center justify-center">
-            <div className="relative w-full max-w-[280px] sm:max-w-[320px] aspect-[3/4] flex items-center justify-center">
-              {/* Controles de Navegação */}
-              <button
-                onClick={handlePrev}
-                className="absolute -left-4 sm:-left-6 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-all shadow-xl backdrop-blur-md cursor-pointer"
-                aria-label="Deck anterior"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-
-              <button
-                onClick={handleNext}
-                className="absolute -right-4 sm:-right-6 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-all shadow-xl backdrop-blur-md cursor-pointer"
-                aria-label="Próximo deck"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-
-              {/* Pilha 3D das Cartas (Perfeitamente Alinhadas e Centradas) */}
-              <div className="relative w-full h-full flex items-center justify-center">
-                {carouselDecks.map((deck, idx) => {
-                  const offset = (idx - carouselIndex + carouselDecks.length) % carouselDecks.length;
-                  const isCenter = offset === 0;
-                  const isRight = offset === 1;
-                  const isLeft = offset === carouselDecks.length - 1;
-
-                  let transformStyle = "scale-75 opacity-0 pointer-events-none";
-                  let zIndex = 0;
-
-                  if (isCenter) {
-                    transformStyle = "scale-100 opacity-100 z-20 translate-x-0";
-                    zIndex = 20;
-                  } else if (isRight) {
-                    transformStyle = "scale-90 opacity-45 z-10 translate-x-12 sm:translate-x-16 rotate-3";
-                    zIndex = 10;
-                  } else if (isLeft) {
-                    transformStyle = "scale-90 opacity-45 z-10 -translate-x-12 sm:-translate-x-16 -rotate-3";
-                    zIndex = 10;
-                  }
-
-                  return (
-                    <div
-                      key={deck.deckName}
-                      className={`absolute w-[240px] sm:w-[260px] aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-500 ease-out shadow-2xl cursor-pointer ${transformStyle}`}
-                      style={{ zIndex }}
-                      onClick={() => setCarouselIndex(idx)}
-                    >
-                      {deck.imagem ? (
-                        <div className="relative w-full h-full bg-slate-950 flex items-center justify-center border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl">
-                          <img
-                            src={deck.imagem}
-                            alt={deck.deckName}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                        </div>
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-slate-900 to-[#0a0f1d] border border-white/[0.08] rounded-2xl flex flex-col items-center justify-center p-6 text-center shadow-2xl">
-                          <span className="text-4xl mb-3">⚡</span>
-                          <span className="font-bold text-white text-base">{deck.deckName}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         </div>
       </div>
