@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { ExternalLink, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 export interface MetagameEntry {
   id: number;
@@ -46,9 +45,10 @@ const OFFICIAL_ENERGY_COLORS: Record<string, { primary: string; secondary: strin
 export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashboardProps) {
   const [carouselIndex, setCarouselIndex] = useState<number>(0);
   const [hoveredDeck, setHoveredDeck] = useState<string | null>(null);
+  const [isOutrosExpanded, setIsOutrosExpanded] = useState<boolean>(false);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Contagem de decks do metagame
+  // 1. Contagem e estatísticas brutas dos decks
   const { deckStats, totalDecks, carouselDecks } = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const entry of metagameEntries) {
@@ -72,6 +72,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
           percent,
           tipoEnergia: info?.tipoEnergia || "colorless",
           imagem: info?.imagem || null,
+          icone: info?.icone || null,
           limitless: info?.limitless || null,
         };
       })
@@ -86,35 +87,199 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     };
   }, [metagameEntries, decksInfo]);
 
-  // Dados para o Donut Chart
-  const chartData = useMemo(() => {
-    const top7 = deckStats.slice(0, 7);
-    const others = deckStats.slice(7).reduce((acc, d) => acc + d.count, 0);
+  // 2. Agrupamento para o Donut Chart (Com suporte a Drilldown para 'Outros Decks')
+  const chartSlices = useMemo(() => {
+    const total = totalDecks || 1;
 
-    return [
-      ...top7.map((d) => ({
+    let outrosCount = 0;
+    const outrosList: typeof deckStats = [];
+    const mainList: typeof deckStats = [];
+
+    deckStats.forEach((d) => {
+      const isOutrosVal =
+        d.deckName.toLowerCase() === "outros" || d.deckName.toLowerCase() === "outros decks";
+      const isMinor = d.count === 1 || isOutrosVal || d.percent < 1.5;
+
+      if (isMinor) {
+        outrosCount += d.count;
+        outrosList.push(d);
+      } else {
+        mainList.push(d);
+      }
+    });
+
+    let currentSlices: Array<{
+      name: string;
+      count: number;
+      percent: number;
+      percentStr: string;
+      energy: string;
+      icone: string | null;
+      isOutros?: boolean;
+      isBack?: boolean;
+    }> = [];
+
+    if (isOutrosExpanded) {
+      // Modo Drill-down: Mostra decks menores + fatia de retorno
+      currentSlices = outrosList.map((d) => ({
         name: d.deckName,
-        value: d.count,
-        percent: ((d.count / (totalDecks || 1)) * 100).toFixed(1),
+        count: d.count,
+        percent: d.percent,
+        percentStr: d.percent < 1 ? d.percent.toFixed(1) + "%" : Math.round(d.percent) + "%",
         energy: d.tipoEnergia,
-      })),
-      ...(others > 0
-        ? [
-            {
-              name: "Outros Decks",
-              value: others,
-              percent: ((others / (totalDecks || 1)) * 100).toFixed(1),
-              energy: "colorless",
-            },
-          ]
-        : []),
-    ];
-  }, [deckStats, totalDecks]);
+        icone: d.icone,
+      }));
 
-  const getEnergyColor = (energy: string) => {
-    const norm = energy.toLowerCase().split("+")[0].trim();
-    return OFFICIAL_ENERGY_COLORS[norm] || OFFICIAL_ENERGY_COLORS.colorless;
-  };
+      if (mainList.length > 0) {
+        const sizeCount = Math.max(1, Math.round(outrosCount * 0.12));
+        currentSlices.push({
+          name: "Voltar para visão geral",
+          count: sizeCount,
+          percent: 0,
+          percentStr: "Voltar",
+          energy: "fire",
+          icone: null,
+          isBack: true,
+        });
+      }
+    } else {
+      // Modo Principal: Decks principais + fatia agregada "Outros Decks"
+      currentSlices = mainList.map((d) => ({
+        name: d.deckName,
+        count: d.count,
+        percent: d.percent,
+        percentStr: d.percent < 1 ? d.percent.toFixed(1) + "%" : Math.round(d.percent) + "%",
+        energy: d.tipoEnergia,
+        icone: d.icone,
+      }));
+
+      if (outrosCount > 0) {
+        const outrosPct = (outrosCount / total) * 100;
+        currentSlices.push({
+          name: "Outros Decks",
+          count: outrosCount,
+          percent: outrosPct,
+          percentStr: Math.round(outrosPct) + "%",
+          energy: "colorless",
+          icone: null,
+          isOutros: true,
+        });
+      }
+    }
+
+    return currentSlices;
+  }, [deckStats, totalDecks, isOutrosExpanded]);
+
+  // 3. Geometria Trigonométrica dos Arcos, Rótulos e Sprites do Donut
+  const cx = 240;
+  const cy = 240;
+  const outerRadius = 145;
+  const innerRadius = 78;
+  const midRadius = (innerRadius + outerRadius) / 2;
+
+  const totalSliceValue = chartSlices.reduce((sum, s) => sum + s.count, 0) || 1;
+
+  // Cálculo dos arcos e posições de colisão de ícones
+  const drawnIcons: Array<{ x: number; y: number }> = [];
+  let accumulatedAngle = -Math.PI / 2; // Começa no topo (12 horas)
+
+  const computedSlices = chartSlices.map((slice, idx) => {
+    const sliceAngle = (slice.count / totalSliceValue) * (2 * Math.PI);
+    const startAngle = accumulatedAngle;
+    const endAngle = accumulatedAngle + sliceAngle;
+    const midAngle = (startAngle + endAngle) / 2;
+    accumulatedAngle = endAngle;
+
+    // Coordenadas do Arco SVG Donut
+    const x1Out = cx + outerRadius * Math.cos(startAngle);
+    const y1Out = cy + outerRadius * Math.sin(startAngle);
+    const x2Out = cx + outerRadius * Math.cos(endAngle);
+    const y2Out = cy + outerRadius * Math.sin(endAngle);
+
+    const x1In = cx + innerRadius * Math.cos(startAngle);
+    const y1In = cy + innerRadius * Math.sin(startAngle);
+    const x2In = cx + innerRadius * Math.cos(endAngle);
+    const y2In = cy + innerRadius * Math.sin(endAngle);
+
+    const largeArc = sliceAngle > Math.PI ? 1 : 0;
+
+    const pathData = `
+      M ${x1Out} ${y1Out}
+      A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${x2Out} ${y2Out}
+      L ${x2In} ${y2In}
+      A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x1In} ${y1In}
+      Z
+    `.trim();
+
+    // Posição do texto de porcentagem dentro da fatia
+    const textX = cx + midRadius * Math.cos(midAngle);
+    const textY = cy + midRadius * Math.sin(midAngle);
+
+    // Rotação do texto para leitura confortável
+    let textRotation = (midAngle * 180) / Math.PI;
+    if (textRotation > 90 && textRotation < 270) {
+      textRotation += 180;
+    } else if (textRotation < -90 && textRotation > -270) {
+      textRotation += 180;
+    }
+
+    // Cálculo de posição dos ícones externos com prevenção de colisão
+    let iconData: { lineStartX: number; lineStartY: number; lineEndX: number; lineEndY: number; imgX: number; imgY: number; iconUrl: string } | null = null;
+
+    if (!slice.isOutros && !slice.isBack && slice.icone) {
+      const iconSize = 28;
+      const possibleOffsets = [20, 36, 52, 68, 84];
+      let chosenOffset: number | null = null;
+      let finalX = 0;
+      let finalY = 0;
+
+      for (const off of possibleOffsets) {
+        const testR = outerRadius + off;
+        const testX = cx + Math.cos(midAngle) * testR;
+        const testY = cy + Math.sin(midAngle) * testR;
+
+        const hasCollision = drawnIcons.some((pos) => {
+          const dist = Math.hypot(testX - pos.x, testY - pos.y);
+          return dist < iconSize + 6;
+        });
+
+        if (!hasCollision) {
+          chosenOffset = off;
+          finalX = testX;
+          finalY = testY;
+          break;
+        }
+      }
+
+      if (chosenOffset !== null) {
+        drawnIcons.push({ x: finalX, y: finalY });
+        const lineStartX = cx + Math.cos(midAngle) * outerRadius;
+        const lineStartY = cy + Math.sin(midAngle) * outerRadius;
+        const lineEndX = cx + Math.cos(midAngle) * (outerRadius + chosenOffset - iconSize / 2);
+        const lineEndY = cy + Math.sin(midAngle) * (outerRadius + chosenOffset - iconSize / 2);
+
+        iconData = {
+          lineStartX,
+          lineStartY,
+          lineEndX,
+          lineEndY,
+          imgX: finalX - iconSize / 2,
+          imgY: finalY - iconSize / 2,
+          iconUrl: slice.icone,
+        };
+      }
+    }
+
+    return {
+      ...slice,
+      idx,
+      pathData,
+      textX,
+      textY,
+      textRotation,
+      iconData,
+    };
+  });
 
   // Autoplay para o Carrossel 3D
   useEffect(() => {
@@ -138,11 +303,40 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
   };
 
   const activeDeck = carouselDecks[carouselIndex] || deckStats[0] || null;
-  const activeHoverData = chartData.find((c) => c.name === hoveredDeck);
+  const activeHoverSlice = chartSlices.find((c) => c.name === hoveredDeck);
+  const activeCenterDeckName = hoveredDeck || activeDeck?.deckName || "Mega Lucario Ex";
+  const activeCenterDeckInfo = decksInfo.find(
+    (d) => d.nome.toLowerCase() === activeCenterDeckName.toLowerCase()
+  );
+  const activeCenterEnergy = activeCenterDeckInfo?.tipoEnergia || "fighting";
+  const activeCenterConfig = getMultiEnergyConfig(activeCenterEnergy);
+
+  const getEnergyColor = (energy: string) => {
+    const norm = energy.toLowerCase().split("+")[0].trim();
+    return OFFICIAL_ENERGY_COLORS[norm] || OFFICIAL_ENERGY_COLORS.colorless;
+  };
+
+  const handleSliceClick = (slice: typeof chartSlices[0]) => {
+    if (slice.isOutros) {
+      setIsOutrosExpanded(true);
+      return;
+    }
+    if (slice.isBack) {
+      setIsOutrosExpanded(false);
+      return;
+    }
+
+    const idx = carouselDecks.findIndex(
+      (d) => d.deckName.toLowerCase() === slice.name.toLowerCase()
+    );
+    if (idx !== -1) {
+      setCarouselIndex(idx);
+    }
+  };
 
   return (
     <div className="w-full">
-      {/* Card Unificado com Donut Chart e Carrossel 3D */}
+      {/* Card Unificado com Donut Chart com Sprites e Carrossel 3D */}
       <div
         className="glass-card rounded-3xl p-6 sm:p-8 backdrop-blur-2xl transition-all"
         onMouseEnter={() => {
@@ -157,135 +351,158 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
         }}
       >
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-          {/* Lado Esquerdo: Gráfico Donut com Gradientes de Energia */}
+          {/* Lado Esquerdo: Gráfico Donut com Sprites Oficiais e Linhas de Conexão */}
           <div className="md:col-span-6 flex flex-col items-center justify-center relative">
-            <div className="h-68 sm:h-76 w-full relative flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <defs>
-                    {chartData.map((entry, index) => {
-                      const colors = getEnergyColor(entry.energy);
-                      return (
-                        <linearGradient
-                          key={`grad-${index}`}
-                          id={`energyGrad-${index}`}
-                          x1="0"
-                          y1="0"
-                          x2="1"
-                          y2="1"
-                        >
-                          <stop offset="0%" stopColor={colors.primary} stopOpacity={0.95} />
-                          <stop offset="100%" stopColor={colors.secondary} stopOpacity={0.8} />
-                        </linearGradient>
-                      );
-                    })}
-                  </defs>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={72}
-                    outerRadius={118}
-                    paddingAngle={3}
-                    dataKey="value"
-                    onMouseEnter={(entry: any) => setHoveredDeck(entry?.name || null)}
-                    onMouseLeave={() => setHoveredDeck(null)}
-                    onClick={(entry: any) => {
-                      const targetName = entry?.name;
-                      if (!targetName) return;
-                      const idx = carouselDecks.findIndex(
-                        (d) => d.deckName.toLowerCase() === targetName.toLowerCase()
-                      );
-                      if (idx !== -1) setCarouselIndex(idx);
-                    }}
-                    cursor="pointer"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={`url(#energyGrad-${index})`}
-                        stroke={hoveredDeck === entry.name ? "#ffffff" : "rgba(255,255,255,0.25)"}
-                        strokeWidth={hoveredDeck === entry.name ? 2.5 : 1.2}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const item = payload[0].payload;
-                        return (
-                          <div className="rounded-xl border border-white/15 bg-slate-950/95 px-3 py-2 shadow-2xl backdrop-blur-xl text-xs text-white">
-                            <p className="font-extrabold text-sm">{item.name}</p>
-                            <p className="text-yellow-400 font-bold mt-0.5">
-                              {item.value} jogadores ({item.percent}%)
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+            {/* Botão de retorno do Drill-down */}
+            {isOutrosExpanded && (
+              <button
+                onClick={() => setIsOutrosExpanded(false)}
+                className="mb-2 flex items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-xs font-bold text-rose-300 hover:bg-rose-500/20 transition-all cursor-pointer shadow-md"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>Voltar para visão geral</span>
+              </button>
+            )}
 
-              {/* Centro do Donut: Texto Flutuante Dinâmico */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="rounded-2xl border border-white/10 bg-slate-950/80 px-3.5 py-2 text-center backdrop-blur-md shadow-lg max-w-[130px]">
-                  {activeHoverData ? (
-                    <>
-                      <span className="text-xs font-black text-white block leading-tight truncate">
-                        {activeHoverData.name}
-                      </span>
-                      <span className="text-[11px] font-extrabold text-yellow-400 block mt-0.5">
-                        {activeHoverData.percent}%
-                      </span>
-                    </>
-                  ) : activeDeck ? (
-                    <>
-                      <span className="text-[11px] font-extrabold text-slate-200 block leading-tight truncate">
-                        {activeDeck.deckName}
-                      </span>
-                      <span className="text-[10px] font-bold text-yellow-400 block mt-0.5">
-                        {activeDeck.percent.toFixed(1)}% ({activeDeck.count}x)
-                      </span>
-                    </>
-                  ) : (
-                    <span className="text-[11px] font-bold text-slate-400 block">
-                      Toque numa fatia
-                    </span>
-                  )}
+            <div className="relative w-full max-w-[380px] aspect-square flex items-center justify-center">
+              <svg
+                viewBox="0 0 480 480"
+                className="w-full h-full overflow-visible select-none drop-shadow-xl"
+              >
+                <defs>
+                  {chartSlices.map((slice, i) => {
+                    const colors = getEnergyColor(slice.energy);
+                    return (
+                      <linearGradient
+                        key={`donutGrad-${i}`}
+                        id={`donutGrad-${i}`}
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="100%"
+                      >
+                        <stop offset="0%" stopColor={colors.primary} stopOpacity={0.92} />
+                        <stop offset="100%" stopColor={colors.secondary} stopOpacity={0.78} />
+                      </linearGradient>
+                    );
+                  })}
+                  {/* Sombra suave interna */}
+                  <filter id="sliceGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#000000" floodOpacity="0.6" />
+                  </filter>
+                </defs>
+
+                {/* 1. Fatias do Donut */}
+                <g>
+                  {computedSlices.map((slice) => {
+                    const isHovered = hoveredDeck === slice.name;
+                    return (
+                      <path
+                        key={`path-${slice.idx}`}
+                        d={slice.pathData}
+                        fill={
+                          slice.isBack
+                            ? "rgba(239, 68, 68, 0.4)"
+                            : slice.isOutros
+                            ? "#475569"
+                            : `url(#donutGrad-${slice.idx})`
+                        }
+                        stroke={isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.25)"}
+                        strokeWidth={isHovered ? 2.5 : 1}
+                        className="transition-all duration-200 cursor-pointer"
+                        onMouseEnter={() => setHoveredDeck(slice.name)}
+                        onMouseLeave={() => setHoveredDeck(null)}
+                        onClick={() => handleSliceClick(slice)}
+                      />
+                    );
+                  })}
+                </g>
+
+                {/* 2. Linhas de Conexão e Sprites de Pokémon no Perímetro */}
+                <g>
+                  {computedSlices.map((slice) => {
+                    if (!slice.iconData) return null;
+                    return (
+                      <g key={`icon-group-${slice.idx}`} className="pointer-events-none">
+                        {/* Linha guia */}
+                        <line
+                          x1={slice.iconData.lineStartX}
+                          y1={slice.iconData.lineStartY}
+                          x2={slice.iconData.lineEndX}
+                          y2={slice.iconData.lineEndY}
+                          stroke="rgba(255, 255, 255, 0.35)"
+                          strokeWidth="1.2"
+                          strokeDasharray="2 2"
+                        />
+                        {/* Sprite Oficial */}
+                        <image
+                          href={slice.iconData.iconUrl}
+                          x={slice.iconData.imgX}
+                          y={slice.iconData.imgY}
+                          width="28"
+                          height="28"
+                          preserveAspectRatio="xMidYMid meet"
+                          className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                        />
+                      </g>
+                    );
+                  })}
+                </g>
+
+                {/* 3. Textos de Porcentagem dentro das Fatias */}
+                <g className="pointer-events-none">
+                  {computedSlices.map((slice) => {
+                    if (slice.isBack) return null;
+                    return (
+                      <text
+                        key={`text-${slice.idx}`}
+                        x={slice.textX}
+                        y={slice.textY}
+                        transform={`rotate(${slice.textRotation}, ${slice.textX}, ${slice.textY})`}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fill="#ffffff"
+                        fontSize={slice.isOutros ? 9 : slice.percent >= 10 ? 11 : 9.5}
+                        fontWeight="900"
+                        className="font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
+                      >
+                        {slice.isOutros ? "Outros" : slice.percentStr}
+                      </text>
+                    );
+                  })}
+                </g>
+              </svg>
+
+              {/* 4. Pílula Central com Nome do Deck e Gradiente de Energia */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <div
+                  className="rounded-2xl px-4 py-2 text-center shadow-2xl backdrop-blur-xl border transition-all duration-300 max-w-[140px]"
+                  style={{
+                    background: activeCenterConfig.gradientBg || "rgba(15, 23, 42, 0.85)",
+                    borderColor: activeCenterConfig.borderStyle ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)",
+                    boxShadow: "0 8px 24px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
+                  }}
+                >
+                  <span className="text-xs sm:text-sm font-black text-white block leading-tight tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] truncate">
+                    {activeHoverSlice ? activeHoverSlice.name : activeCenterDeckName}
+                  </span>
+                  <span className="text-[10px] font-extrabold text-amber-300 block mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                    {activeHoverSlice
+                      ? `${activeHoverSlice.percentStr} (${activeHoverSlice.count}x)`
+                      : activeDeck
+                      ? `${activeDeck.percent.toFixed(1)}% (${activeDeck.count}x)`
+                      : ""}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Legenda Resumida dos Principais Decks */}
-            <div className="mt-1 flex flex-wrap justify-center gap-1.5 pt-1">
-              {chartData.map((item, idx) => {
-                const colors = getEnergyColor(item.energy);
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      const cIdx = carouselDecks.findIndex(
-                        (d) => d.deckName.toLowerCase() === item.name.toLowerCase()
-                      );
-                      if (cIdx !== -1) setCarouselIndex(cIdx);
-                    }}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold border transition-all cursor-pointer ${
-                      hoveredDeck === item.name || activeDeck?.deckName.toLowerCase() === item.name.toLowerCase()
-                        ? "border-yellow-400 bg-yellow-500/20 text-white shadow-md"
-                        : "border-white/10 bg-slate-800/60 text-slate-300 hover:bg-slate-800 hover:text-white"
-                    }`}
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full shrink-0 shadow-sm"
-                      style={{ backgroundColor: colors.primary }}
-                    />
-                    <span>{item.name}: {item.percent}%</span>
-                  </button>
-                );
-              })}
-            </div>
+            {/* Dica de Interatividade */}
+            <p className="mt-1 text-[11px] text-slate-400 font-mono text-center">
+              {isOutrosExpanded
+                ? "Visão de 'Outros Decks' expandida"
+                : "Clique em 'Outros Decks' para expandir a lista"}
+            </p>
           </div>
 
           {/* Lado Direito: Carrossel 3D de Cartas */}
@@ -342,14 +559,14 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                 <>
                   <button
                     onClick={handlePrev}
-                    className="absolute left-1 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-colors shadow-lg backdrop-blur-md"
+                    className="absolute left-1 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-colors shadow-lg backdrop-blur-md cursor-pointer"
                     aria-label="Anterior"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                   <button
                     onClick={handleNext}
-                    className="absolute right-1 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-colors shadow-lg backdrop-blur-md"
+                    className="absolute right-1 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-colors shadow-lg backdrop-blur-md cursor-pointer"
                     aria-label="Próximo"
                   >
                     <ChevronRight className="h-4 w-4" />
