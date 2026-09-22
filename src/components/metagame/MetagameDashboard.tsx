@@ -170,17 +170,14 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     return currentSlices;
   }, [deckStats, totalDecks, isOutrosExpanded]);
 
-  // 3. Geometria Trigonométrica dos Arcos, Rótulos e Sprites do Donut
-  const cx = 240;
-  const cy = 240;
-  const outerRadius = 145;
-  const innerRadius = 78;
+  // 3. Geometria Trigonométrica dos Arcos e Rótulos do Donut (Área ampliada e limpa)
+  const cx = 220;
+  const cy = 220;
+  const outerRadius = 165;
+  const innerRadius = 88;
   const midRadius = (innerRadius + outerRadius) / 2;
 
   const totalSliceValue = chartSlices.reduce((sum, s) => sum + s.count, 0) || 1;
-
-  // Cálculo dos arcos e posições de colisão de ícones
-  const drawnIcons: Array<{ x: number; y: number }> = [];
   let accumulatedAngle = -Math.PI / 2; // Começa no topo (12 horas)
 
   const computedSlices = chartSlices.map((slice, idx) => {
@@ -211,9 +208,9 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
       Z
     `.trim();
 
-    // Posição do texto de porcentagem dentro da fatia
-    const textX = cx + midRadius * Math.cos(midAngle);
-    const textY = cy + midRadius * Math.sin(midAngle);
+    // Posição central da fatia
+    const midX = cx + midRadius * Math.cos(midAngle);
+    const midY = cy + midRadius * Math.sin(midAngle);
 
     // Rotação do texto para leitura confortável
     let textRotation = (midAngle * 180) / Math.PI;
@@ -223,61 +220,14 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
       textRotation += 180;
     }
 
-    // Cálculo de posição dos ícones externos com prevenção de colisão
-    let iconData: { lineStartX: number; lineStartY: number; lineEndX: number; lineEndY: number; imgX: number; imgY: number; iconUrl: string } | null = null;
-
-    if (!slice.isOutros && !slice.isBack && slice.icone) {
-      const iconSize = 28;
-      const possibleOffsets = [20, 36, 52, 68, 84];
-      let chosenOffset: number | null = null;
-      let finalX = 0;
-      let finalY = 0;
-
-      for (const off of possibleOffsets) {
-        const testR = outerRadius + off;
-        const testX = cx + Math.cos(midAngle) * testR;
-        const testY = cy + Math.sin(midAngle) * testR;
-
-        const hasCollision = drawnIcons.some((pos) => {
-          const dist = Math.hypot(testX - pos.x, testY - pos.y);
-          return dist < iconSize + 6;
-        });
-
-        if (!hasCollision) {
-          chosenOffset = off;
-          finalX = testX;
-          finalY = testY;
-          break;
-        }
-      }
-
-      if (chosenOffset !== null) {
-        drawnIcons.push({ x: finalX, y: finalY });
-        const lineStartX = cx + Math.cos(midAngle) * outerRadius;
-        const lineStartY = cy + Math.sin(midAngle) * outerRadius;
-        const lineEndX = cx + Math.cos(midAngle) * (outerRadius + chosenOffset - iconSize / 2);
-        const lineEndY = cy + Math.sin(midAngle) * (outerRadius + chosenOffset - iconSize / 2);
-
-        iconData = {
-          lineStartX,
-          lineStartY,
-          lineEndX,
-          lineEndY,
-          imgX: finalX - iconSize / 2,
-          imgY: finalY - iconSize / 2,
-          iconUrl: slice.icone,
-        };
-      }
-    }
-
     return {
       ...slice,
       idx,
       pathData,
-      textX,
-      textY,
+      sliceAngle,
+      midX,
+      midY,
       textRotation,
-      iconData,
     };
   });
 
@@ -310,6 +260,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
   );
   const activeCenterEnergy = activeCenterDeckInfo?.tipoEnergia || "fighting";
   const activeCenterConfig = getMultiEnergyConfig(activeCenterEnergy);
+  const activeCenterIcon = activeCenterDeckInfo?.icone || activeHoverSlice?.icone || null;
 
   const getEnergyColor = (energy: string) => {
     const norm = energy.toLowerCase().split("+")[0].trim();
@@ -336,7 +287,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
 
   return (
     <div className="w-full">
-      {/* Card Unificado com Donut Chart com Sprites e Carrossel 3D */}
+      {/* Card Unificado com Donut Chart com Imagem Embutida e Carrossel 3D */}
       <div
         className="glass-card rounded-3xl p-6 sm:p-8 backdrop-blur-2xl transition-all"
         onMouseEnter={() => {
@@ -351,7 +302,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
         }}
       >
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-          {/* Lado Esquerdo: Gráfico Donut com Sprites Oficiais e Linhas de Conexão */}
+          {/* Lado Esquerdo: Gráfico Donut com Imagens Embutidas nas Fatias */}
           <div className="md:col-span-6 flex flex-col items-center justify-center relative">
             {/* Botão de retorno do Drill-down */}
             {isOutrosExpanded && (
@@ -366,8 +317,8 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
 
             <div className="relative w-full max-w-[380px] aspect-square flex items-center justify-center">
               <svg
-                viewBox="0 0 480 480"
-                className="w-full h-full overflow-visible select-none drop-shadow-xl"
+                viewBox="0 0 440 440"
+                className="w-full h-full overflow-visible select-none drop-shadow-2xl"
               >
                 <defs>
                   {chartSlices.map((slice, i) => {
@@ -386,10 +337,12 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                       </linearGradient>
                     );
                   })}
-                  {/* Sombra suave interna */}
-                  <filter id="sliceGlow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#000000" floodOpacity="0.6" />
-                  </filter>
+                  {/* Clip paths para recortar imagem dentro de cada fatia */}
+                  {computedSlices.map((slice) => (
+                    <clipPath key={`clip-${slice.idx}`} id={`sliceClip-${slice.idx}`}>
+                      <path d={slice.pathData} />
+                    </clipPath>
+                  ))}
                 </defs>
 
                 {/* 1. Fatias do Donut */}
@@ -418,51 +371,48 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                   })}
                 </g>
 
-                {/* 2. Linhas de Conexão e Sprites de Pokémon no Perímetro */}
-                <g>
+                {/* 2. Sprites Embutidos com Baixa Opacidade Dentro de Cada Fatia */}
+                <g className="pointer-events-none">
                   {computedSlices.map((slice) => {
-                    if (!slice.iconData) return null;
+                    if (slice.isOutros || slice.isBack || !slice.icone) return null;
+                    const isHovered = hoveredDeck === slice.name;
+                    const iconSize = slice.sliceAngle > 0.3 ? 36 : 28;
+
                     return (
-                      <g key={`icon-group-${slice.idx}`} className="pointer-events-none">
-                        {/* Linha guia */}
-                        <line
-                          x1={slice.iconData.lineStartX}
-                          y1={slice.iconData.lineStartY}
-                          x2={slice.iconData.lineEndX}
-                          y2={slice.iconData.lineEndY}
-                          stroke="rgba(255, 255, 255, 0.35)"
-                          strokeWidth="1.2"
-                          strokeDasharray="2 2"
-                        />
-                        {/* Sprite Oficial */}
+                      <g key={`embedded-icon-${slice.idx}`} clipPath={`url(#sliceClip-${slice.idx})`}>
                         <image
-                          href={slice.iconData.iconUrl}
-                          x={slice.iconData.imgX}
-                          y={slice.iconData.imgY}
-                          width="28"
-                          height="28"
+                          href={slice.icone}
+                          x={slice.midX - iconSize / 2}
+                          y={slice.midY - iconSize / 2}
+                          width={iconSize}
+                          height={iconSize}
                           preserveAspectRatio="xMidYMid meet"
-                          className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                          opacity={isHovered ? 0.95 : 0.35}
+                          className="transition-opacity duration-200 filter brightness-110"
                         />
                       </g>
                     );
                   })}
                 </g>
 
-                {/* 3. Textos de Porcentagem dentro das Fatias */}
+                {/* 3. Rótulos de Porcentagem Dentro das Fatias (Com Visibilidade Otimizada) */}
                 <g className="pointer-events-none">
                   {computedSlices.map((slice) => {
                     if (slice.isBack) return null;
+                    // Só exibe texto se houver espaço suficiente para não poluir
+                    const hasRoom = slice.sliceAngle > 0.12 || slice.isOutros;
+                    if (!hasRoom) return null;
+
                     return (
                       <text
                         key={`text-${slice.idx}`}
-                        x={slice.textX}
-                        y={slice.textY}
-                        transform={`rotate(${slice.textRotation}, ${slice.textX}, ${slice.textY})`}
+                        x={slice.midX}
+                        y={slice.midY + (slice.icone ? 12 : 0)}
+                        transform={`rotate(${slice.textRotation}, ${slice.midX}, ${slice.midY + (slice.icone ? 12 : 0)})`}
                         textAnchor="middle"
                         dominantBaseline="central"
                         fill="#ffffff"
-                        fontSize={slice.isOutros ? 9 : slice.percent >= 10 ? 11 : 9.5}
+                        fontSize={slice.isOutros ? 9.5 : slice.percent >= 10 ? 11 : 9}
                         fontWeight="900"
                         className="font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
                       >
@@ -473,20 +423,30 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                 </g>
               </svg>
 
-              {/* 4. Pílula Central com Nome do Deck e Gradiente de Energia */}
+              {/* 4. Pílula Central com Imagem Oficial em Destaque, Nome do Deck e Estatísticas */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                 <div
-                  className="rounded-2xl px-4 py-2 text-center shadow-2xl backdrop-blur-xl border transition-all duration-300 max-w-[140px]"
+                  className="rounded-3xl p-3.5 sm:p-4 text-center shadow-2xl backdrop-blur-2xl border transition-all duration-300 w-[145px] sm:w-[155px] flex flex-col items-center justify-center"
                   style={{
-                    background: activeCenterConfig.gradientBg || "rgba(15, 23, 42, 0.85)",
-                    borderColor: activeCenterConfig.borderStyle ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.1)",
-                    boxShadow: "0 8px 24px -4px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
+                    background: activeCenterConfig.gradientBg || "rgba(15, 23, 42, 0.9)",
+                    borderColor: activeCenterConfig.borderStyle ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.15)",
+                    boxShadow: "0 10px 30px -4px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.25)",
                   }}
                 >
-                  <span className="text-xs sm:text-sm font-black text-white block leading-tight tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] truncate">
+                  {/* Ícone Oficial Nítido do Pokémon Ativo */}
+                  {activeCenterIcon && (
+                    <img
+                      src={activeCenterIcon}
+                      alt={activeCenterDeckName}
+                      className="h-9 w-9 object-contain mb-1 drop-shadow-md animate-in fade-in zoom-in-95 duration-200"
+                    />
+                  )}
+
+                  <span className="text-xs sm:text-sm font-black text-white block leading-tight tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] truncate w-full">
                     {activeHoverSlice ? activeHoverSlice.name : activeCenterDeckName}
                   </span>
-                  <span className="text-[10px] font-extrabold text-amber-300 block mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+
+                  <span className="text-[10px] font-extrabold text-[#ffcb05] block mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                     {activeHoverSlice
                       ? `${activeHoverSlice.percentStr} (${activeHoverSlice.count}x)`
                       : activeDeck
@@ -498,111 +458,112 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
             </div>
 
             {/* Dica de Interatividade */}
-            <p className="mt-1 text-[11px] text-slate-400 font-mono text-center">
+            <p className="text-[11px] text-slate-400 font-medium text-center mt-3">
               {isOutrosExpanded
-                ? "Visão de 'Outros Decks' expandida"
-                : "Clique em 'Outros Decks' para expandir a lista"}
+                ? "💡 Clique em uma fatia para focar ou em 'Voltar' para o resumo."
+                : "💡 Passe o mouse ou clique em qualquer fatia para ver os detalhes."}
             </p>
           </div>
 
-          {/* Lado Direito: Carrossel 3D de Cartas */}
-          <div className="md:col-span-6 flex flex-col items-center justify-center relative">
-            <div className="relative h-60 sm:h-68 w-full flex items-center justify-center [perspective:1000px]">
-              {carouselDecks.map((deck, idx) => {
-                let diff = idx - carouselIndex;
-                if (diff > Math.floor(carouselDecks.length / 2)) diff -= carouselDecks.length;
-                if (diff < -Math.floor(carouselDecks.length / 2)) diff += carouselDecks.length;
+          {/* Lado Direito: Carrossel 3D das Cartas Pokémon */}
+          <div className="md:col-span-6 flex flex-col items-center justify-center space-y-6">
+            <div className="relative w-full max-w-[280px] sm:max-w-[320px] aspect-[3/4] flex items-center justify-center">
+              {/* Controles de Navegação */}
+              <button
+                onClick={handlePrev}
+                className="absolute -left-4 sm:-left-6 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-all shadow-xl backdrop-blur-md cursor-pointer"
+                aria-label="Deck anterior"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
 
-                const isCurrent = diff === 0;
-                const isVisible = Math.abs(diff) <= 2;
+              <button
+                onClick={handleNext}
+                className="absolute -right-4 sm:-right-6 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-all shadow-xl backdrop-blur-md cursor-pointer"
+                aria-label="Próximo deck"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
 
-                if (!isVisible) return null;
+              {/* Pilha 3D das Cartas */}
+              <div className="relative w-full h-full flex items-center justify-center">
+                {carouselDecks.map((deck, idx) => {
+                  const offset = (idx - carouselIndex + carouselDecks.length) % carouselDecks.length;
+                  const isCenter = offset === 0;
+                  const isRight = offset === 1;
+                  const isLeft = offset === carouselDecks.length - 1;
 
-                const translateX = diff * 85;
-                const translateZ = Math.abs(diff) * -100;
-                const rotateY = diff * -32;
-                const opacity = isCurrent ? 1 : Math.max(0.2, 1 - Math.abs(diff) * 0.4);
+                  let transformStyle = "scale-75 opacity-0 pointer-events-none";
+                  let zIndex = 0;
 
-                return (
-                  <div
-                    key={deck.deckName}
-                    onClick={() => setCarouselIndex(idx)}
-                    className={`absolute transition-all duration-500 cursor-pointer ${
-                      isCurrent ? "z-20 scale-105" : "z-10"
-                    }`}
-                    style={{
-                      transform: `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg)`,
-                      opacity,
-                    }}
-                  >
-                    {deck.imagem ? (
-                      <img
-                        src={deck.imagem}
-                        alt={deck.deckName}
-                        className={`h-48 sm:h-56 object-contain rounded-[10px] drop-shadow-2xl transition-transform ${
-                          isCurrent
-                            ? "ring-2 ring-amber-400/90 shadow-[0_0_24px_rgba(245,158,11,0.4)]"
-                            : "brightness-75 hover:brightness-100"
-                        }`}
-                      />
-                    ) : (
-                      <div className="h-48 sm:h-56 w-34 rounded-[10px] bg-slate-800 flex items-center justify-center p-3 text-center text-xs font-bold text-white border border-white/10">
-                        {deck.deckName}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  if (isCenter) {
+                    transformStyle = "scale-100 opacity-100 z-20 translate-x-0";
+                    zIndex = 20;
+                  } else if (isRight) {
+                    transformStyle = "scale-85 opacity-50 z-10 translate-x-12 sm:translate-x-16 rotate-6";
+                    zIndex = 10;
+                  } else if (isLeft) {
+                    transformStyle = "scale-85 opacity-50 z-10 -translate-x-12 sm:-translate-x-16 -rotate-6";
+                    zIndex = 10;
+                  }
 
-              {/* Botões de Navegação */}
-              {carouselDecks.length > 1 && (
-                <>
-                  <button
-                    onClick={handlePrev}
-                    className="absolute left-1 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-colors shadow-lg backdrop-blur-md cursor-pointer"
-                    aria-label="Anterior"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={handleNext}
-                    className="absolute right-1 z-30 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/80 border border-white/20 text-white hover:bg-blue-600 transition-colors shadow-lg backdrop-blur-md cursor-pointer"
-                    aria-label="Próximo"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </>
-              )}
+                  return (
+                    <div
+                      key={deck.deckName}
+                      className={`absolute w-[240px] sm:w-[260px] aspect-[3/4] rounded-2xl overflow-hidden transition-all duration-500 ease-out shadow-2xl cursor-pointer ${transformStyle}`}
+                      style={{ zIndex }}
+                      onClick={() => setCarouselIndex(idx)}
+                    >
+                      {deck.imagem ? (
+                        <div className="relative w-full h-full bg-slate-950 flex items-center justify-center border-2 border-white/20 rounded-2xl overflow-hidden">
+                          <img
+                            src={deck.imagem}
+                            alt={deck.deckName}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                        </div>
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-950 border-2 border-white/20 rounded-2xl flex flex-col items-center justify-center p-6 text-center">
+                          <span className="text-4xl mb-3">⚡</span>
+                          <span className="font-bold text-white text-base">{deck.deckName}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Informação do Deck Ativo com Gradiente dos Tipos */}
+            {/* Informações da Carta Ativa em Destaque */}
             {activeDeck && (
-              <div className="mt-3.5 text-center space-y-2">
-                <div
-                  className="inline-flex items-center justify-center gap-2.5 px-4 py-1.5 rounded-2xl border backdrop-blur-md shadow-lg"
-                  style={{
-                    background: getMultiEnergyConfig(activeDeck.tipoEnergia).gradientBg,
-                    border: getMultiEnergyConfig(activeDeck.tipoEnergia).borderStyle,
-                  }}
-                >
-                  <h4 className="text-base sm:text-lg font-black text-white tracking-wide">
+              <div className="w-full max-w-sm text-center space-y-2">
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
                     {activeDeck.deckName}
-                  </h4>
-                  <EnergyBadge energyRaw={activeDeck.tipoEnergia} size="sm" />
+                  </h3>
+                  <EnergyBadge energyRaw={activeDeck.tipoEnergia} />
                 </div>
-                <div className="flex items-center justify-center gap-3 text-xs text-slate-300">
-                  <span>{activeDeck.count} jogadores ({activeDeck.percent.toFixed(1)}%)</span>
-                  {activeDeck.limitless && activeDeck.limitless !== "#" && (
+
+                <p className="text-xs text-slate-400 font-semibold">
+                  Representatividade de{" "}
+                  <strong className="text-yellow-400 font-black">{activeDeck.percent.toFixed(1)}%</strong> no
+                  metagame ({activeDeck.count} de {totalDecks} jogadores)
+                </p>
+
+                {activeDeck.limitless && (
+                  <div className="pt-2">
                     <a
                       href={activeDeck.limitless}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-bold"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600/20 border border-blue-500/30 px-3.5 py-1.5 text-xs font-bold text-blue-300 hover:bg-blue-600 hover:text-white transition-all shadow-md"
                     >
-                      Ver no Limitless <ExternalLink className="h-3 w-3" />
+                      <span>Ver listas no Limitless TCG</span>
+                      <ExternalLink className="h-3 w-3" />
                     </a>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
