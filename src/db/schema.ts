@@ -8,6 +8,13 @@ export const jogadores = sqliteTable("jogadores", {
   categoria: text("categoria", { enum: ["Master", "Senior", "Junior"] }).notNull().default("Master"),
   posicaoFinal: integer("posicao_final"), // Posição consolidada da temporada anterior (opcional)
   avatarUrl: text("avatar_url"),
+  pinHash: text("pin_hash"), // Hash criptografado do PIN pessoal
+  whatsapp: text("whatsapp"), // Contato com DDD
+  dataNascimento: text("data_nascimento"), // YYYY-MM-DD
+  cidade: text("cidade").default("Feira de Santana - BA"),
+  deckAtivoNome: text("deck_ativo_nome"),
+  decklistTexto: text("decklist_texto"),
+  status: text("status").default("ativo"), // 'ativo', 'pendente'
   ativo: integer("ativo", { mode: "boolean" }).notNull().default(true),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });
@@ -133,4 +140,19 @@ export const calendario = sqliteTable("calendario", {
   linkMaps: text("link_maps"),
   linkInscricao: text("link_inscricao"),
   foto: text("foto"),
+});
+
+// 12. Tabela de Submissão de Decklists pelos Jogadores
+export const jogadorDecklists = sqliteTable("jogador_decklists", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  jogadorId: text("jogador_id").notNull(),
+  jogadorNome: text("jogador_nome").notNull(),
+  eventoNome: text("evento_nome"),
+  etapaData: text("etapa_data").notNull(),
+  deckNome: text("deck_nome").notNull(),
+  tipoEnergia: text("tipo_energia").default("colorless"),
+  decklistRaw: text("decklist_raw").notNull(),
+  totalCartas: integer("total_cartas").default(60),
+  validada: integer("validada", { mode: "boolean" }).default(false),
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });

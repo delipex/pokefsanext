@@ -27,6 +27,10 @@ import {
   Save,
   Pencil,
   X,
+  Copy,
+  Check,
+  Eye,
+  ClipboardList,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { parseTDFContent, ParsedPlayerRow } from "@/lib/tdf-parser";
@@ -36,6 +40,7 @@ interface AdminDashboardProps {
   initialDecks: any[];
   initialConfig: Record<string, any>;
   initialCalendar?: any[];
+  initialDecklists?: any[];
 }
 
 export function AdminDashboard({
@@ -43,9 +48,16 @@ export function AdminDashboard({
   initialDecks,
   initialConfig,
   initialCalendar = [],
+  initialDecklists = [],
 }: AdminDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"tdf" | "jogadores" | "decks" | "calendario" | "config" | "fechamento">("tdf");
+  const [activeTab, setActiveTab] = useState<"tdf" | "jogadores" | "decks" | "calendario" | "inscricoes" | "config" | "fechamento">("tdf");
+
+  // Estado de Decklists Submetidas
+  const [decklists, setDecklists] = useState<any[]>(initialDecklists);
+  const [decklistSearch, setDecklistSearch] = useState("");
+  const [previewDecklist, setPreviewDecklist] = useState<any | null>(null);
+  const [copiedDecklistId, setCopiedDecklistId] = useState<number | null>(null);
 
   // Estado do Fechamento de Temporada
   const [closureCurrentSeason, setClosureCurrentSeason] = useState(Number(initialConfig.temporadaAtual) || 5);
@@ -685,6 +697,17 @@ export function AdminDashboard({
         >
           <Calendar className="h-3.5 w-3.5" />
           <span>Calendário & Eventos</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("inscricoes")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+            activeTab === "inscricoes"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+              : "text-slate-400 hover:text-white hover:bg-white/5"
+          }`}
+        >
+          <ClipboardList className="h-3.5 w-3.5" />
+          <span>Inscrições & Decklists ({decklists.length})</span>
         </button>
         <button
           onClick={() => setActiveTab("config")}
@@ -1521,6 +1544,185 @@ export function AdminDashboard({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ABA INSCRIÇÕES & DECKLISTS SUBMETIDAS */}
+      {activeTab === "inscricoes" && (
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-blue-400" /> Decklists Oficiais Submetidas ({decklists.length})
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Decklists de 60 cartas enviadas pelos jogadores no Portal do Treinador para check-in no TOM
+                </p>
+              </div>
+
+              <div className="w-full sm:w-64">
+                <input
+                  type="text"
+                  placeholder="Buscar jogador, ID ou deck..."
+                  value={decklistSearch}
+                  onChange={(e) => setDecklistSearch(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Lista de Decklists */}
+            {decklists.length === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-xs">
+                Nenhuma decklist foi submetida pelos jogadores até o momento.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/80">
+                <table className="w-full text-left text-xs text-slate-200">
+                  <thead className="border-b border-white/10 bg-slate-900/90 text-[10px] uppercase font-bold text-slate-400">
+                    <tr>
+                      <th className="py-3 pl-4">Jogador / POP ID</th>
+                      <th className="py-3 px-3">Deck & Arquétipo</th>
+                      <th className="py-3 px-3">Evento / Data</th>
+                      <th className="py-3 px-3 text-center">Cartas</th>
+                      <th className="py-3 pr-4 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {decklists
+                      .filter((dl) => {
+                        if (!decklistSearch.trim()) return true;
+                        const query = decklistSearch.toLowerCase();
+                        return (
+                          dl.jogadorNome?.toLowerCase().includes(query) ||
+                          dl.jogadorId?.toLowerCase().includes(query) ||
+                          dl.deckNome?.toLowerCase().includes(query)
+                        );
+                      })
+                      .map((dl) => (
+                        <tr key={dl.id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3 pl-4">
+                            <div className="font-bold text-white">{dl.jogadorNome}</div>
+                            <div className="text-[11px] font-mono text-slate-400">POP ID: {dl.jogadorId}</div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2">
+                              <EnergyBadge energyRaw={dl.tipoEnergia || "colorless"} size="sm" />
+                              <span className="font-medium text-slate-200">{dl.deckNome}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-xs text-slate-400">
+                            <div>{dl.eventoNome || "Etapa Oficial"}</div>
+                            <div className="font-mono text-[11px] text-slate-500">{dl.etapaData}</div>
+                          </td>
+                          <td className="py-3 px-3 text-center font-bold text-emerald-400">
+                            {dl.totalCartas || 60} / 60
+                          </td>
+                          <td className="py-3 pr-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setPreviewDecklist(dl)}
+                                className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-xs font-bold text-blue-300 hover:bg-blue-500/20 transition-all cursor-pointer"
+                                title="Ver lista completa"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                <span>Ver</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(dl.decklistRaw);
+                                  setCopiedDecklistId(dl.id);
+                                  setTimeout(() => setCopiedDecklistId(null), 2000);
+                                }}
+                                className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer"
+                                title="Copiar formato TCG Live / Limitless"
+                              >
+                                {copiedDecklistId === dl.id ? (
+                                  <>
+                                    <Check className="h-3.5 w-3.5" />
+                                    <span>Copiado!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="h-3.5 w-3.5" />
+                                    <span>Copiar</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Modal de Pré-visualização de Decklist */}
+          {previewDecklist && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+              <div className="w-full max-w-2xl rounded-3xl border border-white/20 bg-slate-900 p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div>
+                    <h4 className="text-base font-black text-white">{previewDecklist.jogadorNome}</h4>
+                    <p className="text-xs text-slate-400 font-mono">
+                      {previewDecklist.deckNome} • POP ID: {previewDecklist.jogadorId}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setPreviewDecklist(null)}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-slate-950 p-4">
+                  <pre className="text-xs font-mono text-slate-200 whitespace-pre-wrap leading-relaxed">
+                    {previewDecklist.decklistRaw}
+                  </pre>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                  <span className="text-xs text-slate-400">
+                    Total: <strong className="text-white">{previewDecklist.totalCartas || 60} cartas</strong>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(previewDecklist.decklistRaw);
+                        setCopiedDecklistId(previewDecklist.id);
+                        setTimeout(() => setCopiedDecklistId(null), 2000);
+                      }}
+                      className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 transition-all cursor-pointer shadow-lg shadow-emerald-600/30"
+                    >
+                      {copiedDecklistId === previewDecklist.id ? (
+                        <>
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Decklist Copiada!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" />
+                          <span>Copiar Decklist Completa</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setPreviewDecklist(null)}
+                      className="rounded-xl border border-white/10 bg-slate-800 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-slate-700 transition-all cursor-pointer"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

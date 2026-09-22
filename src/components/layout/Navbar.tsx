@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Trophy, Flame, Calendar, BookOpen, Menu, X, Shield } from "lucide-react";
+import { Trophy, Flame, Calendar, BookOpen, Menu, X, Shield, User } from "lucide-react";
 import { PokeballIcon, HeaderLogoSvg } from "@/components/ui/BrandLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
@@ -21,6 +21,7 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
     { href: "/ranking", label: "Ranking", icon: Trophy },
     { href: "/metagame", label: "Metagame", icon: Flame },
     { href: "/calendario", label: "Calendário", icon: Calendar },
+    { href: "/portal", label: "Portal", icon: User },
     { href: "/campeoes", label: "Campeões", icon: Shield },
     { href: "/regras", label: "Regras", icon: BookOpen },
   ];

@@ -11,6 +11,7 @@ import {
   galeria,
   scoresAntigos,
   calendario,
+  jogadorDecklists,
 } from "@/db/schema";
 import { desc, asc, eq } from "drizzle-orm";
 
@@ -264,6 +265,10 @@ export async function getAllJogadores() {
   return await db.select().from(jogadores).where(eq(jogadores.ativo, true)).orderBy(asc(jogadores.nome));
 }
 
+export async function getSubmittedDecklists() {
+  return await db.select().from(jogadorDecklists).orderBy(desc(jogadorDecklists.createdAt));
+}
+
 export async function getConfigMap(): Promise<Record<string, any>> {
   const rows = await db.select().from(configuracoes);
   const map: Record<string, any> = {};
@@ -276,3 +281,4 @@ export async function getConfigMap(): Promise<Record<string, any>> {
   }
   return map;
 }
+
