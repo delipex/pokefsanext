@@ -14,6 +14,65 @@ import {
   jogadorDecklists,
 } from "@/db/schema";
 import { desc, asc, eq } from "drizzle-orm";
+import fs from "fs";
+import path from "path";
+
+// Helper para ler arquivos JSON / TDF de fallback local de forma segura
+function readDataFile<T = any>(filename: string, defaultValue: T): T {
+  try {
+    const filePath = path.join(process.cwd(), "src", "data", filename);
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, "utf-8");
+      if (filename.endsWith(".json")) {
+        return JSON.parse(content) as T;
+      }
+      return content as unknown as T;
+    }
+  } catch (err) {
+    console.error(`Erro ao ler arquivo de fallback ${filename}:`, err);
+  }
+  return defaultValue;
+}
+
+// Fallback ranking parser para ranking.tdf
+function getFallbackRanking(): any[] {
+  const content = readDataFile<string>("ranking.tdf", "");
+  if (!content) return [];
+  const lines = content.split(/\r?\n/).filter(Boolean);
+  const rows = lines.slice(1);
+  return rows.map((row) => {
+    const cols = row.split("\t");
+    const [
+      _pos,
+      id,
+      jogador,
+      categoria,
+      pontos,
+      vitorias,
+      empates,
+      derrotas,
+      podios,
+      mediaColocacao,
+      participacoes,
+      historicoColocacoes,
+    ] = cols;
+
+    return {
+      temporada: 5,
+      jogadorId: id ? id.trim() : "",
+      jogadorNome: jogador ? jogador.trim() : "",
+      categoria: categoria ? categoria.trim() : "Master",
+      pontos: Number(pontos) || 0,
+      vitorias: Number(vitorias) || 0,
+      empates: Number(empates) || 0,
+      derrotas: Number(derrotas) || 0,
+      podios: Number(podios) || 0,
+      mediaColocacao: Number(mediaColocacao) || 0,
+      participacoes: Number(participacoes) || 0,
+      historicoColocacoes: historicoColocacoes ? historicoColocacoes.trim() : "",
+    };
+  });
+}
 
 export async function getRanking(categoria?: string) {
   try {
@@ -32,16 +91,23 @@ export async function getRanking(categoria?: string) {
       query = query.where(eq(rankingConsolidado.categoria, categoria.toUpperCase()));
     }
 
-    return await query;
+    const res = await query;
+    if (res && res.length > 0) return res;
   } catch (err) {
-    console.error("Erro em getRanking:", err);
-    return [];
+    // Silencioso: prossegue para fallback
   }
+
+  // Fallback
+  const fallback = getFallbackRanking();
+  if (categoria && categoria !== "TODOS") {
+    return fallback.filter((r) => r.categoria?.toUpperCase() === categoria.toUpperCase());
+  }
+  return fallback;
 }
 
 export async function getTop4Podium() {
   try {
-    return await db
+    const res = await db
       .select()
       .from(rankingConsolidado)
       .orderBy(
@@ -51,28 +117,44 @@ export async function getTop4Podium() {
         asc(rankingConsolidado.jogadorNome)
       )
       .limit(4);
+    if (res && res.length > 0) return res;
   } catch (err) {
-    console.error("Erro em getTop4Podium:", err);
-    return [];
+    // Silencioso
   }
+
+  const fallback = getFallbackRanking();
+  return fallback.slice(0, 4);
 }
 
 export async function getAllDecks() {
   try {
-    return await db.select().from(decks).where(eq(decks.ativo, true)).orderBy(asc(decks.nome));
+    const res = await db.select().from(decks).where(eq(decks.ativo, true)).orderBy(asc(decks.nome));
+    if (res && res.length > 0) return res;
   } catch (err) {
-    console.error("Erro em getAllDecks:", err);
-    return [];
+    // Silencioso
   }
+
+  const rawDecks = readDataFile<any[]>("decks.json", []);
+  return rawDecks.map((d, i) => ({
+    id: i + 1,
+    nome: d.deck || "",
+    tipoEnergia: d.tipoEnergia || "colorless",
+    imagem: d.imagem || null,
+    limitless: d.limitless || null,
+    icone: d.icone || null,
+    ativo: true,
+  }));
 }
 
 export async function getAllEtapas() {
   try {
-    return await db.select().from(etapas).orderBy(desc(etapas.data));
+    const res = await db.select().from(etapas).orderBy(desc(etapas.data));
+    if (res && res.length > 0) return res;
   } catch (err) {
-    console.error("Erro em getAllEtapas:", err);
-    return [];
+    // Silencioso
   }
+
+  return readDataFile<any[]>("etapas.json", []);
 }
 
 export async function getEtapasWithSummary() {
@@ -83,103 +165,152 @@ export async function getEtapasWithSummary() {
       .from(etapaResultados)
       .orderBy(asc(etapaResultados.colocacao));
 
-    return allEtapas.map((etapa) => {
-      const etapaMatches = results.filter((r) => r.etapaData === etapa.data);
-      const campeao = etapaMatches.find((r) => r.colocacao === 1);
-      const top4 = etapaMatches.filter((r) => r.colocacao <= 4);
+    if (allEtapas && allEtapas.length > 0) {
+      return allEtapas.map((etapa) => {
+        const etapaMatches = results.filter((r) => r.etapaData === etapa.data);
+        const campeao = etapaMatches.find((r) => r.colocacao === 1);
+        const top4 = etapaMatches.filter((r) => r.colocacao <= 4);
 
-      return {
-        ...etapa,
-        totalJogadores: etapaMatches.length,
-        campeaoNome: campeao?.jogadorNome || null,
-        campeaoId: campeao?.jogadorId || null,
-        campeaoDeck: campeao?.deckNome || null,
-        top4,
-        resultados: etapaMatches,
-      };
-    });
+        return {
+          ...etapa,
+          totalJogadores: etapaMatches.length,
+          campeaoNome: campeao?.jogadorNome || null,
+          campeaoId: campeao?.jogadorId || null,
+          campeaoDeck: campeao?.deckNome || null,
+          top4,
+          resultados: etapaMatches,
+        };
+      });
+    }
   } catch (err) {
-    console.error("Erro em getEtapasWithSummary:", err);
-    return [];
+    // Silencioso
   }
+
+  const rawEtapas = readDataFile<any[]>("etapas.json", []);
+  return rawEtapas.map((etapa) => ({
+    ...etapa,
+    totalJogadores: etapa.totalJogadores || 0,
+    campeaoNome: etapa.campeao || null,
+    campeaoId: null,
+    campeaoDeck: etapa.deckCampeao || null,
+    top4: [],
+    resultados: [],
+  }));
 }
 
 export async function getMetagameData() {
+  let allMeta: any[] = [];
+  let allDecks: any[] = [];
+  let allEtapas: any[] = [];
+  let allResults: any[] = [];
+
   try {
-    const [allMeta, allDecks, allEtapas, allResults] = await Promise.all([
+    [allMeta, allDecks, allEtapas, allResults] = await Promise.all([
       db.select().from(metagame).catch(() => []),
       db.select().from(decks).catch(() => []),
       db.select().from(etapas).orderBy(desc(etapas.data)).catch(() => []),
       db.select().from(etapaResultados).catch(() => []),
     ]);
-
-    return {
-      metagameEntries: allMeta || [],
-      decksInfo: allDecks || [],
-      etapas: allEtapas || [],
-      etapaResultados: allResults || [],
-    };
   } catch (err) {
-    console.error("Erro em getMetagameData:", err);
-    return {
-      metagameEntries: [],
-      decksInfo: [],
-      etapas: [],
-      etapaResultados: [],
-    };
+    // Silencioso
   }
+
+  if (!allMeta || allMeta.length === 0) {
+    const rawMeta = readDataFile<Record<string, any>>("metagame.json", {});
+    allMeta = [];
+    for (const [etapaData, sessao] of Object.entries<any>(rawMeta)) {
+      const decksMap = sessao.decks || {};
+      for (const [jogadorNome, deckNome] of Object.entries<string>(decksMap)) {
+        if (!deckNome) continue;
+        allMeta.push({
+          etapaData,
+          sessionCode: sessao.sessionCode || null,
+          jogadorNome,
+          deckNome,
+        });
+      }
+    }
+  }
+
+  if (!allDecks || allDecks.length === 0) {
+    const rawDecks = readDataFile<any[]>("decks.json", []);
+    allDecks = rawDecks.map((d, i) => ({
+      id: i + 1,
+      nome: d.deck || "",
+      tipoEnergia: d.tipoEnergia || "colorless",
+      imagem: d.imagem || null,
+      limitless: d.limitless || null,
+      icone: d.icone || null,
+      ativo: true,
+    }));
+  }
+
+  if (!allEtapas || allEtapas.length === 0) {
+    allEtapas = readDataFile<any[]>("etapas.json", []);
+  }
+
+  return {
+    metagameEntries: allMeta || [],
+    decksInfo: allDecks || [],
+    etapas: allEtapas || [],
+    etapaResultados: allResults || [],
+  };
 }
 
 export async function getCampeoes() {
   try {
-    return await db.select().from(campeoes).orderBy(desc(campeoes.id));
+    const res = await db.select().from(campeoes).orderBy(desc(campeoes.id));
+    if (res && res.length > 0) return res;
   } catch (err) {
-    console.error("Erro em getCampeoes:", err);
-    return [];
+    // Silencioso
   }
+
+  return readDataFile<any[]>("campeoes.json", []);
 }
 
 export async function getGaleria() {
   try {
-    return await db.select().from(galeria).orderBy(desc(galeria.id));
+    const res = await db.select().from(galeria).orderBy(desc(galeria.id));
+    if (res && res.length > 0) return res;
   } catch (err) {
-    console.error("Erro em getGaleria:", err);
-    return [];
+    // Silencioso
   }
+
+  return readDataFile<any[]>("galeria.json", []);
 }
 
 export async function getScoresAntigos() {
   try {
-    return await db.select().from(scoresAntigos).orderBy(asc(scoresAntigos.pos));
+    const res = await db.select().from(scoresAntigos).orderBy(asc(scoresAntigos.pos));
+    if (res && res.length > 0) return res;
   } catch (err) {
-    console.error("Erro em getScoresAntigos:", err);
-    return [];
+    // Silencioso
   }
+
+  return readDataFile<any[]>("scores_antigos.json", []);
 }
 
 export async function getCalendario() {
   try {
-    return await db.select().from(calendario);
+    const res = await db.select().from(calendario);
+    if (res && res.length > 0) return res;
   } catch (err) {
-    console.error("Erro em getCalendario:", err);
-    return [];
+    // Silencioso
   }
+
+  return readDataFile<any[]>("calendario.json", []);
 }
 
 export async function getNextEvent() {
-  try {
-    const events = await db.select().from(calendario);
-    return events[0] || null;
-  } catch (err) {
-    console.error("Erro em getNextEvent:", err);
-    return null;
-  }
+  const events = await getCalendario();
+  return events[0] || null;
 }
 
 export async function getSeasonAwards() {
   try {
-    const ranking = await db.select().from(rankingConsolidado);
-    const metaEntries = await db.select().from(metagame);
+    const ranking = await getRanking();
+    const metaData = await getMetagameData();
+    const metaEntries = metaData.metagameEntries;
 
     if (!ranking || ranking.length === 0) {
       return { gold: null, gym: null, ditto: null, murcha: null };
@@ -217,7 +348,7 @@ export async function getSeasonAwards() {
       return b.pontos - a.pontos;
     })[0];
 
-    const allDecks = await db.select().from(decks);
+    const allDecks = await getAllDecks();
 
     function formatDeckName(name: string): string {
       if (!name) return "";
@@ -331,18 +462,19 @@ export async function getSeasonAwards() {
 
 export async function getAllJogadores() {
   try {
-    return await db.select().from(jogadores).where(eq(jogadores.ativo, true)).orderBy(asc(jogadores.nome));
+    const res = await db.select().from(jogadores).where(eq(jogadores.ativo, true)).orderBy(asc(jogadores.nome));
+    if (res && res.length > 0) return res;
   } catch (err) {
-    console.error("Erro em getAllJogadores:", err);
-    return [];
+    // Silencioso
   }
+
+  return readDataFile<any[]>("jogadores.json", []);
 }
 
 export async function getSubmittedDecklists() {
   try {
     return await db.select().from(jogadorDecklists).orderBy(desc(jogadorDecklists.createdAt));
   } catch (err) {
-    console.error("Erro em getSubmittedDecklists:", err);
     return [];
   }
 }
@@ -350,17 +482,20 @@ export async function getSubmittedDecklists() {
 export async function getConfigMap(): Promise<Record<string, any>> {
   try {
     const rows = await db.select().from(configuracoes);
-    const map: Record<string, any> = {};
-    for (const r of rows) {
-      try {
-        map[r.chave] = JSON.parse(r.valor);
-      } catch {
-        map[r.chave] = r.valor;
+    if (rows && rows.length > 0) {
+      const map: Record<string, any> = {};
+      for (const r of rows) {
+        try {
+          map[r.chave] = JSON.parse(r.valor);
+        } catch {
+          map[r.chave] = r.valor;
+        }
       }
+      return map;
     }
-    return map;
   } catch (err) {
-    console.error("Erro em getConfigMap:", err);
-    return {};
+    // Silencioso
   }
+
+  return readDataFile<Record<string, any>>("config.json", {});
 }
