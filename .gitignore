@@ -29,7 +29,9 @@ local.db
 # Vercel Deployment Cache
 .vercel
 
-# AI & Agent Directives (Local Only)
+# Organizer Local Docs & Scripts (Private)
+docs/
+scripts/
 .agents/
 .gemini/
 
