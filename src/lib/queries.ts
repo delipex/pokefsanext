@@ -72,6 +72,7 @@ export async function getEtapasWithSummary() {
       totalJogadores: etapaMatches.length,
       campeaoNome: campeao?.jogadorNome || null,
       campeaoId: campeao?.jogadorId || null,
+      campeaoDeck: campeao?.deckNome || null,
       top4,
       resultados: etapaMatches,
     };

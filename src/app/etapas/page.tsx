@@ -1,6 +1,6 @@
-import { getEtapasWithSummary } from "@/lib/queries";
+import { getEtapasWithSummary, getAllDecks } from "@/lib/queries";
 import { EtapasTimeline } from "@/components/etapas/EtapasTimeline";
-import { Calendar, ShieldCheck } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,10 @@ export const metadata = {
 };
 
 export default async function EtapasPage() {
-  const etapas = await getEtapasWithSummary();
+  const [etapas, allDecks] = await Promise.all([
+    getEtapasWithSummary(),
+    getAllDecks(),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -24,7 +27,7 @@ export default async function EtapasPage() {
         </h1>
       </div>
 
-      <EtapasTimeline etapas={etapas} />
+      <EtapasTimeline etapas={etapas} allDecks={allDecks} />
     </div>
   );
 }

@@ -27,6 +27,8 @@ export default async function MetagamePage() {
       <MetagameDashboard
         metagameEntries={metagameEntries}
         decksInfo={decksInfo}
+        etapas={etapas}
+        etapaResultados={etapaResultados || []}
       />
 
       {/* 2. Visão Detalhada: Radar de Performance, Winrates, Títulos e Decks na Lanterna */}

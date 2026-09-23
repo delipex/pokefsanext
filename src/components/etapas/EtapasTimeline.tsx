@@ -6,6 +6,8 @@ import { Calendar, Trophy, Users, CheckCircle2, ChevronRight, X, Award, Shield }
 import { formatCategoryAbbr } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
 
+import { EnergyBadge } from "../ui/EnergyBadge";
+
 export interface StageResult {
   id: number;
   jogadorId: string | null;
@@ -16,6 +18,13 @@ export interface StageResult {
   vitorias: number;
   empates: number;
   derrotas: number;
+  deckNome?: string | null;
+}
+
+export interface DeckItemInfo {
+  nome: string;
+  tipoEnergia: string;
+  icone?: string | null;
 }
 
 export interface EtapaSummaryItem {
@@ -28,17 +37,37 @@ export interface EtapaSummaryItem {
   totalJogadores: number;
   campeaoNome: string | null;
   campeaoId: string | null;
+  campeaoDeck?: string | null;
   resultados: StageResult[];
 }
 
 interface EtapasTimelineProps {
   etapas: EtapaSummaryItem[];
+  allDecks?: DeckItemInfo[];
 }
 
-export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
+export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
   const [selectedEtapa, setSelectedEtapa] = useState<EtapaSummaryItem | null>(null);
 
   if (!etapas || etapas.length === 0) return null;
+
+  const renderDeckBadge = (deckNome?: string | null) => {
+    if (!deckNome) return <span className="text-slate-500 text-[11px] italic">-</span>;
+    const deck = allDecks.find((d) => d.nome.toLowerCase() === deckNome.toLowerCase());
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900/80 border border-white/10 px-2 py-0.5 text-xs text-slate-300 shadow-sm max-w-[170px]">
+        {deck?.icone ? (
+          <img src={deck.icone} alt={deckNome} className="h-4 w-4 object-contain rounded shrink-0" />
+        ) : (
+          <span className="text-xs">⚡</span>
+        )}
+        <span className="truncate text-[11px] font-medium text-slate-300">
+          {deckNome}
+        </span>
+        {deck?.tipoEnergia && <EnergyBadge energyRaw={deck.tipoEnergia} size="sm" />}
+      </span>
+    );
+  };
 
   return (
     <div className="w-full space-y-4">
@@ -97,13 +126,18 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
                       <Trophy className="h-4 w-4" />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <span className="text-[10px] uppercase font-bold text-amber-400/80 tracking-wider block">
                         Campeão da Etapa
                       </span>
                       <span className="text-sm font-black text-white truncate block">
                         {etapa.campeaoNome}
                       </span>
+                      {etapa.campeaoDeck && (
+                        <div className="mt-1">
+                          {renderDeckBadge(etapa.campeaoDeck)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -153,7 +187,7 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
               exit={{ opacity: 0, scale: 0.94, y: 20 }}
               transition={{ type: "spring", stiffness: 350, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-3xl border border-white/[0.08] bg-slate-950/95 p-6 shadow-2xl backdrop-blur-2xl text-slate-100 z-10"
+              className="relative w-full max-w-3xl max-h-[85vh] flex flex-col rounded-3xl border border-white/[0.08] bg-slate-950/95 p-6 shadow-2xl backdrop-blur-2xl text-slate-100 z-10"
             >
               {/* iOS Handle Indicator */}
               <div className="w-10 h-1.5 rounded-full bg-white/20 mx-auto -mt-2 mb-3" />
@@ -197,6 +231,7 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                     <tr>
                       <th className="py-2.5 pl-3 pr-2 text-center w-10">#</th>
                       <th className="px-3 py-2.5">Treinador</th>
+                      <th className="px-3 py-2.5">Deck</th>
                       <th className="px-3 py-2.5 text-right font-bold text-yellow-400">PTS</th>
                       <th className="px-3 py-2.5 text-center">V / E / D</th>
                     </tr>
@@ -231,6 +266,9 @@ export function EtapasTimeline({ etapas }: EtapasTimelineProps) {
                               <span className="font-bold text-white">{res.jogadorNome}</span>
                               <CategoryBadge category={res.categoria} size="sm" />
                             </div>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            {renderDeckBadge(res.deckNome)}
                           </td>
                           <td className="px-3 py-2.5 text-right font-black text-sm text-yellow-400 tabular-nums">
                             {res.pontos}

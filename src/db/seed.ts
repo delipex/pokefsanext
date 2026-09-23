@@ -92,7 +92,26 @@ async function seed() {
     }
   }
 
-  // 4. Seed Etapas & Resultados Individuais
+  // 4. Carregar metagame.json prévio para vincular decks aos resultados
+  const metaPath = path.join(sourceDir, "metagame.json");
+  let metaRaw: Record<string, any> = {};
+  if (fs.existsSync(metaPath)) {
+    metaRaw = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+  }
+
+  const findDeckInMeta = (stageDate: string, playerName: string): string | null => {
+    const stage = metaRaw[stageDate];
+    if (!stage || !stage.decks) return null;
+    if (stage.decks[playerName]) return stage.decks[playerName];
+    const norm = playerName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    for (const [pName, dName] of Object.entries(stage.decks)) {
+      const pNorm = (pName as string).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      if (pNorm === norm) return dName as string;
+    }
+    return null;
+  };
+
+  // 5. Seed Etapas & Resultados Individuais
   const etapasPath = path.join(sourceDir, "etapas.json");
   const etapasFolder = path.join(sourceDir, "etapas");
 
@@ -145,6 +164,8 @@ async function seed() {
             derrotas,
           ] = cols;
 
+          const deckNome = findDeckInMeta(e.data, jogador.trim());
+
           await db.insert(etapaResultados).values({
             etapaId,
             etapaData: e.data,
@@ -156,6 +177,7 @@ async function seed() {
             vitorias: Number(vitorias) || 0,
             empates: Number(empates) || 0,
             derrotas: Number(derrotas) || 0,
+            deckNome: deckNome || null,
           });
         }
       }
@@ -208,12 +230,10 @@ async function seed() {
   }
 
   // 6. Seed Metagame (metagame.json)
-  const metaPath = path.join(sourceDir, "metagame.json");
   if (fs.existsSync(metaPath)) {
     console.log("🔥 Importando metagame.json...");
     await db.delete(metagame);
 
-    const metaRaw = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
     for (const [dataEtapa, sessao] of Object.entries<any>(metaRaw)) {
       const sessionCode = sessao.sessionCode || null;
       const decksMap = sessao.decks || {};
