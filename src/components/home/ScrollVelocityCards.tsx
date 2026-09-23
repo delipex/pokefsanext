@@ -12,7 +12,7 @@ import {
   useMotionValue,
   wrap,
 } from "framer-motion";
-import { Sparkles, Flame, ArrowRight, Layers, Swords } from "lucide-react";
+import { Sparkles, Flame, ArrowRight, Layers } from "lucide-react";
 import { EnergyBadge } from "@/components/ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
@@ -42,15 +42,15 @@ interface ScrollVelocityCardsProps {
   baseVelocity?: number;
 }
 
-// Parâmetros estéticos de cartas soltas em 3D (Motion.dev Linked Offset)
-const ROTATIONS = [-6, 5, -3, 7, -5, 4, -7, 6, -4, 5, -2, 6];
-const Y_OFFSETS = [-20, 24, -12, 28, -18, 16, -24, 20, -10, 22, -16, 18];
-const SCALES = [1.03, 0.96, 1.05, 0.97, 1.02, 0.95, 1.04, 0.98];
+// Parâmetros de rotação, altura e escala das cartas soltas em 3D
+const ROTATIONS = [-5, 4, -2, 6, -5, 3, -6, 5, -3, 4, -2, 5];
+const Y_OFFSETS = [-14, 18, -8, 20, -12, 14, -16, 14, -8, 16, -10, 12];
+const SCALES = [1.02, 0.97, 1.04, 0.98, 1.02, 0.96, 1.03, 0.98];
 const Z_INDICES = [10, 25, 15, 30, 20, 35, 12, 28];
 
-function FreeFloating3DPlanes({
+function BentoContained3DPlanes({
   decks,
-  baseVelocity = -2.5, // Velocidade contínua lenta e perceptível (% por segundo)
+  baseVelocity = -2.5, // Velocidade contínua suave e constante (% por segundo)
 }: {
   decks: DeckCardItem[];
   baseVelocity?: number;
@@ -60,20 +60,20 @@ function FreeFloating3DPlanes({
   const { scrollY } = useScroll();
   const scrollVelocity = useVelocity(scrollY);
 
-  // Física de mola suave e amortecida
+  // Física de amortecimento elástico e suave (Motion.dev standard)
   const smoothVelocity = useSpring(scrollVelocity, {
     damping: 50,
     stiffness: 300,
   });
 
-  // Fator de velocidade reativo ao scroll da página
-  const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 1.5], {
+  // Reatividade controlada ao scroll
+  const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 1.2], {
     clamp: false,
   });
 
-  // 3D Wave Tilt & Skew vinculados à inércia do scroll
-  const velocityTilt = useTransform(smoothVelocity, [-1500, 1500], [-10, 10]);
-  const velocitySkew = useTransform(smoothVelocity, [-1500, 1500], [-5, 5]);
+  // Inclinação 3D sutil ao rolar a página
+  const velocityTilt = useTransform(smoothVelocity, [-1500, 1500], [-8, 8]);
+  const velocitySkew = useTransform(smoothVelocity, [-1500, 1500], [-4, 4]);
 
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -81,16 +81,16 @@ function FreeFloating3DPlanes({
 
   useAnimationFrame((t, delta) => {
     if (hoveredIdx !== null || isDragging) {
-      // Quando o cursor está sobre uma carta ou arrastando, desacelera 95% para contemplação
+      // Desacelera 95% ao passar o cursor ou arrastar para permitir inspeção com calma
       const moveBy = baseVelocity * 0.05 * (delta / 1000);
       baseX.set(baseX.get() + moveBy);
       return;
     }
 
-    // Movimento contínuo e autônomo constante (% por segundo)
+    // Movimento contínuo autônomo constante
     let moveBy = directionFactor.current * baseVelocity * (delta / 1000);
 
-    // Reage fluidamente à rolagem da página
+    // Resposta fluida ao scroll do usuário
     const currentVelocity = velocityFactor.get();
     if (currentVelocity < 0) {
       directionFactor.current = -1;
@@ -103,20 +103,20 @@ function FreeFloating3DPlanes({
   });
 
   // Looping contínuo seamless de exatamente 1 sequência (100% / 4 cópias = 25%)
-  // O wrap de -25% a 0% é 100% contínuo e sem saltos em ambas as direções (arrastar para frente ou para trás)
+  // O wrap de -25% a 0% é 100% contínuo e sem saltos em ambas as direções
   const x = useTransform(baseX, (v) => `${wrap(-25, 0, v)}%`);
 
-  // Duplicação de decks (4x) para garantir que a transição de -25% para 0% seja idêntica
+  // 4 cópias da lista de decks para ciclo ininterrupto
   const repeatedDecks = [...decks, ...decks, ...decks, ...decks];
 
   return (
     <div
       ref={ribbonRef}
-      className="relative w-full overflow-visible select-none py-12 sm:py-16 cursor-grab active:cursor-grabbing"
-      style={{ perspective: "1400px" }}
+      className="relative w-full overflow-hidden select-none py-8 sm:py-12 cursor-grab active:cursor-grabbing [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]"
+      style={{ perspective: "1200px" }}
     >
       <motion.div
-        className="flex -space-x-4 sm:-space-x-7 shrink-0 items-center"
+        className="flex -space-x-3 sm:-space-x-5 shrink-0 items-center"
         style={{
           x,
           rotateY: velocityTilt,
@@ -126,7 +126,6 @@ function FreeFloating3DPlanes({
         onPanStart={() => setIsDragging(true)}
         onPanEnd={(e, info) => {
           setIsDragging(false);
-          // Atualiza direção do drift se o usuário soltou com velocidade
           if (info.velocity.x > 80) {
             directionFactor.current = -1;
           } else if (info.velocity.x < -80) {
@@ -134,7 +133,7 @@ function FreeFloating3DPlanes({
           }
         }}
         onPan={(e, info) => {
-          // Conversão física precisa de pixels arrastados para percentual da fita
+          // Cálculo físico 1:1 proporcional da fita
           const width = ribbonRef.current?.scrollWidth || 3000;
           const deltaPercent = (info.delta.x / width) * 100;
           baseX.set(baseX.get() + deltaPercent);
@@ -158,17 +157,17 @@ function FreeFloating3DPlanes({
                 zIndex: isCurrentHovered ? 60 : zIdx,
                 transformStyle: "preserve-3d",
                 transform: isCurrentHovered
-                  ? `translateY(${yOff - 28}px) translateZ(90px) scale(1.14) rotate(0deg)`
+                  ? `translateY(${yOff - 20}px) translateZ(60px) scale(1.1) rotate(0deg)`
                   : `translateY(${yOff}px) translateZ(0px) scale(${scl}) rotate(${rot}deg)`,
               }}
             >
-              {/* Card Pokémon Físico Solto na Página */}
+              {/* Card Pokémon Físico com Aspect Ratio Oficial 63:88 */}
               <div
-                className="relative aspect-[63/88] w-[175px] sm:w-[215px] md:w-[245px] rounded-2xl overflow-hidden border border-white/20 bg-slate-950 shadow-[0_25px_50px_rgba(0,0,0,0.9)] transition-all duration-300"
+                className="relative aspect-[63/88] w-[160px] sm:w-[195px] md:w-[225px] rounded-2xl overflow-hidden border border-white/15 bg-slate-950 shadow-[0_16px_36px_rgba(0,0,0,0.85)] transition-all duration-300"
                 style={{
                   boxShadow: isCurrentHovered
-                    ? `0 35px 70px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(59, 130, 246, 0.4)`
-                    : `0 20px 45px -8px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.1)`,
+                    ? `0 30px 60px -10px rgba(0, 0, 0, 0.95), 0 0 30px rgba(59, 130, 246, 0.35)`
+                    : `0 14px 32px -6px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08)`,
                 }}
               >
                 {/* Imagem da Carta */}
@@ -188,20 +187,20 @@ function FreeFloating3DPlanes({
                   </div>
                 )}
 
-                {/* Efeito Foil Holográfico 3D */}
+                {/* Efeito Foil Holográfico */}
                 <div
-                  className={`absolute inset-0 transition-opacity duration-300 pointer-events-none bg-gradient-to-tr from-transparent via-white/25 to-transparent mix-blend-overlay ${
+                  className={`absolute inset-0 transition-opacity duration-300 pointer-events-none bg-gradient-to-tr from-transparent via-white/20 to-transparent mix-blend-overlay ${
                     isCurrentHovered ? "opacity-100" : "opacity-0"
                   }`}
                 />
 
                 {/* Badge Flutuante de Energia */}
                 <div className="absolute top-2.5 right-2.5">
-                  <div className="flex items-center -space-x-1 p-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 shadow-lg">
+                  <div className="flex items-center -space-x-1 p-1 rounded-full bg-black/80 backdrop-blur-md border border-white/15 shadow-md">
                     {energy.types.map((t, i) => (
                       <span
                         key={i}
-                        className="h-3 w-3 rounded-full border border-black/60 shadow-sm"
+                        className="h-2.5 w-2.5 rounded-full border border-black/60 shadow-sm"
                         style={{ backgroundColor: t.hex }}
                         title={t.label}
                       />
@@ -210,7 +209,7 @@ function FreeFloating3DPlanes({
                 </div>
 
                 {/* Faixa Inferior com Nome do Deck */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/85 to-transparent p-3 pt-8 flex flex-col justify-end">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-transparent p-3 pt-7 flex flex-col justify-end">
                   <span className="text-xs sm:text-sm font-bold text-white truncate drop-shadow-md">
                     {deck.nome}
                   </span>
@@ -235,7 +234,7 @@ export function ScrollVelocityCards({
   decksInfo = [],
   baseVelocity = -2.5,
 }: ScrollVelocityCardsProps) {
-  // Cálculo das estatísticas do Metagame para a barra inferior
+  // Cálculo integrado das estatísticas do Metagame para o rodapé da esteira
   const metaStats = useMemo(() => {
     const deckCounts: Record<string, number> = {};
     let totalValid = 0;
@@ -281,8 +280,18 @@ export function ScrollVelocityCards({
   if (validDecks.length < 3) return null;
 
   return (
-    <section className="relative w-full space-y-6">
-      {/* 1. Header Sutil e Informativo da Galeria */}
+    <section className="relative w-full overflow-hidden rounded-3xl border border-white/[0.04] bg-white/[0.015] p-4 sm:p-7 backdrop-blur-2xl shadow-2xl space-y-5">
+      {/* Marca d'água Tipográfica de Fundo */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center select-none pointer-events-none opacity-[0.03] overflow-hidden whitespace-nowrap">
+        <span className="text-7xl sm:text-9xl md:text-[11rem] font-black tracking-widest uppercase text-white font-mono">
+          STANDARD FORMAT
+        </span>
+      </div>
+
+      {/* Luz ambiente de fundo */}
+      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+
+      {/* 1. Topo Informativo da Caixa */}
       <div className="flex items-center justify-between px-1 relative z-10">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-amber-400 animate-pulse" />
@@ -291,25 +300,17 @@ export function ScrollVelocityCards({
           </h3>
         </div>
         <span className="text-[10px] sm:text-xs text-slate-400 font-normal hidden sm:inline">
-          ⚡ Arraste horizontalmente ou role a página para interagir
+          ⚡ Arraste ou role a página para interagir
         </span>
       </div>
 
-      {/* 2. Galeria Solta na Página (Extrapola e Flutua Livremente sem Caixa Enclausurante) */}
-      <div className="relative w-full -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
-        {/* Marca d'água Tipográfica Editorial de Fundo */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center select-none pointer-events-none opacity-[0.035] overflow-hidden whitespace-nowrap z-0">
-          <span className="text-7xl sm:text-9xl md:text-[11rem] font-black tracking-widest uppercase text-white font-mono">
-            STANDARD FORMAT
-          </span>
-        </div>
-
-        {/* Efeito 3D Planes de Cartas Soltas em Movimento Contínuo e Infinito */}
-        <FreeFloating3DPlanes decks={validDecks} baseVelocity={baseVelocity} />
+      {/* 2. Esteira 3D Protegida com Looping Infinito Seamless */}
+      <div className="relative w-full overflow-hidden z-10">
+        <BentoContained3DPlanes decks={validDecks} baseVelocity={baseVelocity} />
       </div>
 
-      {/* 3. Barra Bento de Telemetria do Metagame (Cápsula Independente e Transparente) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 p-4 sm:p-5 rounded-3xl border border-white/[0.05] bg-slate-950/40 backdrop-blur-2xl shadow-xl items-center relative z-10">
+      {/* 3. Rodapé Bento Integrado com Telemetria do Metagame */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 pt-3 border-t border-white/[0.05] items-center relative z-10">
         {/* Bloco 1: Deck Dominante (5 Colunas) */}
         {metaStats.topDeck && (
           <div className="md:col-span-5 flex items-center gap-3 p-3 rounded-2xl border border-white/[0.04] bg-white/[0.02]">
