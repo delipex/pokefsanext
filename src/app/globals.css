@@ -6,34 +6,27 @@
     --foreground: #ffffff;
     --text-primary: #ffffff;
     --text-secondary: #94a3b8;
+    --text-muted: #64748b;
     --card-bg: rgba(15, 23, 42, 0.75);
-    --card-border: rgba(255, 255, 255, 0.1);
+    --card-border: rgba(255, 255, 255, 0.08);
     --accent-yellow: #ffcb05;
     --accent-blue: #3b82f6;
   }
 
   html[data-theme="light"],
   html.light {
-    --background: #f1f5f9;
+    --background: #f8fafc;
     --foreground: #0f172a;
     --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --card-bg: rgba(255, 255, 255, 0.9);
-    --card-border: rgba(203, 213, 225, 0.9);
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --card-bg: #ffffff;
+    --card-border: #e2e8f0;
   }
 
   html {
     font-size: 16px;
-  }
-  @media (min-width: 640px) {
-    html {
-      font-size: 16.5px;
-    }
-  }
-  @media (min-width: 1280px) {
-    html {
-      font-size: 17px;
-    }
+    scroll-behavior: smooth;
   }
 
   body {
@@ -41,9 +34,10 @@
     color: var(--foreground);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     min-height: 100vh;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
+  /* Fundo Atmosférico Dark Mode */
   html.dark body,
   html[data-theme="dark"] body {
     background-image: 
@@ -54,18 +48,21 @@
     background-attachment: fixed;
   }
 
+  /* Fundo Atmosférico Light Mode */
   html.light body,
   html[data-theme="light"] body {
     background-image: 
-      radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.09) 0%, transparent 45%),
-      radial-gradient(circle at 90% 15%, rgba(255, 203, 5, 0.08) 0%, transparent 40%),
-      radial-gradient(circle at 50% 85%, rgba(139, 92, 246, 0.07) 0%, transparent 55%),
+      radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.08) 0%, transparent 45%),
+      radial-gradient(circle at 90% 15%, rgba(255, 203, 5, 0.07) 0%, transparent 40%),
+      radial-gradient(circle at 50% 85%, rgba(139, 92, 246, 0.06) 0%, transparent 55%),
       linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
     background-attachment: fixed;
   }
 }
 
-/* Ambient Background Blobs */
+/* ==========================================================================
+   Ambient Background Blobs
+   ========================================================================== */
 .bg-blobs {
   position: fixed;
   top: 0;
@@ -86,7 +83,7 @@
 }
 
 html.light .blob {
-  opacity: 0.12;
+  opacity: 0.09;
 }
 
 .blob-1 {
@@ -124,19 +121,33 @@ html.light .blob {
   100% { transform: translate(-35px, 45px) scale(0.94); }
 }
 
-/* Glassmorphism System Tokens */
+/* ==========================================================================
+   Hierarquia Tipográfica Padrão (Liga Atlântica Design System)
+   ========================================================================== */
+h1 {
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+h2 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h3 {
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* ==========================================================================
+   Glassmorphism System Tokens
+   ========================================================================== */
 .glass-panel {
   background: rgba(15, 23, 42, 0.72);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-html.light .glass-panel {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(203, 213, 225, 0.9);
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .glass-card {
@@ -148,12 +159,6 @@ html.light .glass-panel {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-html.light .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(203, 213, 225, 0.85);
-  box-shadow: 0 6px 24px -4px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 1);
-}
-
 .glass-card:hover {
   background: rgba(30, 41, 59, 0.8);
   border-color: rgba(255, 255, 255, 0.2);
@@ -161,19 +166,14 @@ html.light .glass-card {
   box-shadow: 0 14px 35px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-html.light .glass-card:hover {
-  background: rgba(255, 255, 255, 0.98);
-  border-color: rgba(148, 163, 184, 0.9);
-  box-shadow: 0 10px 30px -6px rgba(0, 0, 0, 0.12);
-}
-
 /* ==========================================================================
-   Light Mode High-Contrast Overrides
+   Modo Claro de Alto Padrão (Clean, High-Contrast & Harmonioso)
    ========================================================================== */
 html.light {
   color-scheme: light;
 }
 
+/* Textos no Modo Claro */
 html.light h1,
 html.light h2,
 html.light h3,
@@ -192,81 +192,166 @@ html.light .text-slate-300 {
 }
 
 html.light .text-slate-400 {
-  color: #475569 !important;
-}
-
-html.light .text-slate-500 {
   color: #64748b !important;
 }
 
-/* Light mode card backgrounds */
-html.light .bg-slate-950,
-html.light .bg-slate-950\/80,
-html.light .bg-slate-950\/90,
-html.light .bg-slate-950\/95,
-html.light .bg-slate-950\/60,
-html.light .bg-slate-950\/40,
-html.light .bg-slate-900,
-html.light .bg-slate-900\/80,
-html.light .bg-slate-900\/60,
-html.light .bg-slate-900\/40,
-html.light .bg-slate-900\/70,
-html.light .bg-slate-900\/75,
-html.light .bg-slate-900\/90,
-html.light .bg-slate-900\/95,
-html.light .bg-slate-800,
-html.light .bg-slate-800\/80,
-html.light .bg-slate-800\/90,
-html.light .bg-slate-800\/60,
-html.light .bg-slate-800\/40 {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-}
-
-html.light header {
-  background-color: rgba(255, 255, 255, 0.92) !important;
-  border-bottom-color: rgba(203, 213, 225, 0.8) !important;
-}
-
-html.light footer {
-  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%) !important;
-  border-top-color: rgba(203, 213, 225, 0.8) !important;
-}
-
-html.light .border-white\/10,
-html.light .border-white\/15,
-html.light .border-white\/20,
-html.light .border-white\/5 {
-  border-color: rgba(203, 213, 225, 0.85) !important;
-}
-
-html.light .divide-white\/5 > * + * {
-  border-color: rgba(226, 232, 240, 0.9) !important;
-}
-
-html.light input,
-html.light select,
-html.light textarea {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: rgba(203, 213, 225, 0.9) !important;
-}
-
-html.light input::placeholder {
+html.light .text-slate-500 {
   color: #94a3b8 !important;
 }
 
+/* Cards e Contêineres no Modo Claro */
+html.light .glass-panel,
+html.light .glass-card,
+html.light [class*="bg-white/[0.015]"],
+html.light [class*="bg-white/[0.02]"],
+html.light [class*="bg-white/[0.03]"],
+html.light [class*="bg-white/[0.04]"],
+html.light [class*="bg-white/[0.05]"],
+html.light [class*="bg-white/5"],
+html.light [class*="bg-white/10"],
+html.light .bg-slate-900,
+html.light [class*="bg-slate-900/"],
+html.light .bg-slate-950,
+html.light [class*="bg-slate-950/"],
+html.light .bg-slate-800,
+html.light [class*="bg-slate-800/"],
+html.light [class*="bg-[#0f172a]"],
+html.light [class*="bg-[#090e1a]"],
+html.light [class*="bg-[#0a0f1d]"] {
+  background-color: #ffffff !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Bordas no Modo Claro */
+html.light [class*="border-white/"],
+html.light .border-white {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .divide-white\/5 > * + *,
+html.light .divide-white\/4 > * + *,
+html.light [class*="divide-white/"] > * + * {
+  border-color: #e2e8f0 !important;
+}
+
+/* Header & Footer no Modo Claro */
+html.light header {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  border-bottom-color: #e2e8f0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light footer {
+  background: #f8fafc !important;
+  border-top-color: #e2e8f0 !important;
+}
+
+/* Navegação e Pílulas no Modo Claro */
+html.light nav[class*="bg-[#0f172a]"] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light .bg-black\/15,
+html.light .even\:bg-black\/15:nth-child(even) {
+  background-color: #f8fafc !important;
+}
+
+html.light button.bg-slate-800,
+html.light button.bg-slate-700,
+html.light .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light button.bg-white\/5,
+html.light button.bg-white\/10,
+html.light a.bg-white\/5,
+html.light a.bg-white\/10 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Tabelas no Modo Claro */
 html.light table thead {
   background-color: #f1f5f9 !important;
+  border-bottom-color: #e2e8f0 !important;
 }
 
 html.light table thead th {
   background-color: #f1f5f9 !important;
   color: #475569 !important;
-  border-bottom-color: rgba(203, 213, 225, 0.9) !important;
+  border-bottom-color: #e2e8f0 !important;
 }
 
 html.light table tbody tr:hover {
-  background-color: rgba(59, 130, 246, 0.08) !important;
+  background-color: rgba(59, 130, 246, 0.06) !important;
+}
+
+/* Inputs, Selects e Dropdowns no Modo Claro */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light input::placeholder,
+html.light select::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html.light optgroup {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+}
+
+/* Modais e Overlays no Modo Claro */
+html.light [class*="bg-[#0f172a]/95"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Badges e Pílulas no Modo Claro */
+html.light .bg-blue-600\/20 {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+  color: #2563eb !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+}
+
+html.light .bg-amber-500\/10 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #b45309 !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+html.light .bg-purple-500\/10 {
+  background-color: rgba(168, 85, 247, 0.12) !important;
+  color: #7e22ce !important;
+  border-color: rgba(168, 85, 247, 0.25) !important;
+}
+
+html.light .bg-rose-500\/10 {
+  background-color: rgba(244, 63, 94, 0.12) !important;
+  color: #be123c !important;
+  border-color: rgba(244, 63, 94, 0.25) !important;
+}
+
+html.light .bg-emerald-500\/10 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #047857 !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
 }
 
 /* Efeito Foil Holográfico */
@@ -286,11 +371,11 @@ html.light table tbody tr:hover {
 html.light .foil-card {
   background: linear-gradient(
     135deg,
-    rgba(255, 215, 0, 0.22) 0%,
-    rgba(255, 255, 255, 0.7) 25%,
+    rgba(255, 215, 0, 0.25) 0%,
+    rgba(255, 255, 255, 0.9) 25%,
     rgba(129, 140, 248, 0.2) 50%,
-    rgba(255, 255, 255, 0.7) 75%,
-    rgba(255, 215, 0, 0.22) 100%
+    rgba(255, 255, 255, 0.9) 75%,
+    rgba(255, 215, 0, 0.25) 100%
   );
   background-size: 200% 200%;
 }
@@ -312,7 +397,7 @@ html.light .foil-card {
 }
 
 html.light ::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.8);
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -321,9 +406,13 @@ html.light ::-webkit-scrollbar-track {
 }
 
 html.light ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.6);
+  background: #cbd5e1;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.35);
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
