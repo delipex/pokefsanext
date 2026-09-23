@@ -31,6 +31,7 @@ import {
   Check,
   Eye,
   ClipboardList,
+  Database,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { parseTDFContent, ParsedPlayerRow } from "@/lib/tdf-parser";
@@ -618,6 +619,29 @@ export function AdminDashboard({
       setConfigMessage(`❌ Erro ao salvar: ${err.message}`);
     } finally {
       setIsSavingConfig(false);
+    }
+  };
+
+  // Sincronizar / Restaurar Banco de Dados Online
+  const [isSyncingDb, setIsSyncingDb] = useState(false);
+  const [syncDbMessage, setSyncDbMessage] = useState("");
+
+  const handleSyncDatabase = async () => {
+    if (!confirm("Deseja sincronizar e migrar todos os dados históricos, jogadores, ranking, decks e calendário para o banco de dados online?")) return;
+    setIsSyncingDb(true);
+    setSyncDbMessage("");
+    try {
+      const res = await fetch("/api/admin/sync-db", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSyncDbMessage("✅ Banco de dados online sincronizado e 100% populado com sucesso!");
+      } else {
+        setSyncDbMessage(`❌ Erro: ${data.error || "Falha na sincronização"}`);
+      }
+    } catch (err: any) {
+      setSyncDbMessage(`❌ Erro de conexão: ${err.message}`);
+    } finally {
+      setIsSyncingDb(false);
     }
   };
 
@@ -2137,6 +2161,41 @@ export function AdminDashboard({
               </button>
             </div>
           </form>
+
+          {/* Sincronização & Migração do Banco de Dados */}
+          <div className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-6 backdrop-blur-xl shadow-xl space-y-4">
+            <div className="flex items-center gap-2.5 text-blue-400">
+              <Database className="h-5 w-5 shrink-0" />
+              <h4 className="text-base font-bold text-white">Sincronização & Migração de Dados</h4>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Clique no botão abaixo para criar automaticamente as tabelas e sincronizar 100% dos dados históricos, jogadores, ranking oficial da Temporada 5, decks e calendário para o banco de dados online.
+            </p>
+
+            {syncDbMessage && (
+              <div
+                className={`p-4 rounded-xl border text-xs font-bold ${
+                  syncDbMessage.startsWith("✅")
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                    : "border-rose-500/30 bg-rose-500/10 text-rose-400"
+                }`}
+              >
+                {syncDbMessage}
+              </div>
+            )}
+
+            <div>
+              <button
+                type="button"
+                onClick={handleSyncDatabase}
+                disabled={isSyncingDb}
+                className="flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-5 py-2.5 text-xs font-bold text-white transition-all shadow-lg shadow-blue-600/20 cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${isSyncingDb ? "animate-spin" : ""}`} />
+                <span>{isSyncingDb ? "Sincronizando Banco..." : "Sincronizar Banco de Dados Agora"}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
