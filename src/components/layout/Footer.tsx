@@ -12,6 +12,10 @@ export function Footer({
   linkInstagram = "https://www.instagram.com/atlanticamais/",
   linkTwitch = "https://www.twitch.tv/atlanticamais",
 }: FooterProps) {
+  const whatsappUrl = linkWhatsApp && linkWhatsApp.trim() !== "" ? linkWhatsApp : "https://chat.whatsapp.com/EpUEb62hq1bKs6iDtQ3ena";
+  const instagramUrl = linkInstagram && linkInstagram.trim() !== "" ? linkInstagram : "https://www.instagram.com/atlanticamais/";
+  const twitchUrl = linkTwitch && linkTwitch.trim() !== "" ? linkTwitch : "https://www.twitch.tv/atlanticamais";
+
   return (
     <footer className="w-full border-t border-white/5 bg-slate-950/60 backdrop-blur-xl mt-14 sm:mt-18 text-slate-400">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
@@ -45,10 +49,10 @@ export function Footer({
           </nav>
 
           {/* Redes Sociais Discretas */}
-          <div className="flex items-center gap-2 flex-wrap justify-center">
-            {linkWhatsApp && (
+          <div className="flex items-center gap-2.5 flex-wrap justify-center">
+            {whatsappUrl && (
               <a
-                href={linkWhatsApp}
+                href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-all hover:scale-105"
@@ -60,9 +64,9 @@ export function Footer({
                 <span>WhatsApp</span>
               </a>
             )}
-            {linkInstagram && (
+            {instagramUrl && (
               <a
-                href={linkInstagram}
+                href={instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-all hover:scale-105"
@@ -74,9 +78,9 @@ export function Footer({
                 <span>Instagram</span>
               </a>
             )}
-            {linkTwitch && (
+            {twitchUrl && (
               <a
-                href={linkTwitch}
+                href={twitchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-all hover:scale-105"

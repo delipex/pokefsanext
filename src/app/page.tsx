@@ -21,21 +21,54 @@ export default async function HomePage() {
   const deckCounts: Record<string, number> = {};
   metaData.metagameEntries.forEach((m) => {
     const d = m.deckNome?.trim();
-    if (d && d.toLowerCase() !== "outros") {
+    if (d && d.toLowerCase() !== "outros" && d.toLowerCase() !== "sem deck registrado") {
       deckCounts[d] = (deckCounts[d] || 0) + 1;
     }
   });
 
-  // Lista de cartas enriquecida para a esteira Scroll Velocity
-  const velocityDeckList = metaData.decksInfo
-    .map((d) => ({
-      nome: d.nome,
-      tipoEnergia: d.tipoEnergia,
+  // Lista de cartas enriquecida para a esteira Scroll Velocity: 100% dos decks cadastrados e jogados
+  const allDeckMap = new Map<string, {
+    nome: string;
+    tipoEnergia: string;
+    imagem: string | null;
+    limitless: string | null;
+    count: number;
+  }>();
+
+  // 1. Adiciona todos os decks oficiais cadastrados no banco
+  metaData.decksInfo.forEach((d) => {
+    const cleanName = d.nome.trim();
+    if (!cleanName || cleanName.toLowerCase() === "outros" || cleanName.toLowerCase() === "sem deck registrado") return;
+    allDeckMap.set(cleanName.toLowerCase(), {
+      nome: cleanName,
+      tipoEnergia: d.tipoEnergia || "colorless",
       imagem: d.imagem,
       limitless: d.limitless,
-      count: deckCounts[d.nome] || 0,
-    }))
-    .sort((a, b) => b.count - a.count);
+      count: deckCounts[cleanName] || 0,
+    });
+  });
+
+  // 2. Adiciona quaisquer outros decks com registro nas etapas da temporada
+  Object.entries(deckCounts).forEach(([dName, count]) => {
+    const lower = dName.toLowerCase();
+    if (allDeckMap.has(lower)) {
+      const existing = allDeckMap.get(lower)!;
+      existing.count = count;
+    } else {
+      allDeckMap.set(lower, {
+        nome: dName,
+        tipoEnergia: "colorless",
+        imagem: null,
+        limitless: null,
+        count,
+      });
+    }
+  });
+
+  const velocityDeckList = Array.from(allDeckMap.values()).sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.nome.localeCompare(b.nome);
+  });
 
   const totalMetaEntries = metaData.metagameEntries.length;
   let topDeckName = "";

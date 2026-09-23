@@ -81,9 +81,7 @@ function BentoContained3DPlanes({
 
   useAnimationFrame((t, delta) => {
     if (hoveredIdx !== null || isDragging) {
-      // Desacelera 95% ao passar o cursor ou arrastar para permitir inspeção com calma
-      const moveBy = baseVelocity * 0.05 * (delta / 1000);
-      baseX.set(baseX.get() + moveBy);
+      // Pausa completa ao passar o cursor ou arrastar para permitir inspeção com total estabilidade
       return;
     }
 
@@ -157,17 +155,24 @@ function BentoContained3DPlanes({
                 zIndex: isCurrentHovered ? 60 : zIdx,
                 transformStyle: "preserve-3d",
                 transform: isCurrentHovered
-                  ? `translateY(${yOff - 20}px) translateZ(60px) scale(1.1) rotate(0deg)`
+                  ? `translateY(${yOff - 22}px) translateZ(70px) scale(1.12) rotate(0deg)`
                   : `translateY(${yOff}px) translateZ(0px) scale(${scl}) rotate(${rot}deg)`,
               }}
             >
               {/* Card Pokémon Físico com Aspect Ratio Oficial 63:88 */}
               <div
-                className="relative aspect-[63/88] w-[160px] sm:w-[195px] md:w-[225px] rounded-2xl overflow-hidden border border-white/15 bg-slate-950 shadow-[0_16px_36px_rgba(0,0,0,0.85)] transition-all duration-300"
+                className="relative aspect-[63/88] w-[160px] sm:w-[195px] md:w-[225px] rounded-2xl overflow-hidden border border-white/15 bg-slate-950 shadow-[0_16px_36px_rgba(0,0,0,0.85)] transition-all duration-300 group cursor-pointer"
                 style={{
                   boxShadow: isCurrentHovered
-                    ? `0 30px 60px -10px rgba(0, 0, 0, 0.95), 0 0 30px rgba(59, 130, 246, 0.35)`
+                    ? `0 30px 60px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(59, 130, 246, 0.45)`
                     : `0 14px 32px -6px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08)`,
+                }}
+                onClick={() => {
+                  if (deck.limitless) {
+                    window.open(deck.limitless, "_blank", "noopener,noreferrer");
+                  } else {
+                    window.location.href = "/metagame";
+                  }
                 }}
               >
                 {/* Imagem da Carta */}
@@ -175,7 +180,7 @@ function BentoContained3DPlanes({
                   <img
                     src={deck.imagem}
                     alt={deck.nome}
-                    className="w-full h-full object-cover object-center select-none filter brightness-95 hover:brightness-105 transition-all duration-300 pointer-events-none"
+                    className="w-full h-full object-cover object-center select-none filter brightness-95 group-hover:brightness-105 transition-all duration-300 pointer-events-none"
                     loading="lazy"
                   />
                 ) : (
@@ -195,7 +200,7 @@ function BentoContained3DPlanes({
                 />
 
                 {/* Badge Flutuante de Energia */}
-                <div className="absolute top-2.5 right-2.5">
+                <div className="absolute top-2.5 right-2.5 z-20">
                   <div className="flex items-center -space-x-1 p-1 rounded-full bg-black/80 backdrop-blur-md border border-white/15 shadow-md">
                     {energy.types.map((t, i) => (
                       <span
@@ -208,8 +213,19 @@ function BentoContained3DPlanes({
                   </div>
                 </div>
 
+                {/* Botão Flutuante de Interação no Centro do Card ao Hover */}
+                <div
+                  className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 transition-all duration-200 pointer-events-none ${
+                    isCurrentHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/90 border border-blue-400/40 px-3 py-1 text-[11px] font-bold text-white shadow-2xl backdrop-blur-md whitespace-nowrap">
+                    {deck.limitless ? "Ver Lista ↗" : "Ver no Metagame →"}
+                  </span>
+                </div>
+
                 {/* Faixa Inferior com Nome do Deck */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-transparent p-3 pt-7 flex flex-col justify-end">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-transparent p-3 pt-7 flex flex-col justify-end z-20">
                   <span className="text-xs sm:text-sm font-bold text-white truncate drop-shadow-md">
                     {deck.nome}
                   </span>
@@ -281,14 +297,7 @@ export function ScrollVelocityCards({
 
   return (
     <section className="relative w-full overflow-hidden rounded-3xl border border-white/[0.04] bg-white/[0.015] p-4 sm:p-7 backdrop-blur-2xl shadow-2xl space-y-5">
-      {/* Marca d'água Tipográfica de Fundo */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center select-none pointer-events-none opacity-[0.03] overflow-hidden whitespace-nowrap">
-        <span className="text-7xl sm:text-9xl md:text-[11rem] font-black tracking-widest uppercase text-white font-mono">
-          STANDARD FORMAT
-        </span>
-      </div>
-
-      {/* Luz ambiente de fundo */}
+      {/* Luz ambiente suave de fundo (sem marca d'água de texto) */}
       <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
 
       {/* 1. Topo Informativo da Caixa */}
@@ -300,7 +309,7 @@ export function ScrollVelocityCards({
           </h3>
         </div>
         <span className="text-[10px] sm:text-xs text-slate-400 font-normal hidden sm:inline">
-          ⚡ Arraste ou role a página para interagir
+          ⚡ Passe o mouse para inspecionar ou arraste para girar
         </span>
       </div>
 
