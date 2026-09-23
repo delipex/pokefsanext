@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { ExternalLink, ChevronLeft, ChevronRight, RotateCcw, Orbit, CircleDot } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight, BarChart3, LayoutGrid, CircleDot } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
@@ -42,25 +42,9 @@ const OFFICIAL_ENERGY_COLORS: Record<string, { primary: string; secondary: strin
   colorless: { primary: "#94a3b8", secondary: "#64748b" },
 };
 
-const ENERGY_LABELS: Record<string, { label: string; icon: string }> = {
-  grass: { label: "Planta", icon: "🌿" },
-  fire: { label: "Fogo", icon: "🔥" },
-  water: { label: "Água", icon: "💧" },
-  lightning: { label: "Raios", icon: "⚡" },
-  electric: { label: "Raios", icon: "⚡" },
-  psychic: { label: "Psíquico", icon: "👁️" },
-  fighting: { label: "Luta", icon: "🥊" },
-  darkness: { label: "Trevas", icon: "🌑" },
-  dark: { label: "Trevas", icon: "🌑" },
-  metal: { label: "Metal", icon: "⚙️" },
-  dragon: { label: "Dragão", icon: "🐉" },
-  colorless: { label: "Incolor", icon: "⭐" },
-};
-
 function getArcPath(cx: number, cy: number, innerR: number, outerR: number, startA: number, endA: number) {
   const diff = endA - startA;
   const largeArc = diff > Math.PI ? 1 : 0;
-  // Margem mínima para evitar sobreposição
   const x1Out = cx + outerR * Math.cos(startA);
   const y1Out = cy + outerR * Math.sin(startA);
   const x2Out = cx + outerR * Math.cos(endA);
@@ -75,15 +59,14 @@ function getArcPath(cx: number, cy: number, innerR: number, outerR: number, star
 }
 
 export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashboardProps) {
-  const [chartMode, setChartMode] = useState<"sunburst" | "donut">("sunburst");
+  // Modo de visualização: "bars" (Opção 1) | "treemap" (Opção 2) | "donut" (Opção 3)
+  const [chartMode, setChartMode] = useState<"bars" | "treemap" | "donut">("bars");
   const [carouselIndex, setCarouselIndex] = useState<number>(0);
   const [hoveredDeck, setHoveredDeck] = useState<string | null>(null);
-  const [hoveredEnergy, setHoveredEnergy] = useState<string | null>(null);
-  const [isOutrosExpanded, setIsOutrosExpanded] = useState<boolean>(false);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 1. Contagem e estatísticas brutas dos decks
-  const { deckStats, totalDecks, carouselDecks, energyGroups } = useMemo(() => {
+  // 1. Estatísticas consolidadas dos decks
+  const { deckStats, totalDecks, carouselDecks, maxPercent } = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const entry of metagameEntries) {
       const name = entry.deckNome?.trim();
@@ -112,196 +95,29 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
       })
       .sort((a, b) => b.count - a.count);
 
-    // Carrossel contém todos os decks registrados (exceto agrupamento genérico)
     const validDecks = stats.filter(
       (d) => d.deckName.toLowerCase() !== "outros" && d.deckName.toLowerCase() !== "outros decks"
     );
 
-    // Agrupamento por Tipo de Energia para o Sunburst
-    const energyMap: Record<string, {
-      energy: string;
-      totalCount: number;
-      percent: number;
-      decks: typeof stats;
-    }> = {};
-
-    stats.forEach((d) => {
-      const isOutrosVal = d.deckName.toLowerCase() === "outros" || d.deckName.toLowerCase() === "outros decks";
-      const normEnergy = (isOutrosVal ? "colorless" : d.tipoEnergia || "colorless").toLowerCase().split("+")[0].trim();
-      
-      if (!energyMap[normEnergy]) {
-        energyMap[normEnergy] = {
-          energy: normEnergy,
-          totalCount: 0,
-          percent: 0,
-          decks: [],
-        };
-      }
-      energyMap[normEnergy].totalCount += d.count;
-      energyMap[normEnergy].decks.push(d);
-    });
-
-    const groups = Object.values(energyMap)
-      .map((g) => ({
-        ...g,
-        percent: (g.totalCount / total) * 100,
-        decks: g.decks.sort((a, b) => b.count - a.count),
-      }))
-      .sort((a, b) => b.totalCount - a.totalCount);
+    const max = stats.length > 0 ? stats[0].percent : 1;
 
     return {
       deckStats: stats,
       totalDecks: metagameEntries.length,
       carouselDecks: validDecks.length > 0 ? validDecks : stats,
-      energyGroups: groups,
+      maxPercent: max || 1,
     };
   }, [metagameEntries, decksInfo]);
 
-  // 2. Geometria do SUNBURST CHART (2 Níveis: Anel Interno = Energia, Anel Externo = Decks)
-  const sunburstSlices = useMemo(() => {
-    const cx = 220;
-    const cy = 220;
-    const innerR1 = 76;
-    const outerR1 = 126;
-    const midR1 = (innerR1 + outerR1) / 2;
-
-    const innerR2 = 132;
-    const outerR2 = 215;
-    const midR2 = (innerR2 + outerR2) / 2;
-
-    const totalCount = energyGroups.reduce((acc, g) => acc + g.totalCount, 0) || 1;
-    let accumulatedAngle = -Math.PI / 2; // Inicia às 12 horas
-
-    const innerSlices: Array<{
-      energy: string;
-      label: string;
-      icon: string;
-      count: number;
-      percent: number;
-      percentStr: string;
-      startAngle: number;
-      endAngle: number;
-      sliceAngle: number;
-      midAngle: number;
-      pathData: string;
-      midX: number;
-      midY: number;
-      textRotation: number;
-    }> = [];
-
-    const outerSlices: Array<{
-      deckName: string;
-      energy: string;
-      count: number;
-      percent: number;
-      percentStr: string;
-      icone: string | null;
-      startAngle: number;
-      endAngle: number;
-      sliceAngle: number;
-      midAngle: number;
-      pathData: string;
-      midX: number;
-      midY: number;
-      textRotation: number;
-      uniqueKey: string;
-    }> = [];
-
-    energyGroups.forEach((group, gIdx) => {
-      const groupAngle = (group.totalCount / totalCount) * (2 * Math.PI);
-      const groupStartAngle = accumulatedAngle;
-      const groupEndAngle = accumulatedAngle + groupAngle;
-      const groupMidAngle = (groupStartAngle + groupEndAngle) / 2;
-
-      // Anel Interno: Arco da Energia
-      const path1 = getArcPath(cx, cy, innerR1, outerR1, groupStartAngle, groupEndAngle);
-      const midX1 = cx + midR1 * Math.cos(groupMidAngle);
-      const midY1 = cy + midR1 * Math.sin(groupMidAngle);
-
-      let textRot1 = (groupMidAngle * 180) / Math.PI;
-      if (textRot1 > 90 && textRot1 < 270) textRot1 += 180;
-      else if (textRot1 < -90 && textRot1 > -270) textRot1 += 180;
-
-      const meta = ENERGY_LABELS[group.energy] || { label: group.energy, icon: "⭐" };
-
-      innerSlices.push({
-        energy: group.energy,
-        label: meta.label,
-        icon: meta.icon,
-        count: group.totalCount,
-        percent: group.percent,
-        percentStr: Math.round(group.percent) + "%",
-        startAngle: groupStartAngle,
-        endAngle: groupEndAngle,
-        sliceAngle: groupAngle,
-        midAngle: groupMidAngle,
-        pathData: path1,
-        midX: midX1,
-        midY: midY1,
-        textRotation: textRot1,
-      });
-
-      // Anel Externo: Decks daquela energia particionando exatamente o arco do grupo
-      let deckAccumAngle = groupStartAngle;
-      group.decks.forEach((deck, dIdx) => {
-        const deckAngle = (deck.count / group.totalCount) * groupAngle;
-        const deckStartAngle = deckAccumAngle;
-        const deckEndAngle = deckAccumAngle + deckAngle;
-        const deckMidAngle = (deckStartAngle + deckEndAngle) / 2;
-        deckAccumAngle = deckEndAngle;
-
-        const path2 = getArcPath(cx, cy, innerR2, outerR2, deckStartAngle, deckEndAngle);
-        const midX2 = cx + midR2 * Math.cos(deckMidAngle);
-        const midY2 = cy + midR2 * Math.sin(deckMidAngle);
-
-        let textRot2 = (deckMidAngle * 180) / Math.PI;
-        if (textRot2 > 90 && textRot2 < 270) textRot2 += 180;
-        else if (textRot2 < -90 && textRot2 > -270) textRot2 += 180;
-
-        outerSlices.push({
-          deckName: deck.deckName,
-          energy: group.energy,
-          count: deck.count,
-          percent: deck.percent,
-          percentStr: deck.percent < 1 ? deck.percent.toFixed(1) + "%" : Math.round(deck.percent) + "%",
-          icone: deck.icone,
-          startAngle: deckStartAngle,
-          endAngle: deckEndAngle,
-          sliceAngle: deckAngle,
-          midAngle: deckMidAngle,
-          pathData: path2,
-          midX: midX2,
-          midY: midY2,
-          textRotation: textRot2,
-          uniqueKey: `sunburst-deck-${gIdx}-${dIdx}-${deck.deckName}`,
-        });
-      });
-
-      accumulatedAngle = groupEndAngle;
-    });
-
-    return { innerSlices, outerSlices };
-  }, [energyGroups]);
-
-  // 3. Geometria do DONUT CLÁSSICO (Fallback para comparação)
-  const classicDonutSlices = useMemo(() => {
+  // 2. Geometria do Donut Top 5 (Opção 3)
+  const top5DonutSlices = useMemo(() => {
     const total = totalDecks || 1;
-    let outrosCount = 0;
-    const outrosList: typeof deckStats = [];
-    const mainList: typeof deckStats = [];
+    const TOP_LIMIT = 5;
+    const topDecks = deckStats.slice(0, TOP_LIMIT);
+    const otherDecks = deckStats.slice(TOP_LIMIT);
+    const outrosCount = otherDecks.reduce((acc, d) => acc + d.count, 0);
 
-    deckStats.forEach((d) => {
-      const isOutrosVal = d.deckName.toLowerCase() === "outros" || d.deckName.toLowerCase() === "outros decks";
-      const isMinor = d.percent < 2.0 || isOutrosVal;
-      if (isMinor) {
-        outrosCount += d.count;
-        outrosList.push(d);
-      } else {
-        mainList.push(d);
-      }
-    });
-
-    let currentSlices = (isOutrosExpanded ? outrosList : mainList).map((d) => ({
+    const currentSlices = topDecks.map((d) => ({
       name: d.deckName,
       count: d.count,
       percent: d.percent,
@@ -311,13 +127,13 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
       isOutros: false,
     }));
 
-    if (!isOutrosExpanded && outrosCount > 0) {
+    if (outrosCount > 0) {
       const outrosPct = (outrosCount / total) * 100;
       currentSlices.push({
         name: "Outros Decks",
         count: outrosCount,
         percent: outrosPct,
-        percentStr: outrosPct < 1 ? outrosPct.toFixed(1) + "%" : Math.round(outrosPct) + "%",
+        percentStr: Math.round(outrosPct) + "%",
         energy: "colorless",
         icone: null,
         isOutros: true,
@@ -327,7 +143,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     const cx = 220;
     const cy = 220;
     const outerR = 195;
-    const innerR = 78;
+    const innerR = 80;
     const midR = (innerR + outerR) / 2;
     const totalVal = currentSlices.reduce((acc, s) => acc + s.count, 0) || 1;
     let accAngle = -Math.PI / 2;
@@ -357,7 +173,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
         textRotation,
       };
     });
-  }, [deckStats, totalDecks, isOutrosExpanded]);
+  }, [deckStats, totalDecks]);
 
   // Autoplay para o Carrossel 3D
   useEffect(() => {
@@ -379,10 +195,9 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     setCarouselIndex((prev) => (prev + 1) % carouselDecks.length);
   };
 
-  // Sincronização ao passar o mouse em um Deck do Sunburst / Donut
+  // Sincronização ao passar o mouse em um Deck
   const handleDeckHover = (deckName: string) => {
     setHoveredDeck(deckName);
-    setHoveredEnergy(null);
     if (autoPlayRef.current) clearInterval(autoPlayRef.current);
 
     const foundIdx = carouselDecks.findIndex(
@@ -390,23 +205,6 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     );
     if (foundIdx !== -1) {
       setCarouselIndex(foundIdx);
-    }
-  };
-
-  // Sincronização ao passar o mouse em um Tipo de Energia (Anel Interno)
-  const handleEnergyHover = (energy: string) => {
-    setHoveredEnergy(energy);
-    setHoveredDeck(null);
-    if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-
-    const firstDeckOfEnergy = carouselDecks.find((d) => {
-      const norm = (d.tipoEnergia || "colorless").toLowerCase().split("+")[0].trim();
-      return norm === energy.toLowerCase();
-    });
-
-    if (firstDeckOfEnergy) {
-      const foundIdx = carouselDecks.findIndex((d) => d.deckName === firstDeckOfEnergy.deckName);
-      if (foundIdx !== -1) setCarouselIndex(foundIdx);
     }
   };
 
@@ -418,18 +216,18 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
   const activeConfig = getMultiEnergyConfig(activeEnergy);
   const primaryEnergyColor = activeConfig.types[0]?.hex || "#ffcb05";
 
-  // Objeto em foco no centro do Sunburst
-  const activeSunburstEnergy = hoveredEnergy ? energyGroups.find((g) => g.energy === hoveredEnergy) : null;
-  const activeSunburstDeck = hoveredDeck ? deckStats.find((d) => d.deckName === hoveredDeck) : null;
-
   const getEnergyColor = (energy: string) => {
     const norm = energy.toLowerCase().split("+")[0].trim();
     return OFFICIAL_ENERGY_COLORS[norm] || OFFICIAL_ENERGY_COLORS.colorless;
   };
 
+  const activeHoverDeckInfo = hoveredDeck
+    ? deckStats.find((d) => d.deckName.toLowerCase() === hoveredDeck.toLowerCase())
+    : null;
+
   return (
     <div className="w-full">
-      {/* Card Unificado com Sunburst / Donut e Carrossel 3D */}
+      {/* Card Unificado com Visualizador de Metagame e Carrossel 3D */}
       <div
         className="glass-card rounded-3xl p-6 sm:p-8 backdrop-blur-2xl transition-all border border-white/[0.05]"
         onMouseEnter={() => {
@@ -443,11 +241,11 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
           }
         }}
       >
-        {/* Header com Informações do Deck Focado + Seletor de Modo Sunburst vs Donut */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/[0.06] pb-5 mb-6">
+        {/* Header com Informações do Deck Focado + Seletor de 3 Modos */}
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-4 border-b border-white/[0.06] pb-5 mb-6">
           {activeDeck && (
-            <div className="text-center sm:text-left">
-              <div className="flex items-center gap-2.5 justify-center sm:justify-start">
+            <div className="text-center lg:text-left">
+              <div className="flex items-center gap-2.5 justify-center lg:justify-start">
                 <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                   {activeDeck.deckName}
                 </h3>
@@ -460,33 +258,46 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
             </div>
           )}
 
-          <div className="flex items-center gap-3">
-            {/* Seletor Estilo iOS Segmented Control para Comparação */}
-            <div className="flex items-center p-1 rounded-xl bg-slate-900/80 border border-white/10 shadow-inner">
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            {/* Seletor com as 3 Opções de Visualização */}
+            <div className="flex items-center p-1 rounded-xl bg-slate-900/90 border border-white/10 shadow-inner">
               <button
-                onClick={() => setChartMode("sunburst")}
+                onClick={() => setChartMode("bars")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  chartMode === "sunburst"
-                    ? "bg-blue-600 text-white shadow-md"
+                  chartMode === "bars"
+                    ? "bg-blue-600 text-white shadow-lg"
                     : "text-slate-400 hover:text-white"
                 }`}
-                title="Sunburst 2-Níveis: Anel interno (Energias) + Anel externo (Decks)"
+                title="Opção 1: Barras Horizontais com Metagame Share (Padrão Limitless)"
               >
-                <Orbit className="h-3.5 w-3.5" />
-                <span>Sunburst</span>
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span>1. Barras</span>
+              </button>
+
+              <button
+                onClick={() => setChartMode("treemap")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  chartMode === "treemap"
+                    ? "bg-blue-600 text-white shadow-lg"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Opção 2: Mosaico de Blocos Proporcionais"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>2. Mosaico</span>
               </button>
 
               <button
                 onClick={() => setChartMode("donut")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   chartMode === "donut"
-                    ? "bg-blue-600 text-white shadow-md"
+                    ? "bg-blue-600 text-white shadow-lg"
                     : "text-slate-400 hover:text-white"
                 }`}
-                title="Donut Clássico: Visão simplificada de 1 anel"
+                title="Opção 3: Donut Espaçoso focado nos Top 5"
               >
                 <CircleDot className="h-3.5 w-3.5" />
-                <span>Donut</span>
+                <span>3. Donut Top 5</span>
               </button>
             </div>
 
@@ -506,7 +317,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
           {/* Lado Esquerdo: Carrossel 3D das Cartas Pokémon */}
-          <div className="md:col-span-6 flex flex-col items-center justify-center relative overflow-visible py-4">
+          <div className="md:col-span-5 flex flex-col items-center justify-center relative overflow-visible py-4">
             <div className="relative w-full max-w-[280px] sm:max-w-[310px] aspect-[63/88] flex items-center justify-center overflow-visible">
               {/* Controles de Navegação */}
               <button
@@ -575,334 +386,305 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
             </div>
           </div>
 
-          {/* Lado Direito: Gráfico Radial (Sunburst ou Donut) */}
-          <div className="md:col-span-6 flex flex-col items-center justify-center relative">
-            {/* Botão de retorno do Drill-down (apenas no modo Donut) */}
-            {chartMode === "donut" && isOutrosExpanded && (
-              <div className="w-full flex justify-center mb-3">
-                <button
-                  onClick={() => setIsOutrosExpanded(false)}
-                  className="flex items-center gap-2 rounded-full border border-sky-500/40 bg-sky-500/15 hover:bg-sky-500/30 px-4 py-1.5 text-xs font-bold text-sky-200 hover:text-white transition-all cursor-pointer shadow-lg active:scale-95"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  <span>← Voltar para visão geral</span>
-                </button>
+          {/* Lado Direito: Visualizador Selecionado (Barras, Mosaico ou Donut) */}
+          <div className="md:col-span-7 flex flex-col justify-center relative min-h-[380px]">
+            {/* ========================================================== */}
+            {/* OPÇÃO 1: BARRAS HORIZONTAIS INTERATIVAS (PADRÃO LIMITLESS)  */}
+            {/* ========================================================== */}
+            {chartMode === "bars" && (
+              <div className="w-full space-y-2.5 max-h-[420px] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar animate-in fade-in duration-300">
+                {deckStats.map((deck, idx) => {
+                  const colors = getEnergyColor(deck.tipoEnergia);
+                  const isCurrent = activeDeck?.deckName.toLowerCase() === deck.deckName.toLowerCase();
+                  const isHovered = hoveredDeck === deck.deckName;
+                  const barWidth = `${(deck.percent / maxPercent) * 100}%`;
+
+                  return (
+                    <div
+                      key={`bar-${deck.deckName}`}
+                      onMouseEnter={() => handleDeckHover(deck.deckName)}
+                      onMouseLeave={() => setHoveredDeck(null)}
+                      onClick={() => handleDeckHover(deck.deckName)}
+                      className={`group relative rounded-2xl p-3 border transition-all duration-200 cursor-pointer ${
+                        isCurrent || isHovered
+                          ? "bg-white/[0.08] border-white/30 shadow-lg scale-[1.01]"
+                          : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3 relative z-10 mb-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {/* Rank # */}
+                          <span
+                            className={`w-6 text-center text-xs font-black tabular-nums ${
+                              idx === 0
+                                ? "text-amber-400"
+                                : idx === 1
+                                ? "text-slate-200"
+                                : idx === 2
+                                ? "text-amber-600"
+                                : "text-slate-500"
+                            }`}
+                          >
+                            #{idx + 1}
+                          </span>
+
+                          {/* Avatar / Ícone do Pokémon */}
+                          <div className="h-8 w-8 rounded-xl bg-slate-900 border border-white/15 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
+                            {deck.icone ? (
+                              <img
+                                src={deck.icone}
+                                alt={deck.deckName}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-xs">⚡</span>
+                            )}
+                          </div>
+
+                          {/* Nome do Deck */}
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-black text-sm text-white truncate group-hover:text-amber-300 transition-colors">
+                                {deck.deckName}
+                              </span>
+                              <EnergyBadge energyRaw={deck.tipoEnergia} />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Estatísticas Numéricas: % e Jogos */}
+                        <div className="text-right shrink-0 flex items-baseline gap-2">
+                          <span
+                            className="text-base sm:text-lg font-black tabular-nums"
+                            style={{ color: colors.primary }}
+                          >
+                            {deck.percent.toFixed(1)}%
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                            ({deck.count} {deck.count === 1 ? "jogo" : "jogos"})
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Barra de Progresso Horizontal Proporcional */}
+                      <div className="w-full h-2 rounded-full bg-slate-900/80 overflow-hidden border border-white/5 relative">
+                        <div
+                          className="h-full rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(255,255,255,0.2)]"
+                          style={{
+                            width: barWidth,
+                            background: `linear-gradient(to right, ${colors.primary}, ${colors.secondary})`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            <div className="relative w-full max-w-[420px] aspect-square flex items-center justify-center">
-              <svg
-                viewBox="0 0 440 440"
-                className="w-full h-full overflow-visible select-none drop-shadow-2xl"
-              >
-                <defs>
-                  {/* Gradientes oficiais para cada elemento */}
-                  {Object.entries(OFFICIAL_ENERGY_COLORS).map(([energyKey, colors]) => (
-                    <linearGradient
-                      key={`sunburstGrad-${energyKey}`}
-                      id={`sunburstGrad-${energyKey}`}
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
+            {/* ========================================================== */}
+            {/* OPÇÃO 2: TREEMAP MOSAICO (GRADE DE BLOCOS PROPORCIONAIS)   */}
+            {/* ========================================================== */}
+            {chartMode === "treemap" && (
+              <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2.5 animate-in fade-in duration-300">
+                {deckStats.slice(0, 6).map((deck, idx) => {
+                  const colors = getEnergyColor(deck.tipoEnergia);
+                  const isCurrent = activeDeck?.deckName.toLowerCase() === deck.deckName.toLowerCase();
+                  const isHovered = hoveredDeck === deck.deckName;
+                  // Decks maiores ganham destaque maior na grade
+                  const isHero = idx === 0;
+
+                  return (
+                    <div
+                      key={`treemap-${deck.deckName}`}
+                      onMouseEnter={() => handleDeckHover(deck.deckName)}
+                      onMouseLeave={() => setHoveredDeck(null)}
+                      onClick={() => handleDeckHover(deck.deckName)}
+                      className={`group relative rounded-2xl p-4 overflow-hidden border transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[110px] ${
+                        isHero ? "col-span-2 row-span-1 sm:row-span-2 min-h-[140px] sm:min-h-[180px]" : "col-span-1"
+                      } ${
+                        isCurrent || isHovered
+                          ? "border-white/40 shadow-2xl scale-[1.02]"
+                          : "border-white/10 hover:border-white/25"
+                      }`}
+                      style={{
+                        background: `linear-gradient(135deg, ${colors.primary}25 0%, rgba(15, 23, 42, 0.95) 100%)`,
+                      }}
                     >
-                      <stop offset="0%" stopColor={colors.primary} stopOpacity={0.96} />
-                      <stop offset="100%" stopColor={colors.secondary} stopOpacity={0.88} />
-                    </linearGradient>
-                  ))}
+                      {/* Marca d'água com ícone do Pokémon */}
+                      {deck.icone && (
+                        <img
+                          src={deck.icone}
+                          alt=""
+                          className="absolute -right-2 -bottom-2 w-20 h-20 sm:w-28 sm:h-28 opacity-20 pointer-events-none object-contain filter grayscale group-hover:grayscale-0 group-hover:opacity-40 transition-all duration-300"
+                        />
+                      )}
 
-                  {/* Clip paths para os recortes de imagem dos decks no Sunburst */}
-                  {sunburstSlices.outerSlices.map((slice) => (
-                    <clipPath key={`clip-${slice.uniqueKey}`} id={`clip-${slice.uniqueKey}`}>
-                      <path d={slice.pathData} />
-                    </clipPath>
-                  ))}
+                      <div className="flex items-start justify-between gap-2 relative z-10">
+                        <span className="text-xs font-black uppercase text-slate-300 flex items-center gap-1.5">
+                          #{idx + 1}
+                          <EnergyBadge energyRaw={deck.tipoEnergia} />
+                        </span>
+                        <span
+                          className="text-xl sm:text-2xl font-black tabular-nums drop-shadow-md"
+                          style={{ color: colors.primary }}
+                        >
+                          {deck.percent.toFixed(1)}%
+                        </span>
+                      </div>
 
-                  {/* Clip paths para o Donut clássico */}
-                  {classicDonutSlices.map((slice) => (
-                    <clipPath key={`clip-donut-${slice.idx}`} id={`clip-donut-${slice.idx}`}>
-                      <path d={slice.pathData} />
-                    </clipPath>
-                  ))}
-                </defs>
+                      <div className="relative z-10 mt-3">
+                        <span className="font-black text-sm sm:text-base text-white block truncate">
+                          {deck.deckName}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          {deck.count} aparições
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-                {chartMode === "sunburst" ? (
-                  /* ========================================================== */
-                  /* SUNBURST CHART HIERÁRQUICO (2 ANÉIS CONCÊNTRICOS)          */
-                  /* ========================================================== */
-                  <>
-                    {/* 1. Anel Interno: Grupos de Energia */}
-                    <g>
-                      {sunburstSlices.innerSlices.map((slice) => {
-                        const isHovered = hoveredEnergy === slice.energy;
-                        const isDeckInThisEnergyHovered = hoveredDeck
-                          ? deckStats.find((d) => d.deckName === hoveredDeck)?.tipoEnergia?.toLowerCase()?.includes(slice.energy)
-                          : false;
-                        const isFocused = isHovered || isDeckInThisEnergyHovered;
+            {/* ========================================================== */}
+            {/* OPÇÃO 3: DONUT ESPAÇOSO TOP 5 + OUTROS                    */}
+            {/* ========================================================== */}
+            {chartMode === "donut" && (
+              <div className="relative w-full max-w-[390px] aspect-square mx-auto flex items-center justify-center animate-in fade-in duration-300">
+                <svg
+                  viewBox="0 0 440 440"
+                  className="w-full h-full overflow-visible select-none drop-shadow-2xl"
+                >
+                  <defs>
+                    {top5DonutSlices.map((slice, i) => {
+                      const colors = getEnergyColor(slice.energy);
+                      return (
+                        <linearGradient
+                          key={`donutTop5Grad-${i}`}
+                          id={`donutTop5Grad-${i}`}
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop offset="0%" stopColor={colors.primary} stopOpacity={0.96} />
+                          <stop offset="100%" stopColor={colors.secondary} stopOpacity={0.88} />
+                        </linearGradient>
+                      );
+                    })}
+                    {top5DonutSlices.map((slice) => (
+                      <clipPath key={`clip-top5-${slice.idx}`} id={`clip-top5-${slice.idx}`}>
+                        <path d={slice.pathData} />
+                      </clipPath>
+                    ))}
+                  </defs>
 
-                        return (
-                          <path
-                            key={`inner-energy-${slice.energy}`}
-                            d={slice.pathData}
-                            fill={`url(#sunburstGrad-${slice.energy})`}
-                            stroke={isFocused ? "#ffffff" : "rgba(255, 255, 255, 0.3)"}
-                            strokeWidth={isFocused ? 2.5 : 1}
-                            opacity={hoveredEnergy && !isHovered ? 0.45 : 1}
-                            className="transition-all duration-200 cursor-pointer"
-                            onMouseEnter={() => handleEnergyHover(slice.energy)}
-                            onMouseLeave={() => setHoveredEnergy(null)}
-                            onClick={() => handleEnergyHover(slice.energy)}
+                  <g>
+                    {top5DonutSlices.map((slice) => {
+                      const isHovered = hoveredDeck === slice.name;
+                      return (
+                        <path
+                          key={`donut-top5-path-${slice.idx}`}
+                          d={slice.pathData}
+                          fill={slice.isOutros ? "#334155" : `url(#donutTop5Grad-${slice.idx})`}
+                          stroke={isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.25)"}
+                          strokeWidth={isHovered ? 3.5 : 1}
+                          className="transition-all duration-200 cursor-pointer"
+                          onMouseEnter={() => handleDeckHover(slice.name)}
+                          onMouseLeave={() => setHoveredDeck(null)}
+                          onClick={() => handleDeckHover(slice.name)}
+                        />
+                      );
+                    })}
+                  </g>
+
+                  {/* Sprites recortados */}
+                  <g className="pointer-events-none">
+                    {top5DonutSlices.map((slice) => {
+                      if (slice.isOutros || !slice.icone) return null;
+                      const isHovered = hoveredDeck === slice.name;
+                      const iconSize = slice.sliceAngle > 0.4 ? 130 : 100;
+                      return (
+                        <g key={`donut-top5-img-${slice.idx}`} clipPath={`url(#clip-top5-${slice.idx})`}>
+                          <image
+                            href={slice.icone}
+                            x={slice.midX - iconSize / 2}
+                            y={slice.midY - iconSize / 2}
+                            width={iconSize}
+                            height={iconSize}
+                            preserveAspectRatio="xMidYMid slice"
+                            opacity={isHovered ? 1 : 0.88}
+                            className="transition-all duration-300 filter brightness-110 contrast-105"
                           />
-                        );
-                      })}
-                    </g>
+                        </g>
+                      );
+                    })}
+                  </g>
 
-                    {/* 2. Anel Externo: Decks daquela Energia */}
-                    <g>
-                      {sunburstSlices.outerSlices.map((slice) => {
-                        const isHovered = hoveredDeck === slice.deckName;
-                        const isParentEnergyHovered = hoveredEnergy === slice.energy;
-                        const opacityVal = hoveredDeck
-                          ? isHovered
-                            ? 1
-                            : 0.35
-                          : hoveredEnergy
-                          ? isParentEnergyHovered
-                            ? 1
-                            : 0.3
-                          : 0.95;
-
-                        return (
-                          <path
-                            key={`outer-deck-${slice.uniqueKey}`}
-                            d={slice.pathData}
-                            fill={`url(#sunburstGrad-${slice.energy})`}
-                            stroke={isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.25)"}
-                            strokeWidth={isHovered ? 3 : 1}
-                            opacity={opacityVal}
-                            className="transition-all duration-200 cursor-pointer"
-                            onMouseEnter={() => handleDeckHover(slice.deckName)}
-                            onMouseLeave={() => setHoveredDeck(null)}
-                            onClick={() => handleDeckHover(slice.deckName)}
-                          />
-                        );
-                      })}
-                    </g>
-
-                    {/* 3. Sprites de Pokémon nos Decks do Anel Externo */}
-                    <g className="pointer-events-none">
-                      {sunburstSlices.outerSlices.map((slice) => {
-                        if (!slice.icone) return null;
-                        const isHovered = hoveredDeck === slice.deckName;
-                        const iconSize = slice.sliceAngle > 0.4 ? 120 : slice.sliceAngle > 0.2 ? 100 : 75;
-
-                        return (
-                          <g key={`sunburst-img-${slice.uniqueKey}`} clipPath={`url(#clip-${slice.uniqueKey})`}>
-                            <image
-                              href={slice.icone}
-                              x={slice.midX - iconSize / 2}
-                              y={slice.midY - iconSize / 2}
-                              width={iconSize}
-                              height={iconSize}
-                              preserveAspectRatio="xMidYMid slice"
-                              opacity={isHovered ? 1 : 0.88}
-                              className="transition-all duration-300 filter brightness-110 contrast-105"
-                            />
-                          </g>
-                        );
-                      })}
-                    </g>
-
-                    {/* 4. Rótulos do Anel Interno (Ícone e Nome da Energia) */}
-                    <g className="pointer-events-none">
-                      {sunburstSlices.innerSlices.map((slice) => {
-                        if (slice.sliceAngle < 0.18) return null;
-                        return (
-                          <g
-                            key={`inner-label-${slice.energy}`}
-                            transform={`rotate(${slice.textRotation}, ${slice.midX}, ${slice.midY})`}
+                  {/* Rótulos com contorno */}
+                  <g className="pointer-events-none">
+                    {top5DonutSlices.map((slice) => {
+                      const label = slice.isOutros ? "Outros" : slice.percentStr;
+                      return (
+                        <g
+                          key={`donut-top5-text-${slice.idx}`}
+                          transform={`rotate(${slice.textRotation}, ${slice.midX}, ${slice.midY})`}
+                        >
+                          <text
+                            x={slice.midX}
+                            y={slice.midY}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fill="#ffffff"
+                            stroke="#020617"
+                            strokeWidth={4}
+                            strokeLinejoin="round"
+                            paintOrder="stroke fill"
+                            fontSize={13}
+                            fontWeight="800"
+                            className="tabular-nums select-none"
                           >
-                            <text
-                              x={slice.midX}
-                              y={slice.midY}
-                              textAnchor="middle"
-                              dominantBaseline="central"
-                              fill="#ffffff"
-                              stroke="#020617"
-                              strokeWidth={3.5}
-                              strokeLinejoin="round"
-                              paintOrder="stroke fill"
-                              fontSize={slice.sliceAngle > 0.4 ? 12 : 10.5}
-                              fontWeight="800"
-                              className="tabular-nums select-none"
-                            >
-                              {slice.icon} {slice.percentStr}
-                            </text>
-                          </g>
-                        );
-                      })}
-                    </g>
+                            {label}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </g>
+                </svg>
 
-                    {/* 5. Rótulos do Anel Externo (% dos Decks Individuais) */}
-                    <g className="pointer-events-none">
-                      {sunburstSlices.outerSlices.map((slice) => {
-                        if (slice.sliceAngle < 0.08) return null;
-                        return (
-                          <g
-                            key={`outer-label-${slice.uniqueKey}`}
-                            transform={`rotate(${slice.textRotation}, ${slice.midX}, ${slice.midY})`}
-                          >
-                            <text
-                              x={slice.midX}
-                              y={slice.midY}
-                              textAnchor="middle"
-                              dominantBaseline="central"
-                              fill="#ffffff"
-                              stroke="#020617"
-                              strokeWidth={4}
-                              strokeLinejoin="round"
-                              paintOrder="stroke fill"
-                              fontSize={slice.percent >= 10 ? 13 : 11}
-                              fontWeight="800"
-                              className="tabular-nums select-none"
-                            >
-                              {slice.percentStr}
-                            </text>
-                          </g>
-                        );
-                      })}
-                    </g>
-                  </>
-                ) : (
-                  /* ========================================================== */
-                  /* DONUT CLÁSSICO DE 1 NÍVEL                                  */
-                  /* ========================================================== */
-                  <>
-                    <g>
-                      {classicDonutSlices.map((slice) => {
-                        const isHovered = hoveredDeck === slice.name;
-                        return (
-                          <path
-                            key={`donut-path-${slice.idx}`}
-                            d={slice.pathData}
-                            fill={slice.isOutros ? "#334155" : `url(#sunburstGrad-${slice.energy})`}
-                            stroke={isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.25)"}
-                            strokeWidth={isHovered ? 3 : 1}
-                            className="transition-all duration-200 cursor-pointer"
-                            onMouseEnter={() => handleDeckHover(slice.name)}
-                            onMouseLeave={() => setHoveredDeck(null)}
-                            onClick={() => {
-                              if (slice.isOutros) setIsOutrosExpanded(true);
-                              else handleDeckHover(slice.name);
-                            }}
-                          />
-                        );
-                      })}
-                    </g>
+                {/* Centro do Donut */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                  <div className="text-center flex flex-col items-center justify-center max-w-[130px] px-2">
+                    <span
+                      className="text-2xl sm:text-3xl font-black tracking-tight tabular-nums drop-shadow-md"
+                      style={{ color: primaryEnergyColor }}
+                    >
+                      {activeHoverDeckInfo
+                        ? `${activeHoverDeckInfo.percent.toFixed(1)}%`
+                        : activeDeck
+                        ? `${activeDeck.percent.toFixed(1)}%`
+                        : ""}
+                    </span>
 
-                    <g className="pointer-events-none">
-                      {classicDonutSlices.map((slice) => {
-                        if (slice.isOutros || !slice.icone) return null;
-                        const isHovered = hoveredDeck === slice.name;
-                        const iconSize = slice.sliceAngle > 0.4 ? 130 : slice.sliceAngle > 0.25 ? 110 : 85;
-                        return (
-                          <g key={`donut-img-${slice.idx}`} clipPath={`url(#clip-donut-${slice.idx})`}>
-                            <image
-                              href={slice.icone}
-                              x={slice.midX - iconSize / 2}
-                              y={slice.midY - iconSize / 2}
-                              width={iconSize}
-                              height={iconSize}
-                              preserveAspectRatio="xMidYMid slice"
-                              opacity={isHovered ? 1 : 0.88}
-                              className="transition-all duration-300 filter brightness-110 contrast-105"
-                            />
-                          </g>
-                        );
-                      })}
-                    </g>
-
-                    <g className="pointer-events-none">
-                      {classicDonutSlices.map((slice) => {
-                        const hasRoom = slice.sliceAngle >= 0.08 || slice.isOutros;
-                        if (!hasRoom) return null;
-                        const label = slice.isOutros ? "Outros" : slice.percentStr;
-                        const fontSize = slice.isOutros ? 11 : slice.percent >= 10 ? 14 : 12;
-
-                        return (
-                          <g
-                            key={`donut-text-${slice.idx}`}
-                            transform={`rotate(${slice.textRotation}, ${slice.midX}, ${slice.midY})`}
-                          >
-                            <text
-                              x={slice.midX}
-                              y={slice.midY}
-                              textAnchor="middle"
-                              dominantBaseline="central"
-                              fill="#ffffff"
-                              stroke="#020617"
-                              strokeWidth={4}
-                              strokeLinejoin="round"
-                              paintOrder="stroke fill"
-                              fontSize={fontSize}
-                              fontWeight="800"
-                              className="tabular-nums select-none"
-                            >
-                              {label}
-                            </text>
-                          </g>
-                        );
-                      })}
-                    </g>
-                  </>
-                )}
-              </svg>
-
-              {/* Centro do Gráfico: Mostra % e Nome do Deck ou da Energia em Foco */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="text-center flex flex-col items-center justify-center max-w-[135px] px-2 animate-in fade-in zoom-in-95 duration-200">
-                  <span
-                    className="text-2xl sm:text-3xl font-black tracking-tight tabular-nums drop-shadow-md"
-                    style={{ color: primaryEnergyColor }}
-                  >
-                    {activeSunburstEnergy
-                      ? `${activeSunburstEnergy.percent.toFixed(1)}%`
-                      : activeSunburstDeck
-                      ? `${activeSunburstDeck.percent.toFixed(1)}%`
-                      : activeDeck
-                      ? `${activeDeck.percent.toFixed(1)}%`
-                      : ""}
-                  </span>
-
-                  <span
-                    className="text-xs sm:text-sm font-bold leading-tight truncate w-full mt-0.5 drop-shadow-sm text-slate-100"
-                    style={{ color: primaryEnergyColor }}
-                  >
-                    {activeSunburstEnergy
-                      ? `Tipo ${ENERGY_LABELS[activeSunburstEnergy.energy]?.label || activeSunburstEnergy.energy}`
-                      : activeSunburstDeck
-                      ? activeSunburstDeck.deckName
-                      : activeDeck?.deckName}
-                  </span>
-
-                  <span className="text-[10px] text-slate-400 font-medium mt-0.5">
-                    {activeSunburstEnergy
-                      ? `${activeSunburstEnergy.totalCount} jogos no tipo`
-                      : activeSunburstDeck
-                      ? `${activeSunburstDeck.count} aparições`
-                      : `${activeDeck?.count || 0} aparições`}
-                  </span>
+                    <span
+                      className="text-xs sm:text-sm font-bold leading-tight truncate w-full mt-0.5 drop-shadow-sm text-slate-100"
+                      style={{ color: primaryEnergyColor }}
+                    >
+                      {activeHoverDeckInfo ? activeHoverDeckInfo.deckName : activeDeck?.deckName}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Dica de Interatividade */}
             <p className="text-[11px] text-slate-400 font-normal text-center mt-3">
-              {chartMode === "sunburst"
-                ? "💡 Anel Interno = Tipos de Energia • Anel Externo = Decks específicos. Passe o mouse ou clique para inspecionar."
-                : isOutrosExpanded
-                ? "💡 Visualizando decks com <2% de presença. Clique em 'Voltar para visão geral' para restaurar."
-                : "💡 Decks com ≥2% de presença. Passe o mouse ou clique em qualquer fatia para sincronizar."}
+              {chartMode === "bars"
+                ? "💡 Opção 1 (Barras): Leitura mais clara e direta. Passe o mouse em qualquer deck para sincronizar."
+                : chartMode === "treemap"
+                ? "💡 Opção 2 (Mosaico): Blocos proporcionais modernos estilo Bento Grid."
+                : "💡 Opção 3 (Donut Top 5): Fatias largas e espaçosas focadas exclusivamente nos líderes."}
             </p>
           </div>
         </div>
@@ -910,4 +692,3 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     </div>
   );
 }
-
