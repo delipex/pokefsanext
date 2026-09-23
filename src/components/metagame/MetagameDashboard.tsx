@@ -98,12 +98,11 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     const outrosList: typeof deckStats = [];
     const mainList: typeof deckStats = [];
 
-    // Modo Principal: Agrupa decks minoritários para manter no máximo os Top 6 mais expressivos
-    const TOP_ARCHETYPES_LIMIT = 6;
-    deckStats.forEach((d, index) => {
+    // Modo Principal: Todos os decks com representatividade >= 2.0% aparecem no donut principal
+    deckStats.forEach((d) => {
       const isOutrosVal =
         d.deckName.toLowerCase() === "outros" || d.deckName.toLowerCase() === "outros decks";
-      const isMinor = index >= TOP_ARCHETYPES_LIMIT || d.count < 2 || d.percent < 3.5 || isOutrosVal;
+      const isMinor = d.percent < 2.0 || isOutrosVal;
 
       if (isMinor) {
         outrosCount += d.count;
@@ -121,11 +120,10 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
       energy: string;
       icone: string | null;
       isOutros?: boolean;
-      isBack?: boolean;
     }> = [];
 
     if (isOutrosExpanded) {
-      // Modo Drill-down: Mostra decks menores + fatia de retorno
+      // Modo Drill-down: Mostra exclusivamente os decks de menor expressão (< 2%) sem fatia de voltar
       currentSlices = outrosList.map((d) => ({
         name: d.deckName,
         count: d.count,
@@ -134,21 +132,8 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
         energy: d.tipoEnergia,
         icone: d.icone,
       }));
-
-      if (mainList.length > 0) {
-        const sizeCount = Math.max(1, Math.round(outrosCount * 0.12));
-        currentSlices.push({
-          name: "Voltar para visão geral",
-          count: sizeCount,
-          percent: 0,
-          percentStr: "Voltar",
-          energy: "fire",
-          icone: null,
-          isBack: true,
-        });
-      }
     } else {
-      // Modo Principal: Decks principais + fatia agregada "Outros Decks"
+      // Modo Principal: Decks principais (>= 2%) + fatia agregada "Outros Decks"
       currentSlices = mainList.map((d) => ({
         name: d.deckName,
         count: d.count,
@@ -164,7 +149,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
           name: "Outros Decks",
           count: outrosCount,
           percent: outrosPct,
-          percentStr: Math.round(outrosPct) + "%",
+          percentStr: outrosPct < 1 ? outrosPct.toFixed(1) + "%" : Math.round(outrosPct) + "%",
           energy: "colorless",
           icone: null,
           isOutros: true,
@@ -178,8 +163,8 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
   // 3. Geometria Trigonométrica dos Arcos e Rótulos do Donut (Mais Espesso e Imersivo)
   const cx = 220;
   const cy = 220;
-  const outerRadius = 180;
-  const innerRadius = 72;
+  const outerRadius = 195;
+  const innerRadius = 78;
   const midRadius = (innerRadius + outerRadius) / 2;
 
   const totalSliceValue = chartSlices.reduce((sum, s) => sum + s.count, 0) || 1;
@@ -288,10 +273,6 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
   const handleSliceClick = (slice: typeof chartSlices[0]) => {
     if (slice.isOutros) {
       setIsOutrosExpanded(true);
-      return;
-    }
-    if (slice.isBack) {
-      setIsOutrosExpanded(false);
       return;
     }
 
@@ -424,16 +405,18 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
           <div className="md:col-span-6 flex flex-col items-center justify-center relative">
             {/* Botão de retorno do Drill-down */}
             {isOutrosExpanded && (
-              <button
-                onClick={() => setIsOutrosExpanded(false)}
-                className="mb-2 flex items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/10 px-3 py-1 text-xs font-bold text-rose-300 hover:bg-rose-500/20 transition-all cursor-pointer shadow-md"
-              >
-                <RotateCcw className="h-3 w-3" />
-                <span>Voltar para visão geral</span>
-              </button>
+              <div className="w-full flex justify-center mb-3">
+                <button
+                  onClick={() => setIsOutrosExpanded(false)}
+                  className="flex items-center gap-2 rounded-full border border-sky-500/40 bg-sky-500/15 hover:bg-sky-500/30 px-4 py-1.5 text-xs font-bold text-sky-200 hover:text-white transition-all cursor-pointer shadow-lg active:scale-95"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>← Voltar para visão geral</span>
+                </button>
+              </div>
             )}
 
-            <div className="relative w-full max-w-[390px] aspect-square flex items-center justify-center">
+            <div className="relative w-full max-w-[400px] aspect-square flex items-center justify-center">
               <svg
                 viewBox="0 0 440 440"
                 className="w-full h-full overflow-visible select-none drop-shadow-2xl"
@@ -472,14 +455,12 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                         key={`path-${slice.idx}`}
                         d={slice.pathData}
                         fill={
-                          slice.isBack
-                            ? "rgba(239, 68, 68, 0.45)"
-                            : slice.isOutros
-                            ? "#475569"
+                          slice.isOutros
+                            ? "#334155"
                             : `url(#donutGrad-${slice.idx})`
                         }
                         stroke={isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.25)"}
-                        strokeWidth={isHovered ? 2.5 : 1}
+                        strokeWidth={isHovered ? 3 : 1}
                         className="transition-all duration-200 cursor-pointer"
                         onMouseEnter={() => handleSliceHover(slice.name)}
                         onMouseLeave={() => setHoveredDeck(null)}
@@ -492,10 +473,10 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                 {/* 2. Sprites Supergrandes com Recorte Conceitual no Rosto do Pokémon */}
                 <g className="pointer-events-none">
                   {computedSlices.map((slice) => {
-                    if (slice.isOutros || slice.isBack || !slice.icone) return null;
+                    if (slice.isOutros || !slice.icone) return null;
                     const isHovered = hoveredDeck === slice.name;
                     // Ícone supergrande para criar o corte de close conceitual na fatia
-                    const iconSize = slice.sliceAngle > 0.4 ? 120 : slice.sliceAngle > 0.25 ? 100 : 80;
+                    const iconSize = slice.sliceAngle > 0.4 ? 130 : slice.sliceAngle > 0.25 ? 110 : 85;
 
                     return (
                       <g key={`embedded-icon-${slice.idx}`} clipPath={`url(#sliceClip-${slice.idx})`}>
@@ -506,7 +487,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                           width={iconSize}
                           height={iconSize}
                           preserveAspectRatio="xMidYMid slice"
-                          opacity={isHovered ? 1 : 0.92}
+                          opacity={isHovered ? 1 : 0.88}
                           className="transition-all duration-300 filter brightness-110 contrast-105"
                         />
                       </g>
@@ -514,28 +495,37 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                   })}
                 </g>
 
-                {/* 3. Rótulos de Porcentagem (Fonte Fina, Maior e Nítida) */}
+                {/* 3. Rótulos de Porcentagem com Borda de Alto Contraste (Sempre Legíveis) */}
                 <g className="pointer-events-none">
                   {computedSlices.map((slice) => {
-                    if (slice.isBack) return null;
-                    const hasRoom = slice.sliceAngle > 0.1 || slice.isOutros;
+                    const hasRoom = slice.sliceAngle >= 0.08 || slice.isOutros;
                     if (!hasRoom) return null;
 
+                    const label = slice.isOutros ? "Outros" : slice.percentStr;
+                    const fontSize = slice.isOutros ? 11 : slice.percent >= 10 ? 14 : 12;
+
                     return (
-                      <text
-                        key={`text-${slice.idx}`}
-                        x={slice.midX}
-                        y={slice.midY + (slice.icone ? 18 : 0)}
-                        transform={`rotate(${slice.textRotation}, ${slice.midX}, ${slice.midY + (slice.icone ? 18 : 0)})`}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fill="#ffffff"
-                        fontSize={slice.isOutros ? 11 : slice.percent >= 10 ? 14 : 11.5}
-                        fontWeight="500"
-                        className="tabular-nums font-normal drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]"
+                      <g
+                        key={`text-group-${slice.idx}`}
+                        transform={`rotate(${slice.textRotation}, ${slice.midX}, ${slice.midY})`}
                       >
-                        {slice.isOutros ? "Outros" : slice.percentStr}
-                      </text>
+                        <text
+                          x={slice.midX}
+                          y={slice.midY}
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          fill="#ffffff"
+                          stroke="#020617"
+                          strokeWidth={4}
+                          strokeLinejoin="round"
+                          paintOrder="stroke fill"
+                          fontSize={fontSize}
+                          fontWeight="800"
+                          className="tabular-nums select-none"
+                        >
+                          {label}
+                        </text>
+                      </g>
                     );
                   })}
                 </g>
@@ -543,9 +533,9 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
 
               {/* 4. Centro do Donut Minimalista: % e Nome do Deck com Cores do Tipo */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                <div className="text-center flex flex-col items-center justify-center max-w-[130px] px-2 animate-in fade-in zoom-in-95 duration-200">
+                <div className="text-center flex flex-col items-center justify-center max-w-[140px] px-2 animate-in fade-in zoom-in-95 duration-200">
                   <span
-                    className="text-2xl sm:text-3xl font-light tracking-tight tabular-nums drop-shadow-md"
+                    className="text-2xl sm:text-3xl font-black tracking-tight tabular-nums drop-shadow-md"
                     style={{ color: primaryEnergyColor }}
                   >
                     {activeHoverSlice
@@ -556,7 +546,7 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
                   </span>
 
                   <span
-                    className="text-xs sm:text-sm font-semibold leading-tight truncate w-full mt-0.5 drop-shadow-sm text-slate-100"
+                    className="text-xs sm:text-sm font-bold leading-tight truncate w-full mt-0.5 drop-shadow-sm text-slate-100"
                     style={{ color: primaryEnergyColor }}
                   >
                     {activeHoverSlice ? activeHoverSlice.name : activeDeck?.deckName}
@@ -568,8 +558,8 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
             {/* Dica de Interatividade */}
             <p className="text-[11px] text-slate-400 font-normal text-center mt-3">
               {isOutrosExpanded
-                ? "💡 Passe o mouse em uma fatia para focar ou em 'Voltar' para o resumo."
-                : "💡 Passe o mouse ou clique em qualquer fatia para sincronizar com o carrossel."}
+                ? "💡 Visualizando decks com <2% de presença. Clique em 'Voltar para visão geral' para restaurar."
+                : "💡 Decks com ≥2% de presença. Passe o mouse ou clique em qualquer fatia para sincronizar."}
             </p>
           </div>
         </div>
@@ -577,3 +567,4 @@ export function MetagameDashboard({ metagameEntries, decksInfo }: MetagameDashbo
     </div>
   );
 }
+
