@@ -610,63 +610,65 @@ export function MetagameDashboard({
               {/* OPÇÃO 2: TREEMAP MOSAICO (GRADE DE BLOCOS PROPORCIONAIS)   */}
               {/* ========================================================== */}
               {chartMode === "treemap" && (
-                <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2.5 animate-in fade-in duration-300">
-                  {deckStats.slice(0, 6).map((deck, idx) => {
-                    const colors = getEnergyColor(deck.tipoEnergia);
-                    const isCurrent = activeDeck?.deckName.toLowerCase() === deck.deckName.toLowerCase();
-                    const isHovered = hoveredDeck === deck.deckName;
-                    const isHero = idx === 0;
+                <div className="w-full max-h-[420px] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar animate-in fade-in duration-300">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {deckStats.map((deck, idx) => {
+                      const colors = getEnergyColor(deck.tipoEnergia);
+                      const isCurrent = activeDeck?.deckName.toLowerCase() === deck.deckName.toLowerCase();
+                      const isHovered = hoveredDeck === deck.deckName;
+                      const isHero = idx === 0;
 
-                    return (
-                      <div
-                        key={`treemap-${deck.deckName}`}
-                        onMouseEnter={() => handleDeckHover(deck.deckName)}
-                        onMouseLeave={() => setHoveredDeck(null)}
-                        onClick={() => handleDeckHover(deck.deckName)}
-                        className={`group relative rounded-2xl p-4 overflow-hidden border transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[110px] ${
-                          isHero ? "col-span-2 row-span-1 sm:row-span-2 min-h-[140px] sm:min-h-[180px]" : "col-span-1"
-                        } ${
-                          isCurrent || isHovered
-                            ? "border-white/40 shadow-2xl scale-[1.02]"
-                            : "border-white/10 hover:border-white/25"
-                        }`}
-                        style={{
-                          background: `linear-gradient(135deg, ${colors.primary}25 0%, rgba(15, 23, 42, 0.95) 100%)`,
-                        }}
-                      >
-                        {/* Marca d'água com ícone do Pokémon */}
-                        {deck.icone && (
-                          <img
-                            src={deck.icone}
-                            alt=""
-                            className="absolute -right-2 -bottom-2 w-20 h-20 sm:w-28 sm:h-28 opacity-20 pointer-events-none object-contain filter grayscale group-hover:grayscale-0 group-hover:opacity-40 transition-all duration-300"
-                          />
-                        )}
+                      return (
+                        <div
+                          key={`treemap-${deck.deckName}`}
+                          onMouseEnter={() => handleDeckHover(deck.deckName)}
+                          onMouseLeave={() => setHoveredDeck(null)}
+                          onClick={() => handleDeckHover(deck.deckName)}
+                          className={`group relative rounded-2xl p-4 overflow-hidden border transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[110px] ${
+                            isHero ? "col-span-2 row-span-1 min-h-[130px]" : "col-span-1"
+                          } ${
+                            isCurrent || isHovered
+                              ? "border-white/40 shadow-2xl scale-[1.02]"
+                              : "border-white/10 hover:border-white/25"
+                          }`}
+                          style={{
+                            background: `linear-gradient(135deg, ${colors.primary}25 0%, rgba(15, 23, 42, 0.95) 100%)`,
+                          }}
+                        >
+                          {/* Marca d'água com ícone do Pokémon */}
+                          {deck.icone && (
+                            <img
+                              src={deck.icone}
+                              alt=""
+                              className="absolute -right-2 -bottom-2 w-20 h-20 sm:w-24 sm:h-24 opacity-20 pointer-events-none object-contain filter grayscale group-hover:grayscale-0 group-hover:opacity-40 transition-all duration-300"
+                            />
+                          )}
 
-                        <div className="flex items-start justify-between gap-2 relative z-10">
-                          <span className="text-xs font-black uppercase text-slate-300 flex items-center gap-1.5">
-                            #{idx + 1}
-                            <EnergyBadge energyRaw={deck.tipoEnergia} />
-                          </span>
-                          <span
-                            className="text-xl sm:text-2xl font-black tabular-nums drop-shadow-md"
-                            style={{ color: colors.primary }}
-                          >
-                            {deck.percent.toFixed(1)}%
-                          </span>
+                          <div className="flex items-start justify-between gap-2 relative z-10">
+                            <span className="text-xs font-black uppercase text-slate-300 flex items-center gap-1.5">
+                              #{idx + 1}
+                              <EnergyBadge energyRaw={deck.tipoEnergia} />
+                            </span>
+                            <span
+                              className="text-xl sm:text-2xl font-black tabular-nums drop-shadow-md"
+                              style={{ color: colors.primary }}
+                            >
+                              {deck.percent.toFixed(1)}%
+                            </span>
+                          </div>
+
+                          <div className="relative z-10 mt-3">
+                            <span className="font-black text-sm sm:text-base text-white block truncate">
+                              {deck.deckName}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              {deck.count} {deck.count === 1 ? "aparição" : "aparições"}
+                            </span>
+                          </div>
                         </div>
-
-                        <div className="relative z-10 mt-3">
-                          <span className="font-black text-sm sm:text-base text-white block truncate">
-                            {deck.deckName}
-                          </span>
-                          <span className="text-[11px] text-slate-400 font-medium">
-                            {deck.count} aparições
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -804,9 +806,9 @@ export function MetagameDashboard({
               {/* Dica de Interatividade */}
               <p className="text-[11px] text-slate-400 font-normal text-center mt-3">
                 {chartMode === "bars"
-                  ? "💡 Opção 1 (Barras): Leitura mais clara e direta. Passe o mouse em qualquer deck para sincronizar."
+                  ? "💡 Opção 1 (Barras): Leitura clara e direta. Role para explorar todos os arquétipos ou passe o mouse para focar."
                   : chartMode === "treemap"
-                  ? "💡 Opção 2 (Mosaico): Blocos proporcionais modernos estilo Bento Grid."
+                  ? "💡 Opção 2 (Mosaico): Blocos proporcionais estilo Bento Grid. Role a lista para explorar todos os arquétipos."
                   : "💡 Opção 3 (Donut Top 5): Fatias largas e espaçosas focadas exclusivamente nos líderes."}
               </p>
             </div>
