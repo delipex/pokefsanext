@@ -56,6 +56,7 @@ function FreeFloating3DPlanes({
   baseVelocity?: number;
 }) {
   const baseX = useMotionValue(0);
+  const ribbonRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
   const scrollVelocity = useVelocity(scrollY);
 
@@ -101,14 +102,16 @@ function FreeFloating3DPlanes({
     baseX.set(baseX.get() + moveBy);
   });
 
-  // Looping contínuo seamless de 0% a -50% sem nenhum salto
-  const x = useTransform(baseX, (v) => `${wrap(-50, 0, v)}%`);
+  // Looping contínuo seamless de exatamente 1 sequência (100% / 4 cópias = 25%)
+  // O wrap de -25% a 0% é 100% contínuo e sem saltos em ambas as direções (arrastar para frente ou para trás)
+  const x = useTransform(baseX, (v) => `${wrap(-25, 0, v)}%`);
 
-  // Duplicação de decks para garantir que Set B substitua Set A de forma idêntica
+  // Duplicação de decks (4x) para garantir que a transição de -25% para 0% seja idêntica
   const repeatedDecks = [...decks, ...decks, ...decks, ...decks];
 
   return (
     <div
+      ref={ribbonRef}
       className="relative w-full overflow-visible select-none py-12 sm:py-16 cursor-grab active:cursor-grabbing"
       style={{ perspective: "1400px" }}
     >
@@ -121,10 +124,20 @@ function FreeFloating3DPlanes({
           transformStyle: "preserve-3d",
         }}
         onPanStart={() => setIsDragging(true)}
-        onPanEnd={() => setIsDragging(false)}
+        onPanEnd={(e, info) => {
+          setIsDragging(false);
+          // Atualiza direção do drift se o usuário soltou com velocidade
+          if (info.velocity.x > 80) {
+            directionFactor.current = -1;
+          } else if (info.velocity.x < -80) {
+            directionFactor.current = 1;
+          }
+        }}
         onPan={(e, info) => {
-          // Arrastar interativo com o mouse / touch
-          baseX.set(baseX.get() + info.delta.x * 0.08);
+          // Conversão física precisa de pixels arrastados para percentual da fita
+          const width = ribbonRef.current?.scrollWidth || 3000;
+          const deltaPercent = (info.delta.x / width) * 100;
+          baseX.set(baseX.get() + deltaPercent);
         }}
       >
         {repeatedDecks.map((deck, idx) => {
