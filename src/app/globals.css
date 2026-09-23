@@ -416,3 +416,30 @@ html.light ::-webkit-scrollbar-thumb {
 html.light ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* ==========================================================================
+   GPU-Accelerated Infinite Marquee (Zero CPU Overhead)
+   ========================================================================== */
+@keyframes marqueeLoopGpu {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-gpu {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  animation: marqueeLoopGpu var(--marquee-duration, 38s) linear infinite;
+}
+
+.animate-marquee-gpu.paused,
+.marquee-container:hover .animate-marquee-gpu {
+  animation-play-state: paused;
+}
+

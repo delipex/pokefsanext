@@ -1,13 +1,7 @@
 "use client";
 
-import { useRef, useState, useMemo, useEffect, useCallback } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import {
-  motion,
-  useAnimationFrame,
-  useMotionValue,
-  wrap,
-} from "framer-motion";
 import { Sparkles, Flame, ArrowRight } from "lucide-react";
 import { EnergyBadge } from "@/components/ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
@@ -38,283 +32,175 @@ interface ScrollVelocityCardsProps {
   baseVelocity?: number;
 }
 
-// Parâmetros de rotação, altura e escala das cartas soltas em 3D
-const ROTATIONS = [-5, 4, -2, 6, -5, 3, -6, 5, -3, 4, -2, 5];
-const Y_OFFSETS = [-14, 18, -8, 20, -12, 14, -16, 14, -8, 16, -10, 12];
-const SCALES = [1.02, 0.97, 1.04, 0.98, 1.02, 0.96, 1.03, 0.98];
+// Parâmetros estáticos pré-computados de rotação, altura e escala para visual de cartas colecionáveis
+const ROTATIONS = [-4, 3, -2, 5, -3, 3, -5, 4, -2, 3, -4, 4];
+const Y_OFFSETS = [-8, 10, -4, 12, -6, 8, -10, 8, -4, 10, -6, 8];
+const SCALES = [1.01, 0.98, 1.02, 0.98, 1.01, 0.97, 1.02, 0.98];
 const Z_INDICES = [10, 25, 15, 30, 20, 35, 12, 28];
 
-function BentoContained3DPlanes({
+function GpuMarqueeCards({
   decks,
-  baseVelocity = -28, // Velocidade baixa, suave e elegante (px por segundo)
+  baseVelocity = -28,
 }: {
   decks: DeckCardItem[];
   baseVelocity?: number;
 }) {
-  const baseX = useMotionValue(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const firstCardRef = useRef<HTMLDivElement>(null);
-  const secondSetFirstCardRef = useRef<HTMLDivElement>(null);
-  const [singleSetWidth, setSingleSetWidth] = useState<number>(0);
-
+  const [isVisible, setIsVisible] = useState(true);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const directionFactor = useRef<number>(1);
-  const isPointerDown = useRef<boolean>(false);
-  const pointerStartX = useRef<number>(0);
-  const pointerStartOffset = useRef<number>(0);
-  const dragDistance = useRef<number>(0);
 
-  // Garante que o conjunto base tenha cards suficientes para um loop contínuo impecável
-  const baseDecks = useMemo(() => {
+  // 1. Limita aos Top 10-12 decks com maior relevância para eliminar overhead no DOM
+  const topDecks = useMemo(() => {
     if (decks.length === 0) return [];
-    if (decks.length < 6) {
-      return [...decks, ...decks];
+    let list = decks.slice(0, 12);
+    // Garante no mínimo 6 itens no conjunto base para preencher telas ultrawide
+    if (list.length < 6) {
+      list = [...list, ...list];
     }
-    return decks;
+    return list;
   }, [decks]);
 
-  // Lista triplicada para loop contínuo 100% preenchido
-  const allCards = useMemo(() => {
+  // 2. Duplicação exata (2 conjuntos: A e B) para loop contínuo infinito de 0% a -50%
+  const loopCards = useMemo(() => {
     return [
-      ...baseDecks.map((d, i) => ({ ...d, setIdx: 0, origIdx: i })),
-      ...baseDecks.map((d, i) => ({ ...d, setIdx: 1, origIdx: i })),
-      ...baseDecks.map((d, i) => ({ ...d, setIdx: 2, origIdx: i })),
+      ...topDecks.map((d, i) => ({ ...d, setIdx: 0, origIdx: i })),
+      ...topDecks.map((d, i) => ({ ...d, setIdx: 1, origIdx: i })),
     ];
-  }, [baseDecks]);
+  }, [topDecks]);
 
-  // Medir a distância exata de 1 conjunto completo (do card 0 ao primeiro card do conjunto 2)
-  const updateWidth = useCallback(() => {
-    if (firstCardRef.current && secondSetFirstCardRef.current) {
-      const w = secondSetFirstCardRef.current.offsetLeft - firstCardRef.current.offsetLeft;
-      if (w > 0) {
-        setSingleSetWidth(w);
-      }
-    }
+  // 3. Pausa inteligente de processamento quando o componente sair do campo de visão (Scroll)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { rootMargin: "150px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    updateWidth();
-    window.addEventListener("resize", updateWidth);
-    const observer = new ResizeObserver(() => updateWidth());
-    if (trackRef.current) observer.observe(trackRef.current);
-
-    const timer = setTimeout(updateWidth, 300);
-
-    return () => {
-      window.removeEventListener("resize", updateWidth);
-      observer.disconnect();
-      clearTimeout(timer);
-    };
-  }, [updateWidth, allCards]);
-
-  useAnimationFrame((t, delta) => {
-    // Pausa o movimento contínuo quando o usuário está arrastando ou inspecionando com o mouse
-    if (isPointerDown.current || hoveredKey !== null) {
-      return;
-    }
-
-    const setWidth = singleSetWidth || 1600;
-    // Movimento contínuo em baixa velocidade (pixels por segundo)
-    const moveBy = directionFactor.current * baseVelocity * (delta / 1000);
-    let currentX = baseX.get() + moveBy;
-
-    // Wrap contínuo sem saltos perceptíveis
-    if (setWidth > 0) {
-      currentX = wrap(-setWidth, 0, currentX);
-    }
-
-    baseX.set(currentX);
-  });
-
-  // Handlers de Arrastar com Pointer Events (Suporta Mouse e Touch com 60fps)
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    isPointerDown.current = true;
-    setIsDragging(true);
-    pointerStartX.current = e.clientX;
-    pointerStartOffset.current = baseX.get();
-    dragDistance.current = 0;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (_) {}
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isPointerDown.current) return;
-    const deltaX = e.clientX - pointerStartX.current;
-    dragDistance.current += Math.abs(deltaX);
-
-    const setWidth = singleSetWidth || 1600;
-    let targetX = pointerStartOffset.current + deltaX;
-    if (setWidth > 0) {
-      targetX = wrap(-setWidth, 0, targetX);
-    }
-    baseX.set(targetX);
-
-    // Ajusta a direção da inércia com base no arrasto
-    if (deltaX > 0) {
-      directionFactor.current = -1; // Arrasto para a direita inverte para fluir para a direita
-    } else if (deltaX < 0) {
-      directionFactor.current = 1;
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    isPointerDown.current = false;
-    setIsDragging(false);
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch (_) {}
-  };
+  // Duração da animação calculada com base na quantidade de cartas e velocidade
+  const durationSeconds = Math.max(25, Math.min(65, Math.round(topDecks.length * 3.6)));
 
   return (
     <div
       ref={containerRef}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      className={`relative w-full overflow-hidden select-none py-8 sm:py-12 touch-pan-y [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)] ${
-        isDragging ? "cursor-grabbing" : "cursor-grab"
-      }`}
+      className="marquee-container relative w-full overflow-hidden select-none py-6 sm:py-10 [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)]"
     >
-      <motion.div
-        className="flex shrink-0 items-center"
-        style={{
-          x: baseX,
-        }}
+      <div
+        className={`animate-marquee-gpu ${!isVisible ? "paused" : ""}`}
+        style={
+          {
+            "--marquee-duration": `${durationSeconds}s`,
+          } as React.CSSProperties
+        }
       >
-        {/* Trilho contínuo único com sobreposição uniforme para todas as cartas */}
-        <div
-          ref={trackRef}
-          className="flex -space-x-3 sm:-space-x-5 shrink-0 items-center"
-        >
-          {allCards.map((deck, globalIdx) => {
-            const isFirstOfSet1 = globalIdx === 0;
-            const isFirstOfSet2 = globalIdx === baseDecks.length;
+        <div className="flex -space-x-3 sm:-space-x-4 shrink-0 items-center">
+          {loopCards.map((deck) => {
             const cardKey = `${deck.nome}-s${deck.setIdx}-i${deck.origIdx}`;
             const energy = getMultiEnergyConfig(deck.tipoEnergia);
             const rot = ROTATIONS[deck.origIdx % ROTATIONS.length];
             const yOff = Y_OFFSETS[deck.origIdx % Y_OFFSETS.length];
             const scl = SCALES[deck.origIdx % SCALES.length];
             const zIdx = Z_INDICES[deck.origIdx % Z_INDICES.length];
-            const isCurrentHovered = hoveredKey === cardKey;
+            const isHovered = hoveredKey === cardKey;
 
             return (
               <div
                 key={cardKey}
-                ref={
-                  isFirstOfSet1
-                    ? firstCardRef
-                    : isFirstOfSet2
-                    ? secondSetFirstCardRef
-                    : null
-                }
-                className="shrink-0"
+                onMouseEnter={() => setHoveredKey(cardKey)}
+                onMouseLeave={() => setHoveredKey(null)}
+                className="shrink-0 transition-transform duration-200 ease-out will-change-transform"
+                style={{
+                  zIndex: isHovered ? 50 : zIdx,
+                  transform: isHovered
+                    ? `translate3d(0, ${yOff - 14}px, 0) scale(1.06) rotate(0deg)`
+                    : `translate3d(0, ${yOff}px, 0) scale(${scl}) rotate(${rot}deg)`,
+                }}
               >
-                <motion.div
-                  onMouseEnter={() => setHoveredKey(cardKey)}
-                  onMouseLeave={() => setHoveredKey(null)}
-                  className="relative transition-transform duration-300 ease-out will-change-transform"
-                  style={{
-                    zIndex: isCurrentHovered ? 60 : zIdx,
-                    transform: isCurrentHovered
-                      ? `translateY(${yOff - 18}px) scale(1.08) rotate(0deg)`
-                      : `translateY(${yOff}px) scale(${scl}) rotate(${rot}deg)`,
+                {/* Card Pokémon Físico com Aspect Ratio Oficial 63:88 */}
+                <div
+                  className="relative aspect-[63/88] w-[150px] sm:w-[185px] md:w-[215px] rounded-2xl overflow-hidden border border-white/10 bg-slate-950 shadow-xl transition-all duration-200 group cursor-pointer"
+                  onClick={() => {
+                    if (deck.limitless) {
+                      window.open(deck.limitless, "_blank", "noopener,noreferrer");
+                    } else {
+                      window.location.href = "/metagame";
+                    }
                   }}
                 >
-                  {/* Card Pokémon Físico com Aspect Ratio Oficial 63:88 */}
-                  <div
-                    className="relative aspect-[63/88] w-[160px] sm:w-[195px] md:w-[225px] rounded-2xl overflow-hidden border border-white/15 bg-slate-950 shadow-[0_16px_36px_rgba(0,0,0,0.85)] transition-all duration-300 group cursor-pointer"
-                    style={{
-                      boxShadow: isCurrentHovered
-                        ? `0 30px 60px -10px rgba(0, 0, 0, 0.95), 0 0 35px rgba(59, 130, 246, 0.45)`
-                        : `0 14px 32px -6px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08)`,
-                    }}
-                    onClick={(e) => {
-                      // Se houve arrasto real (> 6px), cancela o clique acidental
-                      if (dragDistance.current > 6) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        return;
-                      }
-
-                      if (deck.limitless) {
-                        window.open(deck.limitless, "_blank", "noopener,noreferrer");
-                      } else {
-                        window.location.href = "/metagame";
-                      }
-                    }}
-                  >
-                    {/* Imagem da Carta */}
-                    {deck.imagem ? (
-                      <img
-                        src={deck.imagem}
-                        alt={deck.nome}
-                        className="w-full h-full object-cover object-center select-none filter brightness-95 group-hover:brightness-105 transition-all duration-300 pointer-events-none"
-                        loading="lazy"
-                        onLoad={updateWidth}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center p-4 text-center select-none">
-                        <span className="text-4xl mb-2">⚡</span>
-                        <span className="font-bold text-white text-xs leading-tight">
-                          {deck.nome}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Efeito Foil Holográfico */}
-                    <div
-                      className={`absolute inset-0 transition-opacity duration-300 pointer-events-none bg-gradient-to-tr from-transparent via-white/20 to-transparent mix-blend-overlay ${
-                        isCurrentHovered ? "opacity-100" : "opacity-0"
-                      }`}
+                  {/* Imagem da Carta Otimizada */}
+                  {deck.imagem ? (
+                    <img
+                      src={deck.imagem}
+                      alt={deck.nome}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover object-center select-none filter brightness-95 group-hover:brightness-105 transition-all duration-200 pointer-events-none"
                     />
-
-                    {/* Badge Flutuante de Energia */}
-                    <div className="absolute top-2.5 right-2.5 z-20">
-                      <div className="flex items-center -space-x-1 p-1 rounded-full bg-black/80 backdrop-blur-md border border-white/15 shadow-md">
-                        {energy.types.map((t, i) => (
-                          <span
-                            key={i}
-                            className="h-2.5 w-2.5 rounded-full border border-black/60 shadow-sm"
-                            style={{ backgroundColor: t.hex }}
-                            title={t.label}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Botão Flutuante de Interação no Centro do Card ao Hover */}
-                    <div
-                      className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 transition-all duration-200 pointer-events-none ${
-                        isCurrentHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
-                      }`}
-                    >
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/90 border border-blue-400/40 px-3 py-1 text-[11px] font-bold text-white shadow-2xl backdrop-blur-md whitespace-nowrap">
-                        {deck.limitless ? "Ver Lista ↗" : "Ver no Metagame →"}
-                      </span>
-                    </div>
-
-                    {/* Faixa Inferior com Nome do Deck */}
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-transparent p-3 pt-7 flex flex-col justify-end z-20">
-                      <span className="text-xs sm:text-sm font-bold text-white truncate drop-shadow-md">
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center p-4 text-center select-none">
+                      <span className="text-3xl mb-2">⚡</span>
+                      <span className="font-bold text-white text-xs leading-tight">
                         {deck.nome}
                       </span>
-                      {deck.count !== undefined && (
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {deck.count} aparições na temporada
-                        </span>
-                      )}
+                    </div>
+                  )}
+
+                  {/* Efeito Foil Holográfico Sutil */}
+                  <div
+                    className={`absolute inset-0 transition-opacity duration-200 pointer-events-none bg-gradient-to-tr from-transparent via-white/15 to-transparent mix-blend-overlay ${
+                      isHovered ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+
+                  {/* Badge Flutuante de Energia */}
+                  <div className="absolute top-2 right-2 z-20">
+                    <div className="flex items-center -space-x-1 p-1 rounded-full bg-black/75 border border-white/15 shadow-sm">
+                      {energy.types.map((t, i) => (
+                        <span
+                          key={i}
+                          className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full border border-black/50 shadow-sm"
+                          style={{ backgroundColor: t.hex }}
+                          title={t.label}
+                        />
+                      ))}
                     </div>
                   </div>
-                </motion.div>
+
+                  {/* Botão de Ação ao Hover */}
+                  <div
+                    className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 transition-all duration-150 pointer-events-none ${
+                      isHovered ? "opacity-100 scale-100" : "opacity-0 scale-75"
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-900/95 border border-blue-400/40 px-2.5 py-1 text-[10px] font-bold text-white shadow-xl whitespace-nowrap">
+                      {deck.limitless ? "Ver Lista ↗" : "Ver Metagame →"}
+                    </span>
+                  </div>
+
+                  {/* Faixa Inferior com Nome do Deck */}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-transparent p-2.5 pt-6 flex flex-col justify-end z-20">
+                    <span className="text-xs sm:text-sm font-bold text-white truncate drop-shadow-sm">
+                      {deck.nome}
+                    </span>
+                    {deck.count !== undefined && (
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {deck.count} aparições na temporada
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             );
           })}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -323,7 +209,7 @@ export function ScrollVelocityCards({
   decks = [],
   metagameEntries = [],
   decksInfo = [],
-  baseVelocity = -60,
+  baseVelocity = -28,
 }: ScrollVelocityCardsProps) {
   // Cálculo integrado das estatísticas do Metagame para o rodapé da esteira
   const metaStats = useMemo(() => {
@@ -371,7 +257,7 @@ export function ScrollVelocityCards({
   if (validDecks.length < 3) return null;
 
   return (
-    <section className="relative w-full overflow-hidden rounded-3xl border border-white/[0.04] bg-white/[0.015] p-4 sm:p-7 backdrop-blur-2xl shadow-2xl space-y-5">
+    <section className="relative w-full overflow-hidden rounded-3xl border border-white/[0.04] bg-white/[0.015] p-4 sm:p-7 backdrop-blur-xl shadow-2xl space-y-4">
       {/* Luz ambiente suave de fundo */}
       <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
 
@@ -384,13 +270,13 @@ export function ScrollVelocityCards({
           </h3>
         </div>
         <span className="text-[10px] sm:text-xs text-slate-400 font-normal hidden sm:inline">
-          ⚡ Passe o mouse para inspecionar ou arraste para girar
+          ⚡ Passe o mouse para pausar e inspecionar
         </span>
       </div>
 
-      {/* 2. Esteira 3D com Loop Infinito Contínuo e Suporte a Drag */}
+      {/* 2. Esteira GPU Ultraleve com Loop Infinito Contínuo */}
       <div className="relative w-full overflow-hidden z-10">
-        <BentoContained3DPlanes decks={validDecks} baseVelocity={baseVelocity} />
+        <GpuMarqueeCards decks={validDecks} baseVelocity={baseVelocity} />
       </div>
 
       {/* 3. Rodapé Bento Integrado com Telemetria do Metagame */}
