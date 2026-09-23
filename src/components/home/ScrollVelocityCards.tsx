@@ -55,7 +55,7 @@ const Z_INDICES = [10, 25, 15, 30, 20, 35, 12, 28];
 
 function ScrollVelocity3DPlanes({
   decks,
-  baseVelocity = 0.18,
+  baseVelocity = 0.05,
   direction = 1,
 }: {
   decks: DeckCardItem[];
@@ -66,20 +66,20 @@ function ScrollVelocity3DPlanes({
   const { scrollY } = useScroll();
   const scrollVelocity = useVelocity(scrollY);
 
-  // Física de mola fluida e responsiva (Motion.dev standard)
+  // Física de mola suave e amortecida (Motion.dev standard)
   const smoothVelocity = useSpring(scrollVelocity, {
-    damping: 50,
-    stiffness: 300,
+    damping: 60,
+    stiffness: 250,
   });
 
-  // Fator de velocidade para aceleração contínua
-  const velocityFactor = useTransform(smoothVelocity, [0, 1000], [0, 2.5], {
-    clamp: false,
+  // Fator de velocidade suave com limite (clamp) para evitar acelerações bruscas
+  const velocityFactor = useTransform(smoothVelocity, [0, 800], [0, 0.8], {
+    clamp: true,
   });
 
-  // 3D Wave Tilt: Distorção / inclinação em perspectiva ligada à velocidade do scroll
-  const velocityTilt = useTransform(smoothVelocity, [-1500, 1500], [-12, 12]);
-  const velocitySkew = useTransform(smoothVelocity, [-1500, 1500], [-6, 6]);
+  // 3D Wave Tilt sutil e elegante
+  const velocityTilt = useTransform(smoothVelocity, [-1200, 1200], [-8, 8]);
+  const velocitySkew = useTransform(smoothVelocity, [-1200, 1200], [-4, 4]);
 
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -87,15 +87,13 @@ function ScrollVelocity3DPlanes({
 
   useAnimationFrame((t, delta) => {
     if (hoveredIdx !== null || isDragging) {
-      // Quando o cursor está sobre uma carta ou arrastando, desacelera para contemplação
-      const moveBy = directionFactor.current * (baseVelocity * 0.1) * (delta / 1000);
-      baseX.set(baseX.get() + moveBy);
+      // Quando o cursor está sobre uma carta ou arrastando, pausa suavemente para contemplação
       return;
     }
 
     let moveBy = directionFactor.current * baseVelocity * (delta / 1000);
 
-    // Reage fluidamente ao scroll da página (Motion.dev Linked Offset)
+    // Reage suavemente ao scroll da página
     const currentVelocity = velocityFactor.get();
     if (currentVelocity < 0) {
       directionFactor.current = -1 * direction;
@@ -226,7 +224,7 @@ export function ScrollVelocityCards({
   decks = [],
   metagameEntries = [],
   decksInfo = [],
-  baseVelocity = 0.18,
+  baseVelocity = 0.05,
 }: ScrollVelocityCardsProps) {
   // Cálculo integrado das estatísticas do Metagame para o rodapé da esteira
   const metaStats = useMemo(() => {
