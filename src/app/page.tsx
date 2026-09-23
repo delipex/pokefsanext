@@ -89,7 +89,7 @@ export default async function HomePage() {
         decks={velocityDeckList}
         metagameEntries={metaData.metagameEntries}
         decksInfo={metaData.decksInfo}
-        baseVelocity={0.05}
+        baseVelocity={-2.5}
       />
 
       {/* 2. Pódio da Temporada + Próximo Evento (Bento 5x7) */}
