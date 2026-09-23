@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   Trophy,
   Flame,
@@ -14,6 +15,10 @@ import {
   Swords,
   Layers,
   ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { EnergyBadge } from "@/components/ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
@@ -75,6 +80,15 @@ export function MetagamePerformanceRadar({
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("winRate");
   const [minPartidasFilter, setMinPartidasFilter] = useState(false);
+
+  // Paginação da tabela de arquétipos
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(15);
+
+  // Reset de página ao alterar filtros ou busca
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortField, minPartidasFilter, pageSize]);
 
   // Compilação cruzada dos dados entre Metagame e Resultados de Etapas
   const { deckStatsList, highlights, totalSeasonMatches } = useMemo(() => {
@@ -265,6 +279,15 @@ export function MetagamePerformanceRadar({
 
     return result;
   }, [deckStatsList, searchTerm, sortField, minPartidasFilter]);
+
+  // Paginação
+  const totalPages = pageSize === -1 ? 1 : Math.max(1, Math.ceil(filteredAndSortedDecks.length / pageSize));
+
+  const paginatedDecks = useMemo(() => {
+    if (pageSize === -1) return filteredAndSortedDecks;
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredAndSortedDecks.slice(startIndex, startIndex + pageSize);
+  }, [filteredAndSortedDecks, currentPage, pageSize]);
 
   const getWinRateColor = (wr: number) => {
     if (wr >= 65) return "text-emerald-400";
@@ -504,14 +527,15 @@ export function MetagamePerformanceRadar({
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
-              {filteredAndSortedDecks.length === 0 ? (
+              {paginatedDecks.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-500 text-sm">
                     Nenhum deck encontrado com os filtros atuais.
                   </td>
                 </tr>
               ) : (
-                filteredAndSortedDecks.map((deck, idx) => {
+                paginatedDecks.map((deck, idx) => {
+                  const globalRank = pageSize === -1 ? idx + 1 : (currentPage - 1) * pageSize + idx + 1;
                   const energyCfg = getMultiEnergyConfig(deck.tipoEnergia);
                   const isTopWinRate = deck.winRate >= 60 && deck.totalPartidas >= 2;
 
@@ -523,8 +547,8 @@ export function MetagamePerformanceRadar({
                       {/* 1. Nome do Deck + Badge */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2.5">
-                          <span className="text-xs font-semibold text-slate-400 w-5 tabular-nums">
-                            {idx + 1}º
+                          <span className="text-xs font-semibold text-slate-400 w-6 tabular-nums">
+                            {globalRank}º
                           </span>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -626,6 +650,128 @@ export function MetagamePerformanceRadar({
             </tbody>
           </table>
         </div>
+
+        {/* Controles de Paginação */}
+        {filteredAndSortedDecks.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-white/[0.06] bg-white/[0.01]">
+            {/* Informações de Itens Exibidos */}
+            <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap justify-center sm:justify-start">
+              <span>
+                Exibindo{" "}
+                <strong className="text-white font-bold tabular-nums">
+                  {pageSize === -1 ? 1 : (currentPage - 1) * pageSize + 1}
+                </strong>{" "}
+                a{" "}
+                <strong className="text-white font-bold tabular-nums">
+                  {pageSize === -1
+                    ? filteredAndSortedDecks.length
+                    : Math.min(currentPage * pageSize, filteredAndSortedDecks.length)}
+                </strong>{" "}
+                de{" "}
+                <strong className="text-white font-bold tabular-nums">
+                  {filteredAndSortedDecks.length}
+                </strong>{" "}
+                arquétipos
+              </span>
+
+              {/* Seletor de Tamanho de Página */}
+              <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
+                <span className="text-[11px] text-slate-500">Por página:</span>
+                {[10, 15, 25, -1].map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setPageSize(size)}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      pageSize === size
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    {size === -1 ? "Todos" : size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Botões de Navegação entre Páginas */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                {/* Primeira Página */}
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                  aria-label="Primeira página"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </motion.button>
+
+                {/* Página Anterior */}
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                  aria-label="Página anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </motion.button>
+
+                {/* Botões Numéricos */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum = currentPage;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <motion.button
+                      key={pageNum}
+                      whileTap={{ scale: 0.92 }}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`min-w-[32px] h-8 rounded-xl px-2 text-xs font-bold transition-all cursor-pointer ${
+                        currentPage === pageNum
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                          : "border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08]"
+                      }`}
+                    >
+                      {pageNum}
+                    </motion.button>
+                  );
+                })}
+
+                {/* Próxima Página */}
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                  aria-label="Próxima página"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </motion.button>
+
+                {/* Última Página */}
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                  aria-label="Última página"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </motion.button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

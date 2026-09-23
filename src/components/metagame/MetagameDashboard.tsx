@@ -10,13 +10,8 @@ import {
   CircleDot,
   Calendar,
   Layers,
-  Search,
-  Users,
-  Trophy,
-  Filter,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
-import { CategoryBadge } from "../ui/CategoryBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
 export interface MetagameEntry {
@@ -44,25 +39,10 @@ export interface StageInfo {
   temporada?: number;
 }
 
-export interface StagePlayerResult {
-  id: number;
-  etapaData: string;
-  jogadorNome: string;
-  jogadorId?: string | null;
-  categoria?: string | null;
-  colocacao: number;
-  pontos: number;
-  vitorias: number;
-  empates: number;
-  derrotas: number;
-  deckNome?: string | null;
-}
-
 interface MetagameDashboardProps {
   metagameEntries: MetagameEntry[];
   decksInfo: DeckInfo[];
   etapas?: StageInfo[];
-  etapaResultados?: StagePlayerResult[];
 }
 
 const OFFICIAL_ENERGY_COLORS: Record<string, { primary: string; secondary: string }> = {
@@ -109,7 +89,6 @@ export function MetagameDashboard({
   metagameEntries,
   decksInfo,
   etapas = [],
-  etapaResultados = [],
 }: MetagameDashboardProps) {
   // Filtro de Etapa: "all" (Temporada Completa) ou "YYYY-MM-DD"
   const [selectedStageDate, setSelectedStageDate] = useState<string>("all");
@@ -117,7 +96,6 @@ export function MetagameDashboard({
   const [chartMode, setChartMode] = useState<"bars" | "treemap" | "donut">("bars");
   const [carouselIndex, setCarouselIndex] = useState<number>(0);
   const [hoveredDeck, setHoveredDeck] = useState<string | null>(null);
-  const [playerSearchQuery, setPlayerSearchQuery] = useState<string>("");
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
   // Ordenação cronológica das etapas para numeração estável
@@ -263,33 +241,6 @@ export function MetagameDashboard({
       };
     });
   }, [deckStats, totalDecks]);
-
-  // 3. Resultados dos Jogadores na Etapa Ativa (ou todas)
-  const activeStagePlayers = useMemo(() => {
-    let list: StagePlayerResult[] = [];
-    if (selectedStageDate === "all") {
-      list = etapaResultados;
-    } else {
-      list = etapaResultados.filter((r) => r.etapaData === selectedStageDate);
-    }
-
-    // Se houver busca por texto
-    if (playerSearchQuery.trim()) {
-      const q = playerSearchQuery.toLowerCase().trim();
-      return list.filter(
-        (p) =>
-          p.jogadorNome.toLowerCase().includes(q) ||
-          (p.deckNome && p.deckNome.toLowerCase().includes(q))
-      );
-    }
-
-    // Ordenar por colocação se for uma etapa específica
-    if (selectedStageDate !== "all") {
-      return [...list].sort((a, b) => a.colocacao - b.colocacao);
-    }
-
-    return list;
-  }, [etapaResultados, selectedStageDate, playerSearchQuery]);
 
   // Autoplay para o Carrossel 3D
   useEffect(() => {
@@ -859,156 +810,6 @@ export function MetagameDashboard({
                   : "💡 Opção 3 (Donut Top 5): Fatias largas e espaçosas focadas exclusivamente nos líderes."}
               </p>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* SEÇÃO DETALHADA: DECKS PILOTADOS POR CADA JOGADOR NA ETAPA */}
-      <div className="glass-card rounded-3xl p-6 sm:p-8 backdrop-blur-2xl border border-white/[0.05] space-y-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg sm:text-xl font-black text-white">
-                {selectedStageDate === "all" ? "Decks Pilotados por Jogador" : `Decks da Etapa #${activeStageNumber}`}
-              </span>
-              <span className="rounded-full bg-blue-500/15 border border-blue-500/30 px-2.5 py-0.5 text-[11px] font-bold text-blue-300 tabular-nums">
-                {activeStagePlayers.length} {activeStagePlayers.length === 1 ? "registro" : "registros"}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 font-normal mt-0.5">
-              {selectedStageDate === "all"
-                ? "Histórico completo de escolhas de arquétipos registradas nas rodadas da temporada."
-                : `Arquétipos utilizados pelos treinadores na etapa de ${formatDateBR(selectedStageDate)}.`}
-            </p>
-          </div>
-
-          {/* Campo de Busca Rápida de Jogador ou Deck */}
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
-            <input
-              type="text"
-              value={playerSearchQuery}
-              onChange={(e) => setPlayerSearchQuery(e.target.value)}
-              placeholder="Buscar jogador ou deck..."
-              className="w-full rounded-xl bg-slate-950/80 border border-white/10 pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
-            />
-          </div>
-        </div>
-
-        {/* Tabela de Jogadores e seus Decks */}
-        {activeStagePlayers.length === 0 ? (
-          <div className="py-10 text-center text-slate-400 text-xs font-medium">
-            Nenhum resultado encontrado com os filtros selecionados.
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-2xl border border-white/[0.06] bg-slate-950/60 max-h-[420px] overflow-y-auto custom-scrollbar">
-            <table className="w-full text-left text-xs text-slate-200">
-              <thead className="sticky top-0 bg-slate-950/95 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/10 z-10">
-                <tr>
-                  <th className="py-2.5 pl-4 pr-2 text-center w-12">#</th>
-                  <th className="px-3 py-2.5">Treinador</th>
-                  {selectedStageDate === "all" && <th className="px-3 py-2.5">Etapa</th>}
-                  <th className="px-3 py-2.5">Deck Utilizado</th>
-                  <th className="px-3 py-2.5 text-center">V / E / D</th>
-                  <th className="px-3 py-2.5 pr-4 text-right font-bold text-yellow-400">PTS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {activeStagePlayers.map((res, rIdx) => {
-                  const isWinner = res.colocacao === 1;
-                  const isTop4 = res.colocacao <= 4;
-                  const deckObj = decksInfo.find(
-                    (d) => d.nome.toLowerCase() === res.deckNome?.toLowerCase()
-                  );
-
-                  return (
-                    <tr
-                      key={`${res.id || rIdx}-${res.jogadorNome}`}
-                      className={`hover:bg-blue-500/10 transition-colors ${
-                        isWinner
-                          ? "bg-yellow-500/10 font-bold"
-                          : isTop4
-                          ? "bg-slate-800/30"
-                          : ""
-                      }`}
-                    >
-                      {/* Posição */}
-                      <td className="py-2.5 pl-4 pr-2 text-center tabular-nums font-bold">
-                        {isWinner ? (
-                          <span className="text-sm">🥇</span>
-                        ) : res.colocacao === 2 ? (
-                          <span className="text-sm">🥈</span>
-                        ) : res.colocacao === 3 ? (
-                          <span className="text-sm">🥉</span>
-                        ) : res.colocacao === 4 ? (
-                          <span className="text-xs font-bold text-blue-400">4º</span>
-                        ) : (
-                          <span className="text-slate-400 text-xs">{res.colocacao}º</span>
-                        )}
-                      </td>
-
-                      {/* Nome do Jogador + Categoria */}
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-white">{res.jogadorNome}</span>
-                          <CategoryBadge category={res.categoria} size="sm" />
-                        </div>
-                      </td>
-
-                      {/* Se estiver no modo todas as etapas, exibe a data da etapa */}
-                      {selectedStageDate === "all" && (
-                        <td className="px-3 py-2.5 text-slate-400 text-[11px] tabular-nums whitespace-nowrap">
-                          {formatDateBR(res.etapaData)}
-                        </td>
-                      )}
-
-                      {/* Deck Pilotado */}
-                      <td className="px-3 py-2.5">
-                        {res.deckNome ? (
-                          <button
-                            onClick={() => handleDeckHover(res.deckNome!)}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-white/10 hover:border-white/30 px-2.5 py-1 text-xs text-slate-200 transition-all cursor-pointer shadow-sm group"
-                            title="Clique para destacar este deck no carrossel e gráfico"
-                          >
-                            {deckObj?.icone ? (
-                              <img
-                                src={deckObj.icone}
-                                alt={res.deckNome}
-                                className="h-4 w-4 object-contain rounded shrink-0"
-                              />
-                            ) : (
-                              <span className="text-xs">⚡</span>
-                            )}
-                            <span className="truncate text-xs font-bold group-hover:text-amber-300 transition-colors">
-                              {res.deckNome}
-                            </span>
-                            {deckObj?.tipoEnergia && (
-                              <EnergyBadge energyRaw={deckObj.tipoEnergia} size="sm" />
-                            )}
-                          </button>
-                        ) : (
-                          <span className="text-slate-500 text-[11px] italic">Não registrado</span>
-                        )}
-                      </td>
-
-                      {/* V / E / D */}
-                      <td className="px-3 py-2.5 text-center tabular-nums text-slate-300 whitespace-nowrap">
-                        <span className="text-emerald-400 font-bold">{res.vitorias}</span>
-                        <span className="text-slate-500"> / </span>
-                        <span className="text-yellow-400 font-bold">{res.empates}</span>
-                        <span className="text-slate-500"> / </span>
-                        <span className="text-rose-400 font-bold">{res.derrotas}</span>
-                      </td>
-
-                      {/* Pontos */}
-                      <td className="px-3 py-2.5 pr-4 text-right font-black text-sm text-yellow-400 tabular-nums">
-                        {res.pontos}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         )}
       </div>
