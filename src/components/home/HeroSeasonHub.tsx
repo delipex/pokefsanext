@@ -77,6 +77,8 @@ export interface HeroSeasonHubProps {
     descricao?: string | null;
     foto?: string | null;
   } | null;
+  exibirPodio?: boolean;
+  exibirProximoEvento?: boolean;
 }
 
 // Helper para formatar a data do evento
@@ -99,6 +101,8 @@ export function HeroSeasonHub({
   totalJogadores = 0,
   top4 = [],
   nextEvent,
+  exibirPodio = true,
+  exibirProximoEvento = true,
 }: HeroSeasonHubProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerModalData | null>(null);
 
@@ -152,7 +156,7 @@ export function HeroSeasonHub({
 
       const days = Math.floor(distance / (1000 * 60 * 60 * 24));
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const mins = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const mins = Math.floor((distance % (1000 * 60)) / (1000 * 60));
       const secs = Math.floor((distance % (1000 * 60)) / 1000);
 
       setTimeLeft({
@@ -167,6 +171,8 @@ export function HeroSeasonHub({
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
   }, [nextEvent]);
+
+  if (!exibirPodio && !exibirProximoEvento) return null;
 
   // Fallbacks do Evento
   const formattedEventDate = formatEventDate(nextEvent?.data);
@@ -231,209 +237,228 @@ export function HeroSeasonHub({
     };
   };
 
+  const gridClass =
+    exibirPodio && exibirProximoEvento
+      ? "grid-cols-1 lg:grid-cols-12"
+      : "grid-cols-1";
+
+  const podiumColClass =
+    exibirPodio && exibirProximoEvento
+      ? "lg:col-span-5"
+      : "w-full";
+
+  const eventColClass =
+    exibirPodio && exibirProximoEvento
+      ? "lg:col-span-7"
+      : "w-full";
+
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-stretch">
+      <div className={`grid ${gridClass} gap-4 sm:gap-6 items-stretch`}>
         {/* =========================================================
-            COLUNA 1: PÓDIO DA TEMPORADA ATUAL (Uma Caixa Única com Divisórias Sutis)
+            COLUNA 1: PÓDIO DA TEMPORADA ATUAL (Se ativo)
            ========================================================= */}
-        <div className="lg:col-span-5 flex flex-col space-y-2">
-          {/* Header da Coluna */}
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <svg
-                className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400 stroke-current fill-none stroke-[2.2]"
-                viewBox="0 0 24 24"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M2 19h20" />
-                <path d="M4 19V11h5v8" />
-                <path d="M9 19V6h6v13" />
-                <path d="M15 19v-5h5v5" />
-              </svg>
-              <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                Pódio Atual
-              </h2>
-            </div>
-            <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              Temp. #{temporada}
-            </span>
-          </div>
-
-          {/* Caixa Única com Divisórias em Linhas Sutis */}
-          <div className="flex-1 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03] p-2 sm:p-3 backdrop-blur-2xl shadow-xl flex flex-col justify-between divide-y divide-white/[0.04] transition-all">
-            {top4.slice(0, 4).map((player, index) => {
-              const pos = index + 1;
-              const cardCfg = getPodiumCardConfig(pos);
-              const energyCfg = getMultiEnergyConfig(player.ultimoDeckEnergia || "colorless");
-
-              return (
-                <motion.div
-                  key={player.jogadorId || player.jogadorNome}
-                  whileHover={{ x: 4, transition: { type: "spring", stiffness: 400, damping: 25 } }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectedPlayer(player)}
-                  className="group relative flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-2xl hover:bg-white/[0.04] transition-colors cursor-pointer"
+        {exibirPodio && (
+          <div className={`${podiumColClass} flex flex-col space-y-2`}>
+            {/* Header da Coluna */}
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <svg
+                  className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400 stroke-current fill-none stroke-[2.2]"
+                  viewBox="0 0 24 24"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  {/* Badge Numérico da Posição */}
-                  <div
-                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-xs sm:text-sm shrink-0 border ${cardCfg.badgeStyle.bg} ${cardCfg.badgeStyle.border}`}
+                  <path d="M2 19h20" />
+                  <path d="M4 19V11h5v8" />
+                  <path d="M9 19V6h6v13" />
+                  <path d="M15 19v-5h5v5" />
+                </svg>
+                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                  Pódio Atual
+                </h2>
+              </div>
+              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Temp. #{temporada}
+              </span>
+            </div>
+
+            {/* Caixa Única com Divisórias em Linhas Sutis */}
+            <div className="flex-1 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03] p-2 sm:p-3 backdrop-blur-2xl shadow-xl flex flex-col justify-between divide-y divide-white/[0.04] transition-all">
+              {top4.slice(0, 4).map((player, index) => {
+                const pos = index + 1;
+                const cardCfg = getPodiumCardConfig(pos);
+                const energyCfg = getMultiEnergyConfig(player.ultimoDeckEnergia || "colorless");
+
+                return (
+                  <motion.div
+                    key={player.jogadorId || player.jogadorNome}
+                    whileHover={{ x: 4, transition: { type: "spring", stiffness: 400, damping: 25 } }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setSelectedPlayer(player)}
+                    className="group relative flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-2xl hover:bg-white/[0.04] transition-colors cursor-pointer"
                   >
-                    {pos}
-                  </div>
-
-                  {/* Informações do Jogador e Deck */}
-                  <div className="min-w-0 flex-1 pl-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors truncate">
-                        {player.jogadorNome}
-                      </span>
-                      <CategoryBadge category={player.categoria} size="sm" />
-                      {cardCfg.seal}
+                    {/* Badge Numérico da Posição */}
+                    <div
+                      className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-xs sm:text-sm shrink-0 border ${cardCfg.badgeStyle.bg} ${cardCfg.badgeStyle.border}`}
+                    >
+                      {pos}
                     </div>
 
-                    <div className="flex items-center gap-1 text-[11px] text-slate-400 truncate mt-0.5">
-                      {/* Energy Dot / Ícone de Energia */}
-                      <div className="flex items-center -space-x-1 shrink-0">
-                        {energyCfg.types.map((t, i) => (
-                          <span
-                            key={i}
-                            className="h-2 w-2 rounded-full border border-black/50 shadow-sm shrink-0"
-                            style={{ backgroundColor: t.hex, boxShadow: `0 0 3px ${t.hex}` }}
-                          />
-                        ))}
+                    {/* Informações do Jogador e Deck */}
+                    <div className="min-w-0 flex-1 pl-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors truncate">
+                          {player.jogadorNome}
+                        </span>
+                        <CategoryBadge category={player.categoria} size="sm" />
+                        {cardCfg.seal}
                       </div>
-                      <span className="truncate max-w-[160px] sm:max-w-[200px] text-slate-300 font-medium">
-                        {player.ultimoDeck || "Sem deck registrado"}
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Pontos Limpos */}
-                  <div className="text-right shrink-0">
-                    <div className={`font-black text-sm sm:text-base tracking-wide tabular-nums ${cardCfg.ptsColor}`}>
-                      {player.pontos}{" "}
-                      <span className="text-[10px] font-semibold text-slate-400">PTS</span>
+                      <div className="flex items-center gap-1 text-[11px] text-slate-400 truncate mt-0.5">
+                        {/* Energy Dot / Ícone de Energia */}
+                        <div className="flex items-center -space-x-1 shrink-0">
+                          {energyCfg.types.map((t, i) => (
+                            <span
+                              key={i}
+                              className="h-2 w-2 rounded-full border border-black/50 shadow-sm shrink-0"
+                              style={{ backgroundColor: t.hex, boxShadow: `0 0 3px ${t.hex}` }}
+                            />
+                          ))}
+                        </div>
+                        <span className="truncate max-w-[160px] sm:max-w-[200px] text-slate-300 font-medium">
+                          {player.ultimoDeck || "Sem deck registrado"}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+
+                    {/* Pontos Limpos */}
+                    <div className="text-right shrink-0">
+                      <div className={`font-black text-sm sm:text-base tracking-wide tabular-nums ${cardCfg.ptsColor}`}>
+                        {player.pontos}{" "}
+                        <span className="text-[10px] font-semibold text-slate-400">PTS</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* =========================================================
-            COLUNA 2: PRÓXIMO EVENTO (Direita - Mais Larga: 7 Colunas)
+            COLUNA 2: PRÓXIMO EVENTO (Se ativo)
            ========================================================= */}
-        <div className="lg:col-span-7 flex flex-col space-y-2">
-          {/* Header da Coluna */}
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-amber-400" />
-              <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                Próximo Evento
-              </h2>
-            </div>
-            <Link
-              href="/calendario"
-              className="text-[11px] font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1"
-            >
-              <span>Calendário</span>
-              <ArrowRight className="h-3 w-3 text-amber-400" />
-            </Link>
-          </div>
-
-          {/* Card do Evento Transparente e Confortável */}
-          <div className="flex-1 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03] p-5 sm:p-6 backdrop-blur-2xl shadow-xl flex flex-col justify-between space-y-4 relative overflow-hidden transition-all">
-            {/* Topo do Card: Alerta com Pulso e Data */}
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-semibold text-rose-300">
-                <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                <span>Próximo Torneio</span>
+        {exibirProximoEvento && (
+          <div className={`${eventColClass} flex flex-col space-y-2`}>
+            {/* Header da Coluna */}
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-amber-400" />
+                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                  Próximo Evento
+                </h2>
               </div>
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#ffcb05] tabular-nums">
-                <Clock className="h-3.5 w-3.5 text-[#ffcb05]" />
-                <span>{formattedEventDate} às {eventTime}</span>
-              </div>
-            </div>
-
-            {/* Título e Descrição do Torneio */}
-            <div className="space-y-1.5">
-              <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-snug">
-                {eventTitle}
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-normal">
-                {eventDesc}
-              </p>
-            </div>
-
-            {/* Timer Regressivo com Visual Glassmorphism Transparente */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-400 px-1">
-                <span>Contagem Regressiva</span>
-                <span className="text-slate-400 font-semibold lowercase first-letter:uppercase">faltam poucos dias</span>
-              </div>
-              <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                {[
-                  { label: "DIAS", value: timeLeft.days },
-                  { label: "HORAS", value: timeLeft.hours },
-                  { label: "MINS", value: timeLeft.mins },
-                  { label: "SEGS", value: timeLeft.secs },
-                ].map((item, i) => (
-                  <motion.div
-                    key={i}
-                    whileHover={{ y: -2 }}
-                    className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.04] bg-white/[0.02] py-3 px-2 shadow-sm transition-all"
-                  >
-                    <span className="tabular-nums text-xl sm:text-2xl font-black text-slate-100">
-                      {item.value}
-                    </span>
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
-                      {item.label}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* Rodapé: Local e Botão de Ação */}
-            <div className="flex items-center justify-between gap-3 text-xs text-slate-400 pt-3 border-t border-white/[0.04]">
-              <a
-                href={eventMapUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-medium text-slate-300 hover:text-white transition-colors truncate"
+              <Link
+                href="/calendario"
+                className="text-[11px] font-bold text-slate-400 hover:text-white transition-colors flex items-center gap-1"
               >
-                <MapPin className="h-4 w-4 text-amber-400 shrink-0" />
-                <span className="truncate">Local: {eventLocation}</span>
-                <ExternalLink className="h-3 w-3 shrink-0 text-slate-400" />
-              </a>
+                <span>Calendário</span>
+                <ArrowRight className="h-3 w-3 text-amber-400" />
+              </Link>
+            </div>
 
-              {nextEvent?.linkInscricao ? (
-                <motion.a
-                  whileTap={{ scale: 0.94 }}
-                  whileHover={{ scale: 1.02 }}
-                  href={nextEvent.linkInscricao}
+            {/* Card do Evento Transparente e Confortável */}
+            <div className="flex-1 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03] p-5 sm:p-6 backdrop-blur-2xl shadow-xl flex flex-col justify-between space-y-4 relative overflow-hidden transition-all">
+              {/* Topo do Card: Alerta com Pulso e Data */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-semibold text-rose-300">
+                  <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                  <span>Próximo Torneio</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#ffcb05] tabular-nums">
+                  <Clock className="h-3.5 w-3.5 text-[#ffcb05]" />
+                  <span>{formattedEventDate} às {eventTime}</span>
+                </div>
+              </div>
+
+              {/* Título e Descrição do Torneio */}
+              <div className="space-y-1.5">
+                <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-snug">
+                  {eventTitle}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-normal">
+                  {eventDesc}
+                </p>
+              </div>
+
+              {/* Timer Regressivo com Visual Glassmorphism Transparente */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-400 px-1">
+                  <span>Contagem Regressiva</span>
+                  <span className="text-slate-400 font-semibold lowercase first-letter:uppercase">faltam poucos dias</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                  {[
+                    { label: "DIAS", value: timeLeft.days },
+                    { label: "HORAS", value: timeLeft.hours },
+                    { label: "MINS", value: timeLeft.mins },
+                    { label: "SEGS", value: timeLeft.secs },
+                  ].map((item, i) => (
+                    <motion.div
+                      key={i}
+                      whileHover={{ y: -2 }}
+                      className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.04] bg-white/[0.02] py-3 px-2 shadow-sm transition-all"
+                    >
+                      <span className="tabular-nums text-xl sm:text-2xl font-black text-slate-100">
+                        {item.value}
+                      </span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
+                        {item.label}
+                      </span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rodapé: Local e Botão de Ação */}
+              <div className="flex items-center justify-between gap-3 text-xs text-slate-400 pt-3 border-t border-white/[0.04]">
+                <a
+                  href={eventMapUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all shrink-0"
+                  className="inline-flex items-center gap-1.5 font-medium text-slate-300 hover:text-white transition-colors truncate"
                 >
-                  Inscrever-se
-                </motion.a>
-              ) : (
-                <motion.div whileTap={{ scale: 0.94 }} whileHover={{ scale: 1.02 }}>
-                  <Link
-                    href="/calendario"
-                    className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3.5 py-1.5 text-xs font-semibold text-slate-200 hover:text-white transition-all shrink-0 inline-block"
+                  <MapPin className="h-4 w-4 text-amber-400 shrink-0" />
+                  <span className="truncate">Local: {eventLocation}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0 text-slate-400" />
+                </a>
+
+                {nextEvent?.linkInscricao ? (
+                  <motion.a
+                    whileTap={{ scale: 0.94 }}
+                    whileHover={{ scale: 1.02 }}
+                    href={nextEvent.linkInscricao}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all shrink-0"
                   >
-                    Ver Detalhes
-                  </Link>
-                </motion.div>
-              )}
+                    Inscrever-se
+                  </motion.a>
+                ) : (
+                  <motion.div whileTap={{ scale: 0.94 }} whileHover={{ scale: 1.02 }}>
+                    <Link
+                      href="/calendario"
+                      className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3.5 py-1.5 text-xs font-semibold text-slate-200 hover:text-white transition-all shrink-0 inline-block"
+                    >
+                      Ver Detalhes
+                    </Link>
+                  </motion.div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Modal de Detalhes do Jogador */}
@@ -441,3 +466,4 @@ export function HeroSeasonHub({
     </div>
   );
 }
+

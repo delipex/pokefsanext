@@ -18,8 +18,20 @@
 .env
 !.env.example
 
+# Local SQLite & Databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+local.db
+
 # Vercel Deployment Cache
 .vercel
+
+# AI & Agent Directives (Local Only)
+.agents/
+.gemini/
 
 # Debug & OS files
 .DS_Store

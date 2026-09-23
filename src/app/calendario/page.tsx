@@ -87,40 +87,40 @@ export default async function CalendarioPage() {
             return (
               <div
                 key={ev.id || idx}
-                className="group relative flex items-center justify-between gap-4 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.08] p-5 sm:p-6 shadow-xl backdrop-blur-2xl transition-all duration-300 hover:scale-[1.01]"
+                className="group relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.08] p-4 sm:p-6 shadow-xl backdrop-blur-2xl transition-all duration-300 hover:scale-[1.01]"
               >
                 {/* Lado Esquerdo: Bloco de Data + Informações */}
-                <div className="flex items-center gap-4 sm:gap-5 min-w-0">
+                <div className="flex items-start sm:items-center gap-3.5 sm:gap-5 min-w-0 flex-1">
                   {/* Bloco de Data Estilizado */}
-                  <div className="flex flex-col items-center justify-center h-16 w-16 sm:h-18 sm:w-18 shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.03] shadow-inner text-center">
-                    <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">
+                  <div className="flex flex-col items-center justify-center h-14 w-14 sm:h-18 sm:w-18 shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.03] shadow-inner text-center">
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-400 tracking-wider">
                       {dateBadge.weekday}
                     </span>
-                    <span className="text-xl sm:text-2xl font-black text-white leading-none my-0.5 tabular-nums">
+                    <span className="text-lg sm:text-2xl font-black text-white leading-none my-0.5 tabular-nums">
                       {dateBadge.day}
                     </span>
-                    <span className="text-[10px] font-bold uppercase text-slate-400">
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-400">
                       {dateBadge.month}
                     </span>
                   </div>
 
                   {/* Detalhes do Evento */}
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`rounded-lg border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${eventType.color}`}>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                      <span className={`rounded-lg border px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${eventType.color}`}>
                         {eventType.label}
                       </span>
                       {isConfirmed && (
-                        <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                        <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-emerald-400">
                           <CheckCircle2 className="h-3 w-3" /> Confirmado
                         </span>
                       )}
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 tabular-nums">
+                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-slate-400 tabular-nums">
                         <Clock className="h-3 w-3 text-amber-400" /> {ev.horario || "14:00"}
                       </span>
                     </div>
 
-                    <h3 className="text-base sm:text-lg font-black text-white group-hover:text-amber-300 transition-colors truncate">
+                    <h3 className="text-sm sm:text-lg font-black text-white group-hover:text-amber-300 transition-colors truncate">
                       {ev.evento}
                     </h3>
 
@@ -134,13 +134,13 @@ export default async function CalendarioPage() {
                 </div>
 
                 {/* Lado Direito: Ações */}
-                <div className="shrink-0 flex items-center gap-2">
+                <div className="shrink-0 flex items-center justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/[0.04]">
                   {ev.linkInscricao ? (
                     <a
                       href={ev.linkInscricao}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
                     >
                       Inscrição <ExternalLink className="h-3.5 w-3.5" />
                     </a>
@@ -149,7 +149,7 @@ export default async function CalendarioPage() {
                       href={ev.linkMaps}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer"
                     >
                       Como Chegar <ExternalLink className="h-3.5 w-3.5" />
                     </a>

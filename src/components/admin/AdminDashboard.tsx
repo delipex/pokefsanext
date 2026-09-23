@@ -118,11 +118,39 @@ export function AdminDashboard({
   const [nomeLiga, setNomeLiga] = useState(initialConfig.nomeLiga || "Liga Atlântica TCG");
   const [temporadaAtual, setTemporadaAtual] = useState(initialConfig.temporadaAtual || "5");
   const [avisoTopo, setAvisoTopo] = useState(initialConfig.avisoTopo || "");
+  const [exibirBannerAvisoTopo, setExibirBannerAvisoTopo] = useState(
+    initialConfig.exibirBannerAvisoTopo !== "false" && !!initialConfig.avisoTopo
+  );
   const [linkWhatsApp, setLinkWhatsApp] = useState(initialConfig.linkWhatsApp || "");
   const [linkInstagram, setLinkInstagram] = useState(initialConfig.linkInstagram || "");
+  const [linkTwitch, setLinkTwitch] = useState(initialConfig.linkTwitch || "");
+  const [linkYouTube, setLinkYouTube] = useState(initialConfig.linkYouTube || "");
   const [chavePix, setChavePix] = useState(initialConfig.chavePix || "");
   const [adminPin, setAdminPin] = useState(initialConfig.adminPin || "1234");
   const [statusTemporada, setStatusTemporada] = useState(initialConfig.statusTemporada || "ativa");
+
+  // Controles dos Módulos da Home
+  const [exibirCarrosselDecksHome, setExibirCarrosselDecksHome] = useState(
+    initialConfig.exibirCarrosselDecksHome !== "false"
+  );
+  const [velocidadeCarrossel, setVelocidadeCarrossel] = useState(
+    initialConfig.velocidadeCarrossel || "-28"
+  );
+  const [exibirPodioHome, setExibirPodioHome] = useState(
+    initialConfig.exibirPodioHome !== "false"
+  );
+  const [exibirProximoEventoHome, setExibirProximoEventoHome] = useState(
+    initialConfig.exibirProximoEventoHome !== "false"
+  );
+  const [exibirPremiacoesHome, setExibirPremiacoesHome] = useState(
+    initialConfig.exibirPremiacoesHome !== "false"
+  );
+
+  // Controles Globais
+  const [exibirPortalAtleta, setExibirPortalAtleta] = useState(
+    initialConfig.exibirPortalAtleta !== "false"
+  );
+
   const [configMessage, setConfigMessage] = useState("");
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
@@ -562,11 +590,20 @@ export function AdminDashboard({
             nomeLiga,
             temporadaAtual,
             avisoTopo,
+            exibirBannerAvisoTopo: String(exibirBannerAvisoTopo),
             linkWhatsApp,
             linkInstagram,
+            linkTwitch,
+            linkYouTube,
             chavePix,
             adminPin,
             statusTemporada,
+            exibirCarrosselDecksHome: String(exibirCarrosselDecksHome),
+            velocidadeCarrossel: String(velocidadeCarrossel),
+            exibirPodioHome: String(exibirPodioHome),
+            exibirProximoEventoHome: String(exibirProximoEventoHome),
+            exibirPremiacoesHome: String(exibirPremiacoesHome),
+            exibirPortalAtleta: String(exibirPortalAtleta),
           },
         }),
       });
@@ -1755,61 +1792,200 @@ export function AdminDashboard({
             </p>
           </div>
 
-          <form onSubmit={handleSaveAllConfig} className="space-y-6">
-            {/* Seção: Dados Principais */}
+          <form onSubmit={handleSaveAllConfig} className="space-y-7">
+            {/* Bloco 1: Controles e Módulos da Página Inicial (Home) */}
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div className="space-y-1.5">
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
-                    Nome Oficial da Liga
-                  </label>
-                  <input
-                    type="text"
-                    value={nomeLiga}
-                    onChange={(e) => setNomeLiga(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
-                  />
-                  <span className="text-[11px] text-slate-400 font-normal">Exibido na navbar, títulos e rodapé</span>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
-                    Número da Temporada Ativa
-                  </label>
-                  <input
-                    type="text"
-                    value={temporadaAtual}
-                    onChange={(e) => setTemporadaAtual(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm font-bold text-white tabular-nums placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
-                  />
-                  <span className="text-[11px] text-slate-400 font-normal">Temporada corrente calculada nas etapas</span>
-                </div>
+              <div className="flex items-center gap-2 text-indigo-400 border-b border-white/[0.06] pb-2">
+                <Sparkles className="h-4 w-4" />
+                <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-200">
+                  1. Módulos & Exibições da Página Inicial (Home)
+                </h4>
               </div>
 
-              {/* Faixa de Aviso do Topo */}
-              <div className="space-y-1.5">
-                <label className="block text-xs sm:text-sm font-semibold text-slate-200">
-                  Faixa de Aviso do Topo (Banner de Alerta)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: ⚡ Inscrições abertas para o League Challenge deste sábado!"
-                  value={avisoTopo}
-                  onChange={(e) => setAvisoTopo(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
-                />
-                <span className="text-[11px] text-slate-400 font-normal">Deixe em branco para ocultar o banner do topo</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Toggle: Carrossel de Decks */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl border border-white/10 bg-slate-950/60">
+                  <div className="space-y-0.5 pr-2">
+                    <span className="block text-xs font-bold text-white">Carrossel 3D de Decks</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Esteira contínua com os arquétipos</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExibirCarrosselDecksHome(!exibirCarrosselDecksHome)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      exibirCarrosselDecksHome ? "bg-emerald-500" : "bg-slate-700"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        exibirCarrosselDecksHome ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Seletor: Velocidade do Carrossel */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl border border-white/10 bg-slate-950/60">
+                  <div className="space-y-0.5 pr-2">
+                    <span className="block text-xs font-bold text-white">Velocidade da Esteira</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Ritmo do deslizamento contínuo</span>
+                  </div>
+                  <select
+                    value={velocidadeCarrossel}
+                    onChange={(e) => setVelocidadeCarrossel(e.target.value)}
+                    className="rounded-xl border border-white/10 bg-slate-800 py-1.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="-20">Super Lenta (20 px/s)</option>
+                    <option value="-28">Baixa / Suave (28 px/s)</option>
+                    <option value="-45">Média (45 px/s)</option>
+                    <option value="-70">Rápida (70 px/s)</option>
+                  </select>
+                </div>
+
+                {/* Toggle: Pódio da Temporada */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl border border-white/10 bg-slate-950/60">
+                  <div className="space-y-0.5 pr-2">
+                    <span className="block text-xs font-bold text-white">Pódio da Temporada</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Exibe o Top 4 atual na Home</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExibirPodioHome(!exibirPodioHome)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      exibirPodioHome ? "bg-emerald-500" : "bg-slate-700"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        exibirPodioHome ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Toggle: Próximo Evento / Countdown */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl border border-white/10 bg-slate-950/60">
+                  <div className="space-y-0.5 pr-2">
+                    <span className="block text-xs font-bold text-white">Card do Próximo Evento</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Contagem regressiva e inscrições</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExibirProximoEventoHome(!exibirProximoEventoHome)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      exibirProximoEventoHome ? "bg-emerald-500" : "bg-slate-700"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        exibirProximoEventoHome ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Toggle: Premiações Projetadas */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl border border-white/10 bg-slate-950/60 sm:col-span-2">
+                  <div className="space-y-0.5 pr-2">
+                    <span className="block text-xs font-bold text-white">Premiações Projetadas da Temporada</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Pokébola de Ouro, Líder do Ginásio, Mestre Ditto e Troféu Murcha</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExibirPremiacoesHome(!exibirPremiacoesHome)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      exibirPremiacoesHome ? "bg-emerald-500" : "bg-slate-700"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        exibirPremiacoesHome ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="h-px bg-white/[0.06]" />
-
-            {/* Seção: Links & Redes Sociais */}
+            {/* Bloco 2: Módulos Globais e Navegação */}
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="flex items-center gap-2 text-indigo-400 border-b border-white/[0.06] pb-2">
+                <Sliders className="h-4 w-4" />
+                <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-200">
+                  2. Módulos Globais & Navegação
+                </h4>
+              </div>
+
+              <div className="space-y-3">
+                {/* Banner de Aviso do Topo */}
+                <div className="p-4 rounded-2xl border border-white/10 bg-slate-950/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="block text-xs font-bold text-white">Barra de Aviso no Topo (Banner)</span>
+                      <span className="text-[11px] text-slate-400 font-normal">Exibido acima do cabeçalho em todas as páginas</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExibirBannerAvisoTopo(!exibirBannerAvisoTopo)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        exibirBannerAvisoTopo ? "bg-emerald-500" : "bg-slate-700"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          exibirBannerAvisoTopo ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {exibirBannerAvisoTopo && (
+                    <input
+                      type="text"
+                      placeholder="Ex: ⚡ Inscrições abertas para o League Challenge deste sábado!"
+                      value={avisoTopo}
+                      onChange={(e) => setAvisoTopo(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    />
+                  )}
+                </div>
+
+                {/* Botão de Login / Portal do Atleta */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl border border-white/10 bg-slate-950/60">
+                  <div className="space-y-0.5 pr-2">
+                    <span className="block text-xs font-bold text-white">Portal do Treinador / Botão de Login</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Exibe o botão de login e acesso ao portal do atleta</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExibirPortalAtleta(!exibirPortalAtleta)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      exibirPortalAtleta ? "bg-emerald-500" : "bg-slate-700"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        exibirPortalAtleta ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Bloco 3: Links & Redes Sociais no Rodapé */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-indigo-400 border-b border-white/[0.06] pb-2">
+                <LinkIcon className="h-4 w-4" />
+                <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-200">
+                  3. Redes Sociais & Canais no Rodapé
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
-                    Link do Grupo no WhatsApp
+                  <label className="block text-xs font-semibold text-slate-200">
+                    WhatsApp (Grupo Oficial)
                   </label>
                   <input
                     type="text"
@@ -1818,12 +1994,11 @@ export function AdminDashboard({
                     onChange={(e) => setLinkWhatsApp(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                   />
-                  <span className="text-[11px] text-slate-400 font-normal">Conecta os botões e links de comunidade</span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
-                    Link do Instagram Oficial
+                  <label className="block text-xs font-semibold text-slate-200">
+                    Instagram Oficial
                   </label>
                   <input
                     type="text"
@@ -1832,19 +2007,73 @@ export function AdminDashboard({
                     onChange={(e) => setLinkInstagram(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                   />
-                  <span className="text-[11px] text-slate-400 font-normal">Perfil oficial de cobertura e fotos</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-200">
+                    Twitch (Transmissões)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://twitch.tv/atlanticamais"
+                    value={linkTwitch}
+                    onChange={(e) => setLinkTwitch(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-200">
+                    YouTube (Canal de Vídeos)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://youtube.com/@ligaatlantica"
+                    value={linkYouTube}
+                    onChange={(e) => setLinkYouTube(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="h-px bg-white/[0.06]" />
-
-            {/* Seção: Pagamentos & Segurança */}
+            {/* Bloco 4: Parâmetros Gerais e Segurança da Liga */}
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="flex items-center gap-2 text-indigo-400 border-b border-white/[0.06] pb-2">
+                <Shield className="h-4 w-4" />
+                <h4 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-200">
+                  4. Parâmetros Gerais & Segurança
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
-                    Chave PIX / Instruções de Pagamento
+                  <label className="block text-xs font-semibold text-slate-200">
+                    Nome Oficial da Liga
+                  </label>
+                  <input
+                    type="text"
+                    value={nomeLiga}
+                    onChange={(e) => setNomeLiga(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-200">
+                    Temporada Ativa
+                  </label>
+                  <input
+                    type="text"
+                    value={temporadaAtual}
+                    onChange={(e) => setTemporadaAtual(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm font-bold text-white tabular-nums placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-200">
+                    Chave PIX Oficial
                   </label>
                   <input
                     type="text"
@@ -1853,12 +2082,11 @@ export function AdminDashboard({
                     onChange={(e) => setChavePix(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                   />
-                  <span className="text-[11px] text-slate-400 font-normal">Instrução padrão nas inscrições e eventos</span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-xs sm:text-sm font-semibold text-slate-200">
-                    PIN de Acesso Administrativo
+                  <label className="block text-xs font-semibold text-slate-200">
+                    PIN de Acesso Admin
                   </label>
                   <input
                     type="text"
@@ -1867,24 +2095,23 @@ export function AdminDashboard({
                     onChange={(e) => setAdminPin(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm tabular-nums font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                   />
-                  <span className="text-[11px] text-slate-400 font-normal">Senha para acesso ao painel do organizador</span>
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-xs sm:text-sm font-semibold text-slate-200">
-                  Status Operacional da Temporada
-                </label>
-                <select
-                  value={statusTemporada}
-                  onChange={(e) => setStatusTemporada(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm font-semibold text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
-                >
-                  <option value="ativa">Ativa (Online e pontuando em tempo real)</option>
-                  <option value="congelada">Congelada (Pódio final fixado para premiações)</option>
-                  <option value="offseason">Off-Season (Fora de Temporada / Em preparação)</option>
-                </select>
-                <span className="text-[11px] text-slate-400 font-normal">Controla a badge e o status na navegação global</span>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-200">
+                    Status Operacional da Temporada
+                  </label>
+                  <select
+                    value={statusTemporada}
+                    onChange={(e) => setStatusTemporada(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/60 py-2.5 px-3.5 text-xs sm:text-sm font-semibold text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  >
+                    <option value="ativa">Ativa (Online e pontuando em tempo real)</option>
+                    <option value="congelada">Congelada (Pódio final fixado para premiações)</option>
+                    <option value="playoffs">Playoffs / Top Cut em Andamento</option>
+                    <option value="offseason">Off-Season (Fora de Temporada / Em preparação)</option>
+                  </select>
+                </div>
               </div>
             </div>
 

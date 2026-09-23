@@ -34,8 +34,16 @@ export default async function RootLayout({
           <div className="blob blob-3" />
         </div>
 
-        <TopBanner avisoTopo={config.avisoTopo} linkWhatsApp={config.linkWhatsApp} />
-        <Navbar temporada={config.temporadaAtual || 5} statusTemporada={config.statusTemporada || "ativa"} />
+        <TopBanner
+          avisoTopo={config.avisoTopo}
+          linkWhatsApp={config.linkWhatsApp}
+          ativo={config.exibirBannerAvisoTopo !== "false" && !!config.avisoTopo}
+        />
+        <Navbar
+          temporada={Number(config.temporadaAtual) || 5}
+          statusTemporada={config.statusTemporada || "ativa"}
+          exibirPortal={config.exibirPortalAtleta !== "false"}
+        />
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 lg:pt-16 pb-16 sm:pb-20 lg:pb-24 relative z-10">
           {children}
         </main>
@@ -43,6 +51,7 @@ export default async function RootLayout({
           linkWhatsApp={config.linkWhatsApp}
           linkInstagram={config.linkInstagram}
           linkTwitch={config.linkTwitch}
+          linkYouTube={config.linkYouTube}
         />
       </body>
     </html>

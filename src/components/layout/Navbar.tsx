@@ -11,9 +11,10 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 interface NavbarProps {
   temporada?: number;
   statusTemporada?: string;
+  exibirPortal?: boolean;
 }
 
-export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps) {
+export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal = true }: NavbarProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -71,16 +72,18 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
         {/* Controles da Direita: Botão de Login do Atleta & Alternador de Tema */}
         <div className="flex items-center gap-2.5 sm:gap-3.5">
           {/* Botão de Login / Portal do Treinador com Feedback iOS */}
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
-            <Link
-              href="/portal"
-              className="flex items-center gap-2 rounded-full border border-blue-500/40 bg-blue-600/20 hover:bg-blue-600 hover:border-blue-500 px-4 py-2 text-xs sm:text-sm font-bold text-blue-300 hover:text-white transition-all shadow-sm shadow-blue-600/20 cursor-pointer"
-            >
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Login / Atleta</span>
-              <span className="sm:hidden">Login</span>
-            </Link>
-          </motion.div>
+          {exibirPortal && (
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
+              <Link
+                href="/portal"
+                className="flex items-center gap-2 rounded-full border border-blue-500/40 bg-blue-600/20 hover:bg-blue-600 hover:border-blue-500 px-4 py-2 text-xs sm:text-sm font-bold text-blue-300 hover:text-white transition-all shadow-sm shadow-blue-600/20 cursor-pointer"
+              >
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Login / Atleta</span>
+                <span className="sm:hidden">Login</span>
+              </Link>
+            </motion.div>
+          )}
 
           <ThemeToggle />
 
@@ -132,18 +135,20 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa" }: NavbarProps
                 );
               })}
 
-              <div className="pt-3 border-t border-white/10 mt-1">
-                <motion.div whileTap={{ scale: 0.97 }}>
-                  <Link
-                    href="/portal"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/30"
-                  >
-                    <User className="h-4 w-4" />
-                    <span>Portal do Treinador / Login</span>
-                  </Link>
-                </motion.div>
-              </div>
+              {exibirPortal && (
+                <div className="pt-3 border-t border-white/10 mt-1">
+                  <motion.div whileTap={{ scale: 0.97 }}>
+                    <Link
+                      href="/portal"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/30"
+                    >
+                      <User className="h-4 w-4" />
+                      <span>Portal do Treinador / Login</span>
+                    </Link>
+                  </motion.div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

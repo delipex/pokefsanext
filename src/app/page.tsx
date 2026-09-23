@@ -115,30 +115,42 @@ export default async function HomePage() {
     };
   });
 
+  const exibirCarrossel = config.exibirCarrosselDecksHome !== "false";
+  const velocidade = Number(config.velocidadeCarrossel) || -28;
+  const exibirPodio = config.exibirPodioHome !== "false";
+  const exibirProximoEvento = config.exibirProximoEventoHome !== "false";
+  const exibirPremiacoes = config.exibirPremiacoesHome !== "false";
+
   return (
     <div className="space-y-8 sm:space-y-12">
       {/* 1. Galeria Flutuante Editorial de Cartas com Telemetria Integrada no Rodapé */}
-      <ScrollVelocityCards
-        decks={velocityDeckList}
-        metagameEntries={metaData.metagameEntries}
-        decksInfo={metaData.decksInfo}
-        baseVelocity={-2.5}
-      />
+      {exibirCarrossel && (
+        <ScrollVelocityCards
+          decks={velocityDeckList}
+          metagameEntries={metaData.metagameEntries}
+          decksInfo={metaData.decksInfo}
+          baseVelocity={velocidade}
+        />
+      )}
 
       {/* 2. Pódio da Temporada + Próximo Evento (Bento 5x7) */}
-      <HeroSeasonHub
-        temporada={Number(config.temporadaAtual) || 5}
-        totalEtapas={etapas.length}
-        totalJogadores={rankingRaw.length}
-        top4={top4}
-        lider={lider}
-        topDeck={topDeck}
-        awards={awards}
-        nextEvent={nextEvent}
-      />
+      {(exibirPodio || exibirProximoEvento) && (
+        <HeroSeasonHub
+          temporada={Number(config.temporadaAtual) || 5}
+          totalEtapas={etapas.length}
+          totalJogadores={rankingRaw.length}
+          top4={top4}
+          lider={lider}
+          topDeck={topDeck}
+          awards={awards}
+          nextEvent={nextEvent}
+          exibirPodio={exibirPodio}
+          exibirProximoEvento={exibirProximoEvento}
+        />
+      )}
 
       {/* 3. Premiações Projetadas da Temporada (Bento Quad) */}
-      <SeasonAwardsSection awards={awards} />
+      {exibirPremiacoes && <SeasonAwardsSection awards={awards} />}
     </div>
   );
 }

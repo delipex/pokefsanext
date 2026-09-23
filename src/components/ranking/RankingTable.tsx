@@ -318,12 +318,12 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         {isGeneralRanking ? (
           /* TABELA 1: RANKING GERAL CONSOLIDADO */
           <table className="w-full text-left text-sm text-slate-200">
-            <thead className="border-b border-white/[0.06] bg-white/[0.02] text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <thead className="border-b border-white/[0.06] bg-white/[0.02] text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
-                <th scope="col" className="py-4 pl-6 pr-2 text-left w-16">POS</th>
-                <th scope="col" className="px-6 py-4">TREINADOR</th>
-                <th scope="col" className="px-6 py-4 text-center w-36">PONTOS</th>
-                <th scope="col" className="py-4 pr-6 pl-2 text-center w-28">V-E-D</th>
+                <th scope="col" className="py-3.5 sm:py-4 pl-3.5 sm:pl-6 pr-2 text-left w-12 sm:w-16">POS</th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 sm:py-4">TREINADOR</th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 sm:py-4 text-center w-28 sm:w-36">PONTOS</th>
+                <th scope="col" className="py-3.5 sm:py-4 pr-3.5 sm:pr-6 pl-2 text-center w-24 sm:w-28">V-E-D</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
@@ -353,14 +353,14 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                       className="group cursor-pointer transition-all duration-150 hover:bg-white/[0.06] hover:shadow-[inset_4px_0_0_0_#ffcb05] even:bg-black/15"
                     >
                       {/* POS */}
-                      <td className="py-4 pl-6 pr-2 text-left tabular-nums">
+                      <td className="py-3.5 sm:py-4 pl-3.5 sm:pl-6 pr-2 text-left tabular-nums">
                         {renderPosNumber(pos)}
                       </td>
 
                       {/* TREINADOR + TAG DE CATEGORIA LOGO AO LADO */}
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-3.5 sm:py-4">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
+                          <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors">
                             {player.jogadorNome}
                           </span>
                           <CategoryBadge category={player.categoria} />
@@ -368,27 +368,27 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                       </td>
 
                       {/* PONTOS */}
-                      <td className="px-6 py-4 text-center">
-                        <span className="font-bold text-base text-[#ffcb05] tracking-wide">
+                      <td className="px-3 sm:px-6 py-3.5 sm:py-4 text-center">
+                        <span className="font-bold text-sm sm:text-base text-[#ffcb05] tracking-wide">
                           {player.pontos} PTS
                         </span>
                       </td>
 
                       {/* V-E-D */}
-                      <td className="py-4 pr-6 pl-2 text-center">
+                      <td className="py-3.5 sm:py-4 pr-3.5 sm:pr-6 pl-2 text-center">
                         <div
                           className="inline-flex flex-col items-center gap-1"
                           title={`${v} Vitórias, ${e} Empates, ${d} Derrotas`}
                         >
-                          <span className="text-xs font-bold text-slate-300">{winRate}%</span>
+                          <span className="text-[11px] sm:text-xs font-bold text-slate-300">{winRate}%</span>
                           {total > 0 ? (
-                            <div className="flex h-1.5 w-12 overflow-hidden rounded-full bg-white/10">
+                            <div className="flex h-1.5 w-10 sm:w-12 overflow-hidden rounded-full bg-white/10">
                               {vPercent > 0 && <div className="bg-[#10b981] h-full" style={{ width: `${vPercent}%` }} />}
                               {ePercent > 0 && <div className="bg-[#f59e0b] h-full" style={{ width: `${ePercent}%` }} />}
                               {dPercent > 0 && <div className="bg-[#ef4444] h-full" style={{ width: `${dPercent}%` }} />}
                             </div>
                           ) : (
-                            <div className="h-1.5 w-12 rounded-full bg-white/10" />
+                            <div className="h-1.5 w-10 sm:w-12 rounded-full bg-white/10" />
                           )}
                         </div>
                       </td>
@@ -401,12 +401,12 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         ) : (
           /* TABELA 2: CLASSIFICAÇÃO DA ETAPA SELECIONADA */
           <table className="w-full text-left text-sm text-slate-200">
-            <thead className="border-b border-white/10 bg-slate-950/40 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <thead className="border-b border-white/10 bg-slate-950/40 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
               <tr>
-                <th scope="col" className="py-4 pl-6 pr-2 text-left w-16">POS</th>
-                <th scope="col" className="px-6 py-4">TREINADOR</th>
-                <th scope="col" className="px-6 py-4 text-center w-36">PONTOS</th>
-                <th scope="col" className="py-4 pr-6 pl-2 text-center w-28">V-E-D</th>
+                <th scope="col" className="py-3.5 sm:py-4 pl-3.5 sm:pl-6 pr-2 text-left w-12 sm:w-16">POS</th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 sm:py-4">TREINADOR</th>
+                <th scope="col" className="px-3 sm:px-6 py-3.5 sm:py-4 text-center w-28 sm:w-36">PONTOS</th>
+                <th scope="col" className="py-3.5 sm:py-4 pr-3.5 sm:pr-6 pl-2 text-center w-24 sm:w-28">V-E-D</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
@@ -437,14 +437,14 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                       className="group cursor-pointer transition-all duration-150 hover:bg-white/[0.04] even:bg-white/[0.01]"
                     >
                       {/* POS */}
-                      <td className="py-4 pl-6 pr-2 text-left tabular-nums">
+                      <td className="py-3.5 sm:py-4 pl-3.5 sm:pl-6 pr-2 text-left tabular-nums">
                         {renderPosNumber(pos)}
                       </td>
 
                       {/* TREINADOR + TAG DE CATEGORIA + DECK BADGE */}
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-3.5 sm:py-4">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-white group-hover:text-amber-400 transition-colors">
+                          <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors">
                             {result.jogadorNome}
                           </span>
                           <CategoryBadge category={result.categoria} />

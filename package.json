@@ -9,7 +9,12 @@
     "lint": "eslint",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx src/db/seed.ts"
+    "db:seed": "tsx src/db/seed.ts",
+    "branch:new": "powershell -ExecutionPolicy Bypass -File ./scripts/git-flow.ps1 new",
+    "pr:create": "powershell -ExecutionPolicy Bypass -File ./scripts/git-flow.ps1 pr",
+    "pr:merge": "powershell -ExecutionPolicy Bypass -File ./scripts/git-flow.ps1 merge",
+    "pr:sync": "powershell -ExecutionPolicy Bypass -File ./scripts/git-flow.ps1 sync",
+    "deploy": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy.ps1"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
