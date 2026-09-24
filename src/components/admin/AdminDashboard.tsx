@@ -43,6 +43,7 @@ import { AdminEtapasManager } from "./AdminEtapasManager";
 import { AdminInscricoesPremier } from "./AdminInscricoesPremier";
 import { AdminTemporadasManager } from "./AdminTemporadasManager";
 import { AdminAuditoria } from "./AdminAuditoria";
+import { AdminRegrasManager } from "./AdminRegrasManager";
 
 interface AdminDashboardProps {
   initialPlayers: any[];
@@ -1009,7 +1010,7 @@ export function AdminDashboard({
             }`}
           >
             <Settings className="h-3.5 w-3.5" />
-            <span>Config</span>
+            <span>Config & Regras</span>
           </button>
         </div>
       </div>
@@ -2182,17 +2183,24 @@ export function AdminDashboard({
         />
       )}
 
-      {/* 5. ABA CONFIGURAÇÕES GLOBAIS */}
+      {/* 5. ABA CONFIGURAÇÕES GLOBAIS & REGULAMENTO */}
       {activeTab === "config" && (
-        <div className="max-w-4xl rounded-3xl border border-white/[0.08] bg-slate-900/70 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
-          <div className="border-b border-white/[0.08] pb-4">
-            <h3 className="text-xl font-black text-white flex items-center gap-2.5">
-              <Settings className="h-5 w-5 text-indigo-400" /> Parâmetros Globais do Site
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1 font-normal">
-              Edite as identidades visuais, mensagens de aviso, canais de comunicação e credenciais administrativas.
-            </p>
-          </div>
+        <div className="space-y-8 max-w-5xl">
+          {/* Gerenciador de Regulamento & Regras da Liga */}
+          <AdminRegrasManager
+            initialRegras={initialConfig.regras}
+            onSaved={() => router.refresh()}
+          />
+
+          <div className="rounded-3xl border border-white/[0.08] bg-slate-900/70 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+            <div className="border-b border-white/[0.08] pb-4">
+              <h3 className="text-xl font-black text-white flex items-center gap-2.5">
+                <Settings className="h-5 w-5 text-indigo-400" /> Parâmetros Globais do Site
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1 font-normal">
+                Edite as identidades visuais, mensagens de aviso, canais de comunicação e credenciais administrativas.
+              </p>
+            </div>
 
           <form onSubmit={handleSaveAllConfig} className="space-y-7">
             {/* Bloco 1: Controles e Módulos da Página Inicial (Home) */}
@@ -2575,7 +2583,8 @@ export function AdminDashboard({
             </div>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* 6. ABA TEMPORADAS & HALL DA FAMA */}
       {activeTab === "temporadas" && (
