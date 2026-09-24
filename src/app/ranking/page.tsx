@@ -1,20 +1,18 @@
-import { getRanking, getEtapasWithSummary, getScoresAntigos, getAllDecks } from "@/lib/queries";
+import { getRanking, getEtapasWithSummary, getAllDecks } from "@/lib/queries";
 import { RankingTable } from "@/components/ranking/RankingTable";
-import { ScoresAntigosAccordion } from "@/components/ranking/ScoresAntigosAccordion";
 import { PlayerModalData } from "@/components/ranking/PlayerModal";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Ranking & Etapas | Liga Atlântica TCG",
-  description: "Tabela de classificação completa com seletor de etapas, histórico e scores antigos.",
+  description: "Tabela de classificação completa com seletor de etapas e histórico de desempenho.",
 };
 
 export default async function RankingPage() {
-  const [rankingRaw, etapas, scoresAntigos, allDecks] = await Promise.all([
+  const [rankingRaw, etapas, allDecks] = await Promise.all([
     getRanking(),
     getEtapasWithSummary(),
-    getScoresAntigos(),
     getAllDecks(),
   ]);
 
@@ -50,11 +48,7 @@ export default async function RankingPage() {
 
       {/* Tabela Interativa de Ranking com Seletor de Etapas Integrado */}
       <RankingTable initialPlayers={ranking} etapas={etapas} allDecks={allDecks} />
-
-      {/* Rodapé: Consulta de Scores Antigos (#1 a #4) */}
-      <section className="pt-4">
-        <ScoresAntigosAccordion scores={scoresAntigos} />
-      </section>
     </div>
   );
 }
+
