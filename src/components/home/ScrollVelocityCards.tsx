@@ -264,10 +264,10 @@ export function ScrollVelocityCards({
       {/* 1. Topo Informativo da Caixa */}
       <div className="flex items-center justify-between px-1 relative z-10">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-amber-400 animate-pulse" />
-          <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-300">
+          <Sparkles className="h-5 w-5 text-amber-400" />
+          <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
             Arquétipos em Destaque no Formato
-          </h3>
+          </h2>
         </div>
         <span className="text-[10px] sm:text-xs text-slate-400 font-normal hidden sm:inline">
           ⚡ Passe o mouse para pausar e inspecionar

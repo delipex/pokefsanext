@@ -39,7 +39,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
       {/* Cabeçalho da Seção */}
       <div className="flex items-center gap-2 px-1">
         <Award className="h-5 w-5 text-amber-400" />
-        <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+        <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
           Premiações Projetadas da Temporada
         </h2>
       </div>

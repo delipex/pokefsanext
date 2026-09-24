@@ -357,13 +357,14 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                         {renderPosNumber(pos)}
                       </td>
 
-                      {/* TREINADOR + TAG DE CATEGORIA LOGO AO LADO */}
+                      {/* TREINADOR + TAG DE CATEGORIA + ÚLTIMO DECK */}
                       <td className="px-3 sm:px-6 py-3.5 sm:py-4">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors">
                             {player.jogadorNome}
                           </span>
                           <CategoryBadge category={player.categoria} />
+                          {player.ultimoDeck && renderDeckBadge(player.ultimoDeck, allDecks)}
                         </div>
                       </td>
 

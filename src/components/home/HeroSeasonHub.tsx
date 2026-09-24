@@ -264,7 +264,7 @@ export function HeroSeasonHub({
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <svg
-                  className="h-4 w-4 sm:h-5 sm:w-5 text-amber-400 stroke-current fill-none stroke-[2.2]"
+                  className="h-5 w-5 text-amber-400 stroke-current fill-none stroke-[2.2]"
                   viewBox="0 0 24 24"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -274,7 +274,7 @@ export function HeroSeasonHub({
                   <path d="M9 19V6h6v13" />
                   <path d="M15 19v-5h5v5" />
                 </svg>
-                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                   Pódio Atual
                 </h2>
               </div>
@@ -354,8 +354,8 @@ export function HeroSeasonHub({
             {/* Header da Coluna */}
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-amber-400" />
-                <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                <Calendar className="h-5 w-5 text-amber-400" />
+                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                   Próximo Evento
                 </h2>
               </div>
@@ -384,7 +384,7 @@ export function HeroSeasonHub({
 
               {/* Título e Descrição do Torneio */}
               <div className="space-y-1.5">
-                <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-snug">
+                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight leading-snug">
                   {eventTitle}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-normal">
