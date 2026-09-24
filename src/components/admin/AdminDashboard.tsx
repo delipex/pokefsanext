@@ -94,11 +94,14 @@ export function AdminDashboard({
 
   // Estado de Decks
   const [decks, setDecks] = useState(initialDecks);
+  const [isDeckModalOpen, setIsDeckModalOpen] = useState(false);
   const [editingDeckId, setEditingDeckId] = useState<number | null>(null);
   const [editingDeckOriginalName, setEditingDeckOriginalName] = useState<string | null>(null);
   const [newDeckName, setNewDeckName] = useState("");
-  const [newDeckEnergy, setNewDeckEnergy] = useState("fire");
+  const [newDeckEnergy, setNewDeckEnergy] = useState("colorless");
+  const [selectedEnergies, setSelectedEnergies] = useState<string[]>(["colorless"]);
   const [newDeckImage, setNewDeckImage] = useState("");
+  const [newDeckIcone, setNewDeckIcone] = useState("");
   const [newDeckLimitless, setNewDeckLimitless] = useState("");
   const [deckSearch, setDeckSearch] = useState("");
   const [deckMessage, setDeckMessage] = useState("");
@@ -412,24 +415,104 @@ export function AdminDashboard({
   };
 
   // Selecionar Deck para Edição
+  const ENERGY_OPTIONS = [
+    { id: "grass", label: "Planta", hex: "#78C850", glow: "rgba(120, 200, 80, 0.5)" },
+    { id: "fire", label: "Fogo", hex: "#FF4216", glow: "rgba(255, 66, 22, 0.5)" },
+    { id: "water", label: "Água", hex: "#00B4D8", glow: "rgba(0, 180, 216, 0.5)" },
+    { id: "lightning", label: "Elétrico", hex: "#EBC816", glow: "rgba(235, 200, 22, 0.5)" },
+    { id: "psychic", label: "Psíquico", hex: "#D94293", glow: "rgba(217, 66, 147, 0.5)" },
+    { id: "fighting", label: "Lutador", hex: "#C55E13", glow: "rgba(197, 94, 19, 0.5)" },
+    { id: "darkness", label: "Escuridão", hex: "#1B4958", glow: "rgba(27, 73, 88, 0.6)" },
+    { id: "metal", label: "Metal", hex: "#7E8E9E", glow: "rgba(126, 142, 158, 0.5)" },
+    { id: "dragon", label: "Dragão", hex: "#C99B22", glow: "rgba(201, 155, 34, 0.5)" },
+    { id: "colorless", label: "Incolor", hex: "#94A3B8", glow: "rgba(148, 163, 184, 0.4)" },
+    {
+      id: "multi",
+      label: "Multi",
+      hex: "#FF4216",
+      isRainbow: true,
+      bgGradient:
+        "conic-gradient(from 180deg at 50% 50%, #FF4216 0deg, #EBC816 60deg, #78C850 120deg, #00B4D8 180deg, #1B4958 240deg, #D94293 300deg, #FF4216 360deg)",
+      glow: "rgba(255, 203, 5, 0.6)",
+    },
+  ];
+
+  const handleToggleEnergy = (energyId: string) => {
+    if (energyId === "multi") {
+      setSelectedEnergies(["multi"]);
+      setNewDeckEnergy("multi");
+      return;
+    }
+    if (energyId === "colorless") {
+      setSelectedEnergies(["colorless"]);
+      setNewDeckEnergy("colorless");
+      return;
+    }
+
+    let current = selectedEnergies.filter((e) => e !== "multi" && e !== "colorless");
+
+    if (current.includes(energyId)) {
+      current = current.filter((e) => e !== energyId);
+      if (current.length === 0) current = ["colorless"];
+    } else {
+      if (current.length >= 2) {
+        current = [current[1], energyId];
+      } else {
+        current.push(energyId);
+      }
+    }
+
+    setSelectedEnergies(current);
+    setNewDeckEnergy(current.join("+"));
+  };
+
+  const handleClearEnergy = () => {
+    setSelectedEnergies(["colorless"]);
+    setNewDeckEnergy("colorless");
+  };
+
   const handleSelectDeckToEdit = (d: any) => {
     setEditingDeckId(d.id);
     setEditingDeckOriginalName(d.nome);
     setNewDeckName(d.nome);
-    setNewDeckEnergy(d.tipoEnergia || "fire");
+    const energy = d.tipoEnergia || "colorless";
+    setNewDeckEnergy(energy);
+    if (energy === "multi" || energy === "rainbow") {
+      setSelectedEnergies(["multi"]);
+    } else if (energy === "colorless") {
+      setSelectedEnergies(["colorless"]);
+    } else {
+      const parts = energy.replace(/[\/,]/g, "+").split("+").map((p: string) => p.trim()).filter(Boolean);
+      setSelectedEnergies(parts.length > 0 ? parts : ["colorless"]);
+    }
     setNewDeckImage(d.imagem || "");
+    setNewDeckIcone(d.icone || "");
     setNewDeckLimitless(d.limitless || "");
     setDeckMessage("");
+    setIsDeckModalOpen(true);
+  };
+
+  const handleOpenNewDeckModal = () => {
+    handleCancelEditDeck();
+    setIsDeckModalOpen(true);
+  };
+
+  const handleCloseDeckModal = () => {
+    handleCancelEditDeck();
+    setIsDeckModalOpen(false);
   };
 
   const handleCancelEditDeck = () => {
     setEditingDeckId(null);
     setEditingDeckOriginalName(null);
     setNewDeckName("");
-    setNewDeckEnergy("fire");
+    setNewDeckEnergy("colorless");
+    setSelectedEnergies(["colorless"]);
     setNewDeckImage("");
+    setNewDeckIcone("");
     setNewDeckLimitless("");
     setDeckMessage("");
+    setIsDeckModalOpen(false);
   };
 
   // Salvar/Atualizar Deck
@@ -449,8 +532,9 @@ export function AdminDashboard({
         body: JSON.stringify({
           id: editingDeckId,
           nome: newDeckName,
-          tipoEnergia: newDeckEnergy,
+          tipoEnergia: newDeckEnergy || "colorless",
           imagem: newDeckImage || null,
+          icone: newDeckIcone || null,
           limitless: newDeckLimitless || null,
         }),
       });
@@ -461,19 +545,16 @@ export function AdminDashboard({
           {
             id: editingDeckId || Date.now(),
             nome: newDeckName,
-            tipoEnergia: newDeckEnergy,
+            tipoEnergia: newDeckEnergy || "colorless",
             imagem: newDeckImage,
+            icone: newDeckIcone,
             limitless: newDeckLimitless,
           },
         ]);
         setDeckMessage(isEditing ? "✅ Deck atualizado com sucesso!" : "✅ Deck cadastrado com sucesso!");
-        if (isEditing) {
-          handleCancelEditDeck();
-        } else {
-          setNewDeckName("");
-          setNewDeckImage("");
-          setNewDeckLimitless("");
-        }
+        setTimeout(() => {
+          handleCloseDeckModal();
+        }, 700);
       } else {
         const data = await res.json();
         setDeckMessage(`❌ Erro: ${data.error}`);
@@ -1231,136 +1312,49 @@ export function AdminDashboard({
 
       {/* 3. ABA DECKS & META */}
       {activeTab === "decks" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className={`rounded-3xl border ${editingDeckId ? "border-amber-500/40 bg-amber-500/5" : "border-white/10 bg-slate-900/60"} p-6 backdrop-blur-xl shadow-xl space-y-4`}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-white flex items-center gap-2">
-                {editingDeckId ? (
-                  <>
-                    <Pencil className="h-4 w-4 text-amber-400" /> Editar Arquétipo
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4 text-amber-400" /> Cadastrar Arquétipo
-                  </>
-                )}
+        <div className="space-y-6">
+          {/* Header com Botão de Novo Deck */}
+          <div className="flex items-center justify-between gap-4 flex-wrap bg-slate-900/60 p-6 rounded-3xl border border-white/10 backdrop-blur-xl shadow-xl">
+            <div>
+              <h3 className="text-xl font-black text-white flex items-center gap-2">
+                <Flame className="h-5 w-5 text-amber-400" />
+                Catálogo de Decks & Arquétipos ({decks.length})
               </h3>
-              {editingDeckId && (
-                <button
-                  type="button"
-                  onClick={handleCancelEditDeck}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded-lg cursor-pointer"
-                >
-                  <X className="h-3 w-3" /> Cancelar
-                </button>
-              )}
+              <p className="text-xs text-slate-400 mt-1">
+                Cadastre e gerencie arquétipos oficiais, energias, fotos das cartas e listas do Limitless TCG.
+              </p>
             </div>
 
-            <form onSubmit={handleSaveDeck} className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
-                  Nome do Deck:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: Dragapult Ex"
-                  value={newDeckName}
-                  onChange={(e) => setNewDeckName(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-amber-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
-                  Tipo de Energia:
-                </label>
-                <select
-                  value={newDeckEnergy}
-                  onChange={(e) => setNewDeckEnergy(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500 capitalize"
-                >
-                  <option value="grass">Planta (Grass)</option>
-                  <option value="fire">Fogo (Fire)</option>
-                  <option value="water">Água (Water)</option>
-                  <option value="lightning">Elétrico (Lightning)</option>
-                  <option value="psychic">Psíquico (Psychic)</option>
-                  <option value="fighting">Luta (Fighting)</option>
-                  <option value="darkness">Escuridão (Darkness)</option>
-                  <option value="metal">Metálico (Metal)</option>
-                  <option value="dragon">Dragão (Dragon)</option>
-                  <option value="colorless">Incolor (Colorless)</option>
-                  <option value="multi">Multi / Arco-íris (3+ tipos)</option>
-                  <option value="fire+psychic">Fogo + Psíquico (Dual)</option>
-                  <option value="darkness+fire">Escuridão + Fogo (Dual)</option>
-                  <option value="water+lightning">Água + Elétrico (Dual)</option>
-                  <option value="lightning+colorless">Elétrico + Incolor (Dual)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
-                  URL da Imagem da Carta:
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://..."
-                  value={newDeckImage}
-                  onChange={(e) => setNewDeckImage(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
-                  Link Limitless TCG:
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://limitlesstcg.com/decks/..."
-                  value={newDeckLimitless}
-                  onChange={(e) => setNewDeckLimitless(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none"
-                />
-              </div>
-
-              {deckMessage && <p className="text-xs font-bold text-emerald-400">{deckMessage}</p>}
-
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-amber-600 py-2.5 text-xs font-black text-white hover:bg-amber-500 transition-colors shadow-md shadow-amber-600/30 cursor-pointer"
-              >
-                {editingDeckId ? "Salvar Alterações" : "Salvar Arquétipo"}
-              </button>
-            </form>
-          </div>
-
-          <div className="lg:col-span-2 rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <h3 className="text-base font-black text-white flex items-center gap-2">
-                  <Flame className="h-4 w-4 text-amber-400" />
-                  Catálogo de Decks Cadastrados ({decks.length})
-                </h3>
-                <p className="text-[11px] text-slate-400">Clique em qualquer arquétipo ou no botão para editar</p>
-              </div>
+            <div className="flex items-center gap-3">
               <input
                 type="text"
-                placeholder="Buscar deck..."
+                placeholder="Buscar arquétipo..."
                 value={deckSearch}
                 onChange={(e) => setDeckSearch(e.target.value)}
-                className="rounded-xl border border-white/10 bg-slate-800 py-1.5 px-3 text-xs text-white focus:outline-none"
+                className="rounded-xl border border-white/10 bg-slate-950/80 py-2 px-3 text-xs text-white focus:outline-none focus:border-amber-400 min-w-[200px]"
               />
+              <button
+                type="button"
+                onClick={handleOpenNewDeckModal}
+                className="flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 px-4 py-2 text-xs font-black text-slate-950 transition-all shadow-md shadow-amber-400/20 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Cadastrar Novo Deck</span>
+              </button>
             </div>
+          </div>
 
-            <div className="overflow-y-auto max-h-96 rounded-xl border border-white/10 bg-slate-950/80">
+          {/* Tabela de Decks */}
+          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl">
+            <div className="overflow-y-auto max-h-[520px] rounded-2xl border border-white/10 bg-slate-950/80">
               <table className="w-full text-left text-xs text-slate-200">
-                <thead className="sticky top-0 bg-slate-950 border-b border-white/10 text-[10px] uppercase font-bold text-slate-400">
+                <thead className="sticky top-0 bg-slate-950 border-b border-white/10 text-[10px] uppercase font-bold text-slate-400 z-10">
                   <tr>
-                    <th className="py-2.5 pl-3">Deck</th>
-                    <th className="px-3 py-2.5">Energia</th>
-                    <th className="px-3 py-2.5 text-right">Limitless</th>
-                    <th className="py-2.5 pr-3 text-right">Ações</th>
+                    <th className="py-3 pl-4">Deck</th>
+                    <th className="px-4 py-3">Energia</th>
+                    <th className="px-4 py-3 text-center">Ícone</th>
+                    <th className="px-4 py-3 text-right">Limitless</th>
+                    <th className="py-3 pr-4 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -1376,32 +1370,43 @@ export function AdminDashboard({
                             isBeingEdited ? "bg-amber-500/10 border-l-2 border-amber-400" : ""
                           }`}
                         >
-                          <td className="py-2 pl-3 font-bold text-white flex items-center gap-2">
-                            {d.imagem && (
-                              <img src={d.imagem} alt={d.nome} className="h-6 w-6 object-contain rounded" />
-                            )}
-                            <span>{d.nome}</span>
+                          <td className="py-2.5 pl-4 font-bold text-white">
+                            <div className="flex items-center gap-3">
+                              {d.imagem ? (
+                                <img src={d.imagem} alt={d.nome} className="h-7 w-7 object-contain rounded shrink-0 shadow-sm" />
+                              ) : (
+                                <span className="flex h-7 w-7 items-center justify-center rounded bg-slate-800 text-xs shrink-0">🎴</span>
+                              )}
+                              <span className="text-sm font-bold text-white">{d.nome}</span>
+                            </div>
                           </td>
-                          <td className="px-3 py-2">
+                          <td className="px-4 py-2.5">
                             <EnergyBadge energyRaw={d.tipoEnergia} size="sm" />
                           </td>
-                          <td className="px-3 py-2 text-right">
+                          <td className="px-4 py-2.5 text-center">
+                            {d.icone ? (
+                              <img src={d.icone} alt="" className="h-6 w-6 object-contain inline-block rounded" />
+                            ) : (
+                              <span className="text-slate-600">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2.5 text-right">
                             {d.limitless && d.limitless !== "#" ? (
                               <a
                                 href={d.limitless}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="text-blue-400 hover:text-blue-300 font-bold inline-flex items-center gap-1"
+                                className="text-blue-400 hover:text-blue-300 font-bold inline-flex items-center gap-1 text-xs"
                               >
-                                <span>Ver</span>
+                                <span>Lista</span>
                                 <ExternalLink className="h-3 w-3" />
                               </a>
                             ) : (
                               <span className="text-slate-600">—</span>
                             )}
                           </td>
-                          <td className="py-2 pr-3 text-right">
+                          <td className="py-2.5 pr-4 text-right">
                             <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                               <button
                                 type="button"
@@ -1409,7 +1414,7 @@ export function AdminDashboard({
                                 className="p-1.5 rounded-lg text-slate-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors cursor-pointer"
                                 title="Editar Arquétipo"
                               >
-                                <Pencil className="h-3.5 w-3.5" />
+                                <Pencil className="h-4 w-4" />
                               </button>
                               <button
                                 type="button"
@@ -1417,7 +1422,7 @@ export function AdminDashboard({
                                 className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                                 title="Excluir Arquétipo"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
                           </td>
@@ -1428,6 +1433,189 @@ export function AdminDashboard({
               </table>
             </div>
           </div>
+
+          {/* MODAL PERSONALIZADO DE CADASTRO / EDIÇÃO DE DECK */}
+          {isDeckModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+              <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#0B0F19]/95 p-6 sm:p-7 backdrop-blur-2xl shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
+                {/* Topo do Modal */}
+                <div className="flex items-center justify-between pb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🎴</span>
+                    <h3 className="text-lg font-bold text-white">
+                      {editingDeckId ? "Editar Deck" : "Cadastrar Novo Deck"}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCloseDeckModal}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveDeck} className="space-y-4">
+                  {/* Nome Oficial do Deck */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      Nome Oficial do Deck
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Charizard ex, Gardevoir ex..."
+                      value={newDeckName}
+                      onChange={(e) => setNewDeckName(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2.5 px-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
+                      required
+                    />
+                  </div>
+
+                  {/* Tipo de Energia Pokémon */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-300">
+                        Tipo de Energia Pokémon
+                      </label>
+                      <span className="text-[11px] text-slate-400">
+                        Clique em até 2 energias (ou Multi)
+                      </span>
+                    </div>
+
+                    {/* Preview Box */}
+                    <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-3.5 flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center -space-x-1.5">
+                          {selectedEnergies.map((eid, idx) => {
+                            const opt = ENERGY_OPTIONS.find((o) => o.id === eid) || ENERGY_OPTIONS[9];
+                            return (
+                              <span
+                                key={idx}
+                                className="h-7 w-7 rounded-full border border-black/40 shadow-sm shrink-0"
+                                style={{
+                                  background: opt.bgGradient || opt.hex,
+                                  boxShadow: `0 0 10px ${opt.glow}`,
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                        <div>
+                          <strong className="block text-xs font-bold text-white">
+                            {selectedEnergies
+                              .map((eid) => ENERGY_OPTIONS.find((o) => o.id === eid)?.label || eid)
+                              .join(" / ")}
+                          </strong>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {newDeckEnergy || "colorless"}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearEnergy}
+                        className="text-[11px] font-medium text-slate-400 hover:text-white underline cursor-pointer"
+                      >
+                        Limpar
+                      </button>
+                    </div>
+
+                    {/* Grid de Energias (11 botões em 3 colunas) */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {ENERGY_OPTIONS.map((opt) => {
+                        const isSelected = selectedEnergies.includes(opt.id);
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => handleToggleEnergy(opt.id)}
+                            className={`flex items-center gap-2 rounded-xl py-2 px-2.5 text-xs font-semibold transition-all border cursor-pointer ${
+                              isSelected
+                                ? "border-amber-400/80 bg-amber-500/15 text-white ring-1 ring-amber-400/50 shadow-sm shadow-amber-400/10"
+                                : "border-white/5 bg-slate-900/60 text-slate-300 hover:bg-slate-800/80 hover:text-white hover:border-white/10"
+                            }`}
+                          >
+                            <span
+                              className="h-2.5 w-2.5 rounded-full shrink-0"
+                              style={{
+                                background: opt.bgGradient || opt.hex,
+                                boxShadow: isSelected ? `0 0 8px ${opt.glow}` : "none",
+                              }}
+                            />
+                            <span className="truncate">{opt.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* URL da Imagem da Carta Principal */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      URL da Imagem da Carta Principal (Opcional)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/..."
+                      value={newDeckImage}
+                      onChange={(e) => setNewDeckImage(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  {/* URL do Ícone Pokémon / Pokedex */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      URL do Ícone Pokémon / Pokedex (Opcional)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://www.pokemon.com/static-assets/.../006.png"
+                      value={newDeckIcone}
+                      onChange={(e) => setNewDeckIcone(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  {/* Link da Lista no Limitless TCG */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      Link da Lista no Limitless TCG (Opcional)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://limitlesstcg.com/decks/..."
+                      value={newDeckLimitless}
+                      onChange={(e) => setNewDeckLimitless(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  {deckMessage && (
+                    <p className="text-xs font-bold text-emerald-400 py-1">{deckMessage}</p>
+                  )}
+
+                  {/* Botões Cancelar e Salvar */}
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={handleCloseDeckModal}
+                      className="rounded-xl bg-slate-800/90 border border-white/10 px-5 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-6 py-2.5 text-xs font-black text-slate-950 shadow-md shadow-amber-400/20 transition-all cursor-pointer"
+                    >
+                      <span>💾</span>
+                      <span>Salvar no Catálogo</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
