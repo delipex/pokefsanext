@@ -328,27 +328,23 @@ export function ScrollVelocityCards({
         </div>
 
         {/* Bloco 3: Link de Ação para o Metagame Completo (4 Colunas) */}
-        <div className="md:col-span-4 flex items-center justify-between sm:justify-end gap-3 p-3 rounded-2xl border border-white/[0.04] bg-white/[0.02]">
-          <div className="flex items-center gap-1.5 min-w-0">
-            {metaStats.topContenders.map((contender, i) => (
-              <span
-                key={i}
-                className="hidden sm:inline-block text-[11px] font-medium text-slate-300 bg-white/[0.04] px-2 py-0.5 rounded-lg border border-white/[0.06] truncate max-w-[90px]"
-                title={contender.nome}
-              >
-                {contender.nome}
-              </span>
-            ))}
+        <Link
+          href="/metagame"
+          className="md:col-span-4 flex items-center justify-between gap-3 p-3 rounded-2xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.06] hover:border-amber-500/30 transition-all group cursor-pointer"
+        >
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">
+              Estatísticas
+            </span>
+            <span className="text-xs sm:text-sm font-bold text-white group-hover:text-amber-300 transition-colors truncate">
+              Ver Metagame Completo
+            </span>
           </div>
 
-          <Link
-            href="/metagame"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 px-3 py-1.5 text-xs font-bold text-white transition-all shadow-sm shrink-0 group cursor-pointer"
-          >
-            <span>Ver Metagame</span>
-            <ArrowRight className="h-3.5 w-3.5 text-amber-400 group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-        </div>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] group-hover:bg-amber-500/20 border border-white/10 group-hover:border-amber-500/40 text-slate-300 group-hover:text-amber-400 transition-all">
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+          </div>
+        </Link>
       </div>
     </section>
   );
