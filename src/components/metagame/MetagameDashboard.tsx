@@ -5,12 +5,10 @@ import {
   ExternalLink,
   ChevronLeft,
   ChevronRight,
-  BarChart3,
   Calendar,
   Layers,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
-import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
 export interface MetagameEntry {
   id: number;
@@ -149,9 +147,10 @@ export function MetagameDashboard({
     return Math.max(...deckStats.map((d) => d.percent));
   }, [deckStats]);
 
-  // Top 5 Decks mais populares para o Carrossel 3D
-  const topDecks = useMemo(() => {
-    return deckStats.slice(0, 5);
+  // Decks para o carrossel 3D (prioriza os que têm imagem)
+  const carouselDecks = useMemo(() => {
+    const withImages = deckStats.filter((d) => d.imagem);
+    return withImages.length > 0 ? withImages : deckStats;
   }, [deckStats]);
 
   // Resetar índice do carrossel ao mudar a etapa
@@ -159,27 +158,27 @@ export function MetagameDashboard({
     setCarouselIndex(0);
   }, [selectedStageDate]);
 
-  // Autoplay do carrossel 3D (pausa se hover)
+  // Autoplay do carrossel 3D (4.5s por slide)
   useEffect(() => {
-    if (topDecks.length <= 1) return;
+    if (carouselDecks.length <= 1) return;
     autoPlayRef.current = setInterval(() => {
-      setCarouselIndex((prev) => (prev + 1) % topDecks.length);
+      setCarouselIndex((prev) => (prev + 1) % carouselDecks.length);
     }, 4500);
 
     return () => {
       if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     };
-  }, [topDecks.length]);
+  }, [carouselDecks.length]);
 
-  const activeDeck = topDecks[carouselIndex] || topDecks[0] || null;
+  const activeCarouselDeck = carouselDecks[carouselIndex] || carouselDecks[0] || null;
 
-  // Deck ativo em hover ou selecionado
+  // Deck ativo em hover ou selecionado no carrossel
   const activeHoverDeckInfo = useMemo(() => {
     if (!hoveredDeck) return null;
     return deckStats.find((d) => d.deckName.toLowerCase() === hoveredDeck.toLowerCase()) || null;
   }, [hoveredDeck, deckStats]);
 
-  const displayedDeck = activeHoverDeckInfo || activeDeck;
+  const displayedDeck = activeHoverDeckInfo || activeCarouselDeck;
 
   // Helper para cor de energia
   const getEnergyColor = (tipoEnergia: string) => {
@@ -198,26 +197,38 @@ export function MetagameDashboard({
 
   const handlePrevSlide = () => {
     if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-    setCarouselIndex((prev) => (prev === 0 ? topDecks.length - 1 : prev - 1));
+    setCarouselIndex((prev) => (prev === 0 ? carouselDecks.length - 1 : prev - 1));
   };
 
   const handleNextSlide = () => {
     if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-    setCarouselIndex((prev) => (prev + 1) % topDecks.length);
+    setCarouselIndex((prev) => (prev + 1) % carouselDecks.length);
   };
 
   const handleDeckHover = (deckName: string) => {
     setHoveredDeck(deckName);
-    const idx = topDecks.findIndex((d) => d.deckName.toLowerCase() === deckName.toLowerCase());
+    const idx = carouselDecks.findIndex((d) => d.deckName.toLowerCase() === deckName.toLowerCase());
     if (idx !== -1) {
       setCarouselIndex(idx);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Barra de Filtros e Informações de Amostragem */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 glass-card p-4 sm:p-5 rounded-2xl backdrop-blur-xl border border-white/[0.08]">
+    <div
+      className="glass-card rounded-3xl p-5 sm:p-7 backdrop-blur-2xl transition-all border border-white/[0.08] shadow-2xl space-y-6"
+      onMouseEnter={() => {
+        if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+      }}
+      onMouseLeave={() => {
+        if (carouselDecks.length > 1) {
+          autoPlayRef.current = setInterval(() => {
+            setCarouselIndex((prev) => (prev + 1) % carouselDecks.length);
+          }, 4500);
+        }
+      }}
+    >
+      {/* Cabeçalho Unificado: Filtro de Amostragem e Informações da Amostra */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pb-5 border-b border-white/[0.08]">
         {/* Seletor de Etapa */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex items-center gap-2 text-slate-300 font-semibold text-sm">
@@ -255,241 +266,240 @@ export function MetagameDashboard({
         </div>
       </div>
 
-      {/* Card Unificado com Visualizador de Metagame em Barras e Carrossel 3D */}
-      <div
-        className="glass-card rounded-3xl p-6 sm:p-8 backdrop-blur-2xl transition-all border border-white/[0.05]"
-        onMouseEnter={() => {
-          if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-        }}
-        onMouseLeave={() => {
-          if (topDecks.length > 1) {
-            autoPlayRef.current = setInterval(() => {
-              setCarouselIndex((prev) => (prev + 1) % topDecks.length);
-            }, 4500);
-          }
-        }}
-      >
-        {totalGames === 0 ? (
-          <div className="text-center py-16 text-slate-400">
-            <p className="text-base font-semibold">Nenhum dado de metagame encontrado para esta etapa.</p>
-            <p className="text-xs text-slate-500 mt-1">Os decks jogados nesta etapa ainda não foram catalogados.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-            {/* Lado Esquerdo: Carrossel 3D & Deck em Destaque */}
-            <div className="md:col-span-5 flex flex-col items-center justify-center relative">
-              {displayedDeck && (
-                <div className="w-full flex flex-col items-center text-center">
-                  {/* Badge de Posição / Tier */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-slate-900/90 border border-white/20 text-white shadow-md flex items-center gap-1.5">
-                      <span
-                        className="h-2 w-2 rounded-full animate-pulse"
-                        style={{ backgroundColor: primaryEnergyColor }}
-                      />
-                      {activeHoverDeckInfo
-                        ? `Foco: ${activeHoverDeckInfo.deckName}`
-                        : `Top #${carouselIndex + 1} Metagame`}
-                    </span>
-                    <EnergyBadge energyRaw={displayedDeck.tipoEnergia} />
-                  </div>
+      {totalGames === 0 ? (
+        <div className="text-center py-16 text-slate-400">
+          <p className="text-base font-semibold">Nenhum dado de metagame encontrado para esta etapa.</p>
+          <p className="text-xs text-slate-500 mt-1">Os decks jogados nesta etapa ainda não foram catalogados.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center pt-2">
+          {/* Lado Esquerdo: Carrossel 3D Coverflow de Cartas */}
+          <div className="md:col-span-5 flex flex-col items-center justify-center relative">
+            {/* Palco 3D do Carrossel */}
+            <div className="relative w-full h-[290px] sm:h-[330px] flex items-center justify-center [perspective:1000px] overflow-visible select-none my-1">
+              <div className="relative w-[180px] sm:w-[210px] h-[252px] sm:h-[294px] [transform-style:preserve-3d]">
+                {carouselDecks.map((deck, i) => {
+                  const N = carouselDecks.length;
+                  let diff = i - carouselIndex;
+                  if (diff > Math.floor(N / 2)) diff -= N;
+                  if (diff < -Math.floor(N / 2)) diff += N;
+                  const isActive = diff === 0;
+                  const offset = Math.abs(diff);
+                  const direction = diff > 0 ? 1 : -1;
+                  const rotate = 35 * direction;
+                  const translateX = isActive ? 0 : (85 * direction) + (18 * diff);
+                  const translateZ = isActive ? 0 : -85 - (offset * 30);
+                  const opacity = offset > 2 ? 0 : Math.max(0, 1 - (offset * 0.32));
+                  const zIndex = 10 - offset;
+                  const energyConfig = getEnergyColor(deck.tipoEnergia);
 
-                  {/* Carta 3D com Efeito Holográfico e Glow */}
-                  <div className="relative group/card my-2">
+                  return (
                     <div
-                      className="absolute -inset-2 rounded-2xl blur-xl opacity-40 group-hover/card:opacity-70 transition duration-500"
-                      style={{
-                        background: `radial-gradient(circle, ${primaryEnergyColor} 0%, transparent 70%)`,
+                      key={`card-${deck.deckName}-${i}`}
+                      onClick={() => {
+                        if (isActive) {
+                          if (deck.limitless) {
+                            window.open(deck.limitless, "_blank", "noopener,noreferrer");
+                          }
+                        } else {
+                          setCarouselIndex(i);
+                          setHoveredDeck(null);
+                        }
                       }}
-                    />
-
-                    <div className="relative w-48 sm:w-56 aspect-[5/7] rounded-xl overflow-hidden shadow-2xl border-2 border-white/20 bg-slate-950 transition-transform duration-300 group-hover/card:scale-105 flex items-center justify-center">
-                      {displayedDeck.imagem ? (
+                      className={`absolute inset-0 rounded-2xl overflow-hidden transition-all duration-500 ease-out cursor-pointer ${
+                        isActive ? "ring-2 ring-white/40 shadow-2xl" : "hover:opacity-100"
+                      }`}
+                      style={{
+                        transform: `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${isActive ? 0 : -rotate}deg)`,
+                        opacity,
+                        zIndex,
+                        boxShadow: isActive
+                          ? `0 20px 40px -10px rgba(0,0,0,0.8), 0 0 30px ${energyConfig.primary}45`
+                          : "0 10px 25px rgba(0,0,0,0.6)",
+                        pointerEvents: offset > 2 ? "none" : "auto",
+                      }}
+                    >
+                      {deck.imagem ? (
                         <img
-                          src={displayedDeck.imagem}
-                          alt={displayedDeck.deckName}
+                          src={deck.imagem}
+                          alt={deck.deckName}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
-                        <div className="flex flex-col items-center justify-center p-4 text-slate-500">
-                          <span className="text-4xl mb-2">⚡</span>
-                          <span className="text-xs font-bold text-center text-slate-400">
-                            {displayedDeck.deckName}
+                        <div className="w-full h-full bg-slate-900 border border-white/20 flex flex-col items-center justify-center p-4">
+                          <span className="text-3xl mb-1">⚡</span>
+                          <span className="text-xs font-bold text-center text-slate-300">
+                            {deck.deckName}
                           </span>
                         </div>
                       )}
                     </div>
-                  </div>
-
-                  {/* Nome do Deck e Participação */}
-                  <h3 className="text-xl sm:text-2xl font-black text-white mt-3 tracking-tight">
-                    {displayedDeck.deckName}
-                  </h3>
-
-                  <div className="flex items-center gap-3 mt-1 text-sm font-bold">
-                    <span style={{ color: primaryEnergyColor }} className="text-lg">
-                      {displayedDeck.percent.toFixed(1)}% do Meta
-                    </span>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-slate-300">
-                      {displayedDeck.count} {displayedDeck.count === 1 ? "partida" : "partidas"}
-                    </span>
-                  </div>
-
-                  {/* Link Limitless TCG se disponível */}
-                  {displayedDeck.limitless && (
-                    <a
-                      href={displayedDeck.limitless}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-lg"
-                    >
-                      <span>Ver Listas no Limitless TCG</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-
-                  {/* Controles de Navegação do Carrossel Top 5 */}
-                  {topDecks.length > 1 && (
-                    <div className="flex items-center gap-3 mt-4">
-                      <button
-                        onClick={handlePrevSlide}
-                        className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-all cursor-pointer shadow-md"
-                        aria-label="Deck anterior"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </button>
-
-                      <div className="flex items-center gap-1.5">
-                        {topDecks.map((_, idx) => (
-                          <button
-                            key={`dot-${idx}`}
-                            onClick={() => {
-                              if (autoPlayRef.current) clearInterval(autoPlayRef.current);
-                              setCarouselIndex(idx);
-                              setHoveredDeck(null);
-                            }}
-                            className={`h-2 rounded-full transition-all cursor-pointer ${
-                              idx === carouselIndex && !activeHoverDeckInfo
-                                ? "w-6 bg-white shadow-sm"
-                                : "w-2 bg-slate-700 hover:bg-slate-500"
-                            }`}
-                            aria-label={`Slide ${idx + 1}`}
-                          />
-                        ))}
-                      </div>
-
-                      <button
-                        onClick={handleNextSlide}
-                        className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-all cursor-pointer shadow-md"
-                        aria-label="Próximo deck"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Lado Direito: Visualizador em Barras Horizontais Interativas */}
-            <div className="md:col-span-7 flex flex-col justify-center relative min-h-[380px]">
-              <div className="w-full space-y-2.5 max-h-[440px] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar">
-                {deckStats.map((deck, idx) => {
-                  const colors = getEnergyColor(deck.tipoEnergia);
-                  const isCurrent = activeDeck?.deckName.toLowerCase() === deck.deckName.toLowerCase();
-                  const isHovered = hoveredDeck === deck.deckName;
-                  const barWidth = `${(deck.percent / maxPercent) * 100}%`;
-
-                  return (
-                    <div
-                      key={`bar-${deck.deckName}`}
-                      onMouseEnter={() => handleDeckHover(deck.deckName)}
-                      onMouseLeave={() => setHoveredDeck(null)}
-                      onClick={() => handleDeckHover(deck.deckName)}
-                      className={`group relative rounded-2xl p-3 border transition-all duration-200 cursor-pointer ${
-                        isCurrent || isHovered
-                          ? "bg-white/[0.08] border-white/30 shadow-lg scale-[1.01]"
-                          : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-3 relative z-10 mb-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          {/* Rank # */}
-                          <span
-                            className={`w-6 text-center text-xs font-black tabular-nums ${
-                              idx === 0
-                                ? "text-amber-400"
-                                : idx === 1
-                                ? "text-slate-200"
-                                : idx === 2
-                                ? "text-amber-600"
-                                : "text-slate-500"
-                            }`}
-                          >
-                            #{idx + 1}
-                          </span>
-
-                          {/* Avatar / Ícone do Pokémon */}
-                          <div className="h-8 w-8 rounded-xl bg-slate-900 border border-white/15 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
-                            {deck.icone ? (
-                              <img
-                                src={deck.icone}
-                                alt={deck.deckName}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-xs">⚡</span>
-                            )}
-                          </div>
-
-                          {/* Nome do Deck */}
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-black text-sm text-white truncate group-hover:text-amber-300 transition-colors">
-                                {deck.deckName}
-                              </span>
-                              <EnergyBadge energyRaw={deck.tipoEnergia} />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Estatísticas Numéricas: % e Jogos */}
-                        <div className="text-right shrink-0 flex items-baseline gap-2">
-                          <span
-                            className="text-base sm:text-lg font-black tabular-nums"
-                            style={{ color: colors.primary }}
-                          >
-                            {deck.percent.toFixed(1)}%
-                          </span>
-                          <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
-                            ({deck.count} {deck.count === 1 ? "jogo" : "jogos"})
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Barra de Progresso Horizontal Proporcional */}
-                      <div className="w-full h-2 rounded-full bg-slate-900/80 overflow-hidden border border-white/5 relative">
-                        <div
-                          className="h-full rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(255,255,255,0.2)]"
-                          style={{
-                            width: barWidth,
-                            background: `linear-gradient(to right, ${colors.primary}, ${colors.secondary})`,
-                          }}
-                        />
-                      </div>
-                    </div>
                   );
                 })}
               </div>
-
-              <p className="text-[11px] text-slate-400 font-normal text-center mt-3">
-                💡 Passe o mouse ou clique sobre qualquer deck da lista para visualizar sua carta e estatísticas detalhadas no painel lateral.
-              </p>
             </div>
+
+            {/* Informações do Deck Ativo */}
+            {displayedDeck && (
+              <div className="w-full flex flex-col items-center text-center mt-3">
+                {/* Nome do Deck + Bolinhas de Energia ao lado (sem texto) */}
+                <div className="flex items-center justify-center gap-2">
+                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate max-w-[280px]">
+                    {displayedDeck.deckName}
+                  </h3>
+                  <EnergyBadge energyRaw={displayedDeck.tipoEnergia} showLabel={false} size="sm" />
+                </div>
+
+                {/* Estatísticas de Participação */}
+                <div className="flex items-center gap-2.5 mt-1.5 text-sm font-bold">
+                  <span style={{ color: primaryEnergyColor }} className="text-base sm:text-lg font-black">
+                    {displayedDeck.percent.toFixed(1)}% do Meta
+                  </span>
+                  <span className="text-slate-500">•</span>
+                  <span className="text-slate-300">
+                    {displayedDeck.count} {displayedDeck.count === 1 ? "partida" : "partidas"}
+                  </span>
+                </div>
+
+                {/* Link Limitless TCG */}
+                {displayedDeck.limitless && (
+                  <a
+                    href={displayedDeck.limitless}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-2.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-lg"
+                  >
+                    <span>Ver Listas no Limitless TCG</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+
+                {/* Controles de Navegação (Setas e Indicadores de Ponto) */}
+                {carouselDecks.length > 1 && (
+                  <div className="flex items-center gap-3 mt-3.5">
+                    <button
+                      onClick={handlePrevSlide}
+                      className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                      aria-label="Deck anterior"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                      {carouselDecks.slice(0, 8).map((_, idx) => (
+                        <button
+                          key={`dot-${idx}`}
+                          onClick={() => {
+                            if (autoPlayRef.current) clearInterval(autoPlayRef.current);
+                            setCarouselIndex(idx);
+                            setHoveredDeck(null);
+                          }}
+                          className={`h-2 rounded-full transition-all cursor-pointer ${
+                            idx === (carouselIndex % Math.min(8, carouselDecks.length)) && !activeHoverDeckInfo
+                              ? "w-6 bg-white shadow-sm"
+                              : "w-2 bg-slate-700 hover:bg-slate-500"
+                          }`}
+                          aria-label={`Slide ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={handleNextSlide}
+                      className="p-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-white/10 transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                      aria-label="Próximo deck"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+
+          {/* Lado Direito: Visualizador em Barras Horizontais Interativas */}
+          <div className="md:col-span-7 flex flex-col justify-center relative min-h-[380px]">
+            <div className="w-full space-y-2.5 max-h-[440px] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar">
+              {deckStats.map((deck, idx) => {
+                const colors = getEnergyColor(deck.tipoEnergia);
+                const isCurrent = displayedDeck?.deckName.toLowerCase() === deck.deckName.toLowerCase();
+                const isHovered = hoveredDeck === deck.deckName;
+                const barWidth = `${(deck.percent / maxPercent) * 100}%`;
+
+                return (
+                  <div
+                    key={`bar-${deck.deckName}`}
+                    onMouseEnter={() => handleDeckHover(deck.deckName)}
+                    onMouseLeave={() => setHoveredDeck(null)}
+                    onClick={() => handleDeckHover(deck.deckName)}
+                    className={`group relative rounded-2xl p-3 border transition-all duration-200 cursor-pointer ${
+                      isCurrent || isHovered
+                        ? "bg-white/[0.08] border-white/30 shadow-lg scale-[1.01]"
+                        : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3 relative z-10 mb-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {/* Avatar / Ícone do Pokémon */}
+                        <div className="h-8 w-8 rounded-xl bg-slate-900 border border-white/15 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
+                          {deck.icone ? (
+                            <img
+                              src={deck.icone}
+                              alt={deck.deckName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs">⚡</span>
+                          )}
+                        </div>
+
+                        {/* Nome do Deck + Bolinhas de Tipo de Energia ao lado (sem texto) */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-black text-sm text-white truncate group-hover:text-amber-300 transition-colors">
+                              {deck.deckName}
+                            </span>
+                            <EnergyBadge energyRaw={deck.tipoEnergia} showLabel={false} size="sm" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Estatísticas Numéricas: % e Jogos */}
+                      <div className="text-right shrink-0 flex items-baseline gap-2">
+                        <span
+                          className="text-base sm:text-lg font-black tabular-nums"
+                          style={{ color: colors.primary }}
+                        >
+                          {deck.percent.toFixed(1)}%
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                          ({deck.count} {deck.count === 1 ? "jogo" : "jogos"})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Barra de Progresso Horizontal Proporcional */}
+                    <div className="w-full h-2 rounded-full bg-slate-900/80 overflow-hidden border border-white/5 relative">
+                      <div
+                        className="h-full rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(255,255,255,0.2)]"
+                        style={{
+                          width: barWidth,
+                          background: `linear-gradient(to right, ${colors.primary}, ${colors.secondary})`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-[11px] text-slate-400 font-normal text-center mt-3">
+              💡 Passe o mouse ou clique sobre qualquer deck da lista para visualizar sua carta e estatísticas no carrossel.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
