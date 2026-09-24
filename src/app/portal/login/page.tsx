@@ -206,37 +206,6 @@ export default function PlayerLoginPage() {
                 )}
               </button>
 
-              {/* Botão de Teste Rápido / Demonstração */}
-              <div className="pt-2 border-t border-white/5">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setLoginLoading(true);
-                    setLoginError("");
-                    try {
-                      const res = await fetch("/api/portal/login", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ popId: "5685779", pin: "1234" }),
-                      });
-                      if (res.ok) {
-                        router.push("/portal");
-                        router.refresh();
-                      } else {
-                        setLoginError("Erro ao autenticar demonstração.");
-                      }
-                    } catch {
-                      setLoginError("Erro de conexão.");
-                    } finally {
-                      setLoginLoading(false);
-                    }
-                  }}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2.5 px-3 text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition-all cursor-pointer"
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                  <span>Testar Layouts Imediatamente (1 Clique)</span>
-                </button>
-              </div>
             </form>
           )}
 
