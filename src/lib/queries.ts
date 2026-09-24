@@ -301,16 +301,21 @@ export async function getMetagameData() {
   let allResults: any[] = [];
 
   try {
-    [allMeta, allDecks, allEtapas, allResults] = await Promise.all([
+    const [dbMeta, dbDecks, dbEtapas, dbResults] = await Promise.all([
       db.select().from(metagame).catch(() => []),
       db.select().from(decks).catch(() => []),
       db.select().from(etapas).orderBy(desc(etapas.data)).catch(() => []),
       db.select().from(etapaResultados).catch(() => []),
     ]);
+    if (dbMeta && dbMeta.length > 0) allMeta = dbMeta;
+    if (dbDecks && dbDecks.length > 0) allDecks = dbDecks;
+    if (dbEtapas && dbEtapas.length > 0) allEtapas = dbEtapas;
+    if (dbResults && dbResults.length > 0) allResults = dbResults;
   } catch (err) {
     // Silencioso
   }
 
+  // Fallback Metagame Entries
   if (!allMeta || allMeta.length === 0) {
     const rawMeta = readDataFile<Record<string, any>>("metagame.json", {});
     allMeta = [];
@@ -328,6 +333,7 @@ export async function getMetagameData() {
     }
   }
 
+  // Fallback Decks Info
   if (!allDecks || allDecks.length === 0) {
     const rawDecks = readDataFile<any[]>("decks.json", []);
     allDecks = rawDecks.map((d, i) => ({
@@ -341,8 +347,15 @@ export async function getMetagameData() {
     }));
   }
 
+  // Fallback Etapas
   if (!allEtapas || allEtapas.length === 0) {
     allEtapas = readDataFile<any[]>("etapas.json", []);
+  }
+
+  // Fallback Etapa Resultados (Lê dos 21 TDFs de etapas com correspondência de decks)
+  if (!allResults || allResults.length === 0) {
+    const fallbackEtapas = getFallbackEtapas();
+    allResults = fallbackEtapas.flatMap((e) => e.resultados || []);
   }
 
   return {

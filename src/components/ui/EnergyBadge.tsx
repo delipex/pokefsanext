@@ -44,8 +44,8 @@ export function EnergyBadge({
             key={idx}
             className={`${dotSize[size]} rounded-full border border-black/40 shadow-sm shrink-0`}
             style={{
-              backgroundColor: t.hex,
-              boxShadow: `0 0 6px ${t.hex}`,
+              background: t.bgGradient || t.hex,
+              boxShadow: `0 0 6px ${t.glow || t.hex}`,
             }}
             title={t.label}
           />

@@ -166,7 +166,7 @@ function GpuMarqueeCards({
                         <span
                           key={i}
                           className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full border border-black/50 shadow-sm"
-                          style={{ backgroundColor: t.hex }}
+                          style={{ background: t.bgGradient || t.hex, boxShadow: `0 0 3px ${t.glow || t.hex}` }}
                           title={t.label}
                         />
                       ))}

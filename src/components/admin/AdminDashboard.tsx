@@ -1285,13 +1285,15 @@ export function AdminDashboard({
                   <option value="water">Água (Water)</option>
                   <option value="lightning">Elétrico (Lightning)</option>
                   <option value="psychic">Psíquico (Psychic)</option>
-                  <option value="fighting">Lutador (Fighting)</option>
-                  <option value="darkness">Noturno (Darkness)</option>
+                  <option value="fighting">Luta (Fighting)</option>
+                  <option value="darkness">Escuridão (Darkness)</option>
                   <option value="metal">Metálico (Metal)</option>
                   <option value="dragon">Dragão (Dragon)</option>
                   <option value="colorless">Incolor (Colorless)</option>
+                  <option value="multi">Multi / Arco-íris (3+ tipos)</option>
                   <option value="fire+psychic">Fogo + Psíquico (Dual)</option>
-                  <option value="darkness+fire">Noturno + Fogo (Dual)</option>
+                  <option value="darkness+fire">Escuridão + Fogo (Dual)</option>
+                  <option value="water+lightning">Água + Elétrico (Dual)</option>
                   <option value="lightning+colorless">Elétrico + Incolor (Dual)</option>
                 </select>
               </div>

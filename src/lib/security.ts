@@ -65,6 +65,104 @@ export function validatePlayerName(rawName: string): { isValid: boolean; error?:
   return { isValid: true, cleanName: titleCaseName };
 }
 
+// Helper para normalizar nomes removendo acentos e pontuações
+export function normalizeName(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .replace(/[^\w\s]/g, "") // Remove pontuação
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// 3.1. Algoritmo de Razoabilidade e Correspondência Inteligente de Nomes (Fuzzy Identity Match)
+export function matchPlayerIdentity(
+  inputName: string,
+  storedName: string
+): { isMatch: boolean; confidence: number; reason?: string } {
+  const normInput = normalizeName(inputName);
+  const normStored = normalizeName(storedName);
+
+  // 1. Casamento Exato
+  if (normInput === normStored) {
+    return { isMatch: true, confidence: 1.0, reason: "Casamento exato" };
+  }
+
+  const inputParts = normInput.split(" ").filter(Boolean);
+  const storedParts = normStored.split(" ").filter(Boolean);
+
+  if (inputParts.length === 0 || storedParts.length === 0) {
+    return { isMatch: false, confidence: 0, reason: "Nome vazio" };
+  }
+
+  const inputFirst = inputParts[0];
+  const storedFirst = storedParts[0];
+
+  // 2. O primeiro nome DEVE ser compatível (ex: Cristian vs Cristian, Carlos vs Carlos)
+  const isFirstMatch =
+    inputFirst === storedFirst ||
+    (inputFirst.length > 3 && storedFirst.length > 3 && (inputFirst.includes(storedFirst) || storedFirst.includes(inputFirst)));
+
+  if (!isFirstMatch) {
+    return {
+      isMatch: false,
+      confidence: 0,
+      reason: `Primeiro nome diferente: digitado "${inputFirst}" vs registrado "${storedFirst}"`,
+    };
+  }
+
+  // 3. Casamento por Iniciais ou Sobrenome (ex: "Cristian Silva" vs "Cristian S" ou "Carlos Junior" vs "Carlos J")
+  const inputRest = inputParts.slice(1);
+  const storedRest = storedParts.slice(1);
+
+  // Se o nome registrado tinha apenas 1 palavra (ex: apenas "Carlos") e o usuário digitou "Carlos Silva"
+  if (storedRest.length === 0 && isFirstMatch) {
+    return { isMatch: true, confidence: 0.85, reason: "Primeiro nome idêntico com sobrenome expandido" };
+  }
+
+  // Checa se alguma inicial ou sobrenome bate
+  let matchFound = false;
+  for (const sPart of storedRest) {
+    for (const iPart of inputRest) {
+      if (sPart === iPart) {
+        matchFound = true;
+        break;
+      }
+      // Se for inicial (ex: 's' vs 'silva' ou 'j' vs 'junior')
+      if (sPart.length === 1 && iPart.startsWith(sPart)) {
+        matchFound = true;
+        break;
+      }
+      if (iPart.length === 1 && sPart.startsWith(iPart)) {
+        matchFound = true;
+        break;
+      }
+      // Se um contiver o outro (ex: 'jr' vs 'junior')
+      if (
+        (sPart === "jr" && iPart === "junior") ||
+        (sPart === "junior" && iPart === "jr") ||
+        (sPart === "neto" && iPart === "neto") ||
+        (sPart === "filho" && iPart === "filho")
+      ) {
+        matchFound = true;
+        break;
+      }
+    }
+    if (matchFound) break;
+  }
+
+  if (matchFound) {
+    return { isMatch: true, confidence: 0.9, reason: "Primeiro nome e sobrenome/inicial compatíveis" };
+  }
+
+  return {
+    isMatch: false,
+    confidence: 0.4,
+    reason: `Sobrenome incompatível: "${inputRest.join(" ")}" vs registrado "${storedRest.join(" ")}"`,
+  };
+}
+
 // 4. Validador de WhatsApp / Telefone
 export function validateWhatsApp(rawPhone: string): { isValid: boolean; error?: string; cleanPhone?: string } {
   const digits = rawPhone.replace(/\D/g, "");

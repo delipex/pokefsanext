@@ -183,7 +183,39 @@ export function HeroSeasonHub({
   const eventMapUrl = nextEvent?.linkMaps || nextEvent?.linkLocal || "https://maps.google.com";
   const stageType = nextEvent?.tipo || "Standard";
 
-  // Configuração visual personalizada e refinada para cada card de Pódio (1º ao 4º)
+  // Tag inteligente de destaque para eventos especiais (Cup, Challenge, etc.)
+  const getEventTagConfig = () => {
+    const combined = `${stageType} ${eventTitle}`.toLowerCase();
+    if (combined.includes("cup")) {
+      return {
+        badgeClass: "bg-purple-500/15 border-purple-500/35 text-purple-300 shadow-sm shadow-purple-500/20",
+        dotClass: "bg-purple-400 animate-pulse",
+        label: "🏆 League Cup • Oficial",
+      };
+    }
+    if (combined.includes("challenge")) {
+      return {
+        badgeClass: "bg-amber-500/15 border-amber-500/35 text-amber-300 shadow-sm shadow-amber-500/20",
+        dotClass: "bg-amber-400 animate-pulse",
+        label: "⚡ League Challenge • Oficial",
+      };
+    }
+    if (combined.includes("especial") || combined.includes("premier")) {
+      return {
+        badgeClass: "bg-blue-500/15 border-blue-500/35 text-blue-300 shadow-sm shadow-blue-500/20",
+        dotClass: "bg-blue-400 animate-pulse",
+        label: "🌟 Evento Premier Especial",
+      };
+    }
+    return {
+      badgeClass: "bg-rose-500/10 border-rose-500/20 text-rose-300",
+      dotClass: "bg-rose-500 animate-pulse",
+      label: "Próximo Torneio",
+    };
+  };
+
+  const tagCfg = getEventTagConfig();
+
   const getPodiumCardConfig = (pos: number) => {
     if (pos === 1) {
       return {
@@ -322,7 +354,7 @@ export function HeroSeasonHub({
                             <span
                               key={i}
                               className="h-2 w-2 rounded-full border border-black/50 shadow-sm shrink-0"
-                              style={{ backgroundColor: t.hex, boxShadow: `0 0 3px ${t.hex}` }}
+                              style={{ background: t.bgGradient || t.hex, boxShadow: `0 0 3px ${t.glow || t.hex}` }}
                             />
                           ))}
                         </div>
@@ -372,9 +404,9 @@ export function HeroSeasonHub({
             <div className="flex-1 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.03] p-5 sm:p-6 backdrop-blur-2xl shadow-xl flex flex-col justify-between space-y-4 relative overflow-hidden transition-all">
               {/* Topo do Card: Alerta com Pulso e Data */}
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-1 text-xs font-semibold text-rose-300">
-                  <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-                  <span>Próximo Torneio</span>
+                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold ${tagCfg.badgeClass}`}>
+                  <span className={`h-2 w-2 rounded-full ${tagCfg.dotClass}`} />
+                  <span>{tagCfg.label}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#ffcb05] tabular-nums">
                   <Clock className="h-3.5 w-3.5 text-[#ffcb05]" />

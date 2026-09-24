@@ -10,6 +10,7 @@ import {
   calculatePokemonCategory,
   hashPin,
   checkRateLimit,
+  matchPlayerIdentity,
 } from "@/lib/security";
 
 export async function POST(req: Request) {
@@ -68,13 +69,89 @@ export async function POST(req: Request) {
     const hashedPin = hashPin(String(pin).trim());
 
     // 7. Persistência Segura no Banco de Dados
-    const existing = await db.select().from(jogadores).where(eq(jogadores.id, cleanId)).limit(1);
+    let existingAthlete: any = null;
 
-    if (existing.length > 0) {
-      // Jogador já existia de etapas anteriores: ativação / atualização de perfil
-      await db
-        .update(jogadores)
-        .set({
+    try {
+      const existing = await db.select().from(jogadores).where(eq(jogadores.id, cleanId)).limit(1);
+      if (existing.length > 0) existingAthlete = existing[0];
+    } catch {
+      // Ignora erro de DB
+    }
+
+    // Se o banco ainda não tiver o registro, busca em jogadores.json (dados TOM)
+    if (!existingAthlete) {
+      try {
+        const fs = await import("fs");
+        const path = await import("path");
+        const filePath = path.join(process.cwd(), "src", "data", "jogadores.json");
+        if (fs.existsSync(filePath)) {
+          const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+          const found = raw.find((j: any) => String(j.id).trim() === cleanId || String(j.nome).toLowerCase() === cleanName.toLowerCase());
+          if (found) {
+            existingAthlete = { id: cleanId, nome: found.nome, categoria: found.categoria || "Master", pinHash: null };
+          }
+        }
+      } catch {
+        // Ignora erro de leitura
+      }
+    }
+
+    if (existingAthlete) {
+      // Se o atleta já tiver PIN ativo, impede sobrescrita sem redefinição autorizada
+      if (existingAthlete.pinHash) {
+        return NextResponse.json(
+          { error: "Este perfil já foi ativado anteriormente. Faça login com seu PIN ou solicite redefinição à organização da Liga." },
+          { status: 403 }
+        );
+      }
+
+      // Validação de Razoabilidade da Identidade do Atleta (Fuzzy Matching)
+      const identityCheck = matchPlayerIdentity(cleanName, existingAthlete.nome);
+      if (!identityCheck.isMatch) {
+        return NextResponse.json(
+          {
+            error: `O nome informado não confere com o titular cadastrado para este POP ID (${existingAthlete.nome}). Verifique a digitação ou contate o organizador da Liga.`,
+          },
+          { status: 403 }
+        );
+      }
+
+      // Jogador validado: ativação de perfil
+      try {
+        await db
+          .insert(jogadores)
+          .values({
+            id: cleanId,
+            nome: cleanName,
+            categoria,
+            whatsapp: cleanPhone,
+            dataNascimento,
+            cidade: cidade || "Feira de Santana - BA",
+            pinHash: hashedPin,
+            status: "ativo",
+            ativo: true,
+          })
+          .onConflictDoUpdate({
+            target: jogadores.id,
+            set: {
+              nome: cleanName,
+              categoria,
+              whatsapp: cleanPhone,
+              dataNascimento,
+              cidade: cidade || "Feira de Santana - BA",
+              pinHash: hashedPin,
+              status: "ativo",
+              ativo: true,
+            },
+          });
+      } catch (dbErr) {
+        console.warn("Aviso ao salvar jogador no DB:", dbErr);
+      }
+    } else {
+      // Atleta novo
+      try {
+        await db.insert(jogadores).values({
+          id: cleanId,
           nome: cleanName,
           categoria,
           whatsapp: cleanPhone,
@@ -83,21 +160,10 @@ export async function POST(req: Request) {
           pinHash: hashedPin,
           status: "ativo",
           ativo: true,
-        })
-        .where(eq(jogadores.id, cleanId));
-    } else {
-      // Atleta novo
-      await db.insert(jogadores).values({
-        id: cleanId,
-        nome: cleanName,
-        categoria,
-        whatsapp: cleanPhone,
-        dataNascimento,
-        cidade: cidade || "Feira de Santana - BA",
-        pinHash: hashedPin,
-        status: "ativo",
-        ativo: true,
-      });
+        });
+      } catch (dbErr) {
+        console.warn("Aviso ao inserir jogador no DB:", dbErr);
+      }
     }
 
     // 8. Criação de Sessão Segura via Cookie HTTP-only
