@@ -40,8 +40,8 @@ export const BASE_ENERGIES: Record<string, SingleEnergyInfo> = {
   water: {
     name: "water",
     label: "Água",
-    hex: "#1593F5",
-    glow: "rgba(21, 147, 245, 0.4)",
+    hex: "#00B4D8",
+    glow: "rgba(0, 180, 216, 0.45)",
   },
   lightning: {
     name: "lightning",
@@ -70,14 +70,14 @@ export const BASE_ENERGIES: Record<string, SingleEnergyInfo> = {
   darkness: {
     name: "darkness",
     label: "Escuridão",
-    hex: "#7C3AED",
-    glow: "rgba(124, 58, 237, 0.4)",
+    hex: "#1B4958",
+    glow: "rgba(27, 73, 88, 0.55)",
   },
   dark: {
     name: "darkness",
     label: "Escuridão",
-    hex: "#7C3AED",
-    glow: "rgba(124, 58, 237, 0.4)",
+    hex: "#1B4958",
+    glow: "rgba(27, 73, 88, 0.55)",
   },
   metal: {
     name: "metal",
@@ -110,7 +110,7 @@ export const BASE_ENERGIES: Record<string, SingleEnergyInfo> = {
     glow: "rgba(255, 203, 5, 0.55)",
     isRainbow: true,
     bgGradient:
-      "conic-gradient(from 180deg at 50% 50%, #FF4216 0deg, #EBC816 60deg, #78C850 120deg, #1593F5 180deg, #7C3AED 240deg, #D94293 300deg, #FF4216 360deg)",
+      "conic-gradient(from 180deg at 50% 50%, #FF4216 0deg, #EBC816 60deg, #78C850 120deg, #00B4D8 180deg, #1B4958 240deg, #D94293 300deg, #FF4216 360deg)",
   },
   rainbow: {
     name: "multi",
@@ -119,7 +119,7 @@ export const BASE_ENERGIES: Record<string, SingleEnergyInfo> = {
     glow: "rgba(255, 203, 5, 0.55)",
     isRainbow: true,
     bgGradient:
-      "conic-gradient(from 180deg at 50% 50%, #FF4216 0deg, #EBC816 60deg, #78C850 120deg, #1593F5 180deg, #7C3AED 240deg, #D94293 300deg, #FF4216 360deg)",
+      "conic-gradient(from 180deg at 50% 50%, #FF4216 0deg, #EBC816 60deg, #78C850 120deg, #00B4D8 180deg, #1B4958 240deg, #D94293 300deg, #FF4216 360deg)",
   },
 };
 
@@ -167,7 +167,7 @@ export function getMultiEnergyConfig(energyRaw?: string): MultiEnergyConfig {
   const label = isRainbow ? "Multi" : types.map((t) => t.label).join(" / ");
 
   const gradientBg = isRainbow
-    ? "linear-gradient(135deg, rgba(255, 66, 22, 0.15) 0%, rgba(235, 200, 22, 0.15) 25%, rgba(120, 200, 80, 0.15) 50%, rgba(21, 147, 245, 0.15) 75%, rgba(124, 58, 237, 0.15) 100%)"
+    ? "linear-gradient(135deg, rgba(255, 66, 22, 0.15) 0%, rgba(235, 200, 22, 0.15) 25%, rgba(120, 200, 80, 0.15) 50%, rgba(0, 180, 216, 0.15) 75%, rgba(27, 73, 88, 0.25) 100%)"
     : isDual
     ? `linear-gradient(135deg, ${primary.hex}22 0%, ${secondary.hex}22 100%)`
     : `linear-gradient(135deg, ${primary.hex}22 0%, ${primary.hex}08 100%)`;
@@ -182,7 +182,7 @@ export function getMultiEnergyConfig(energyRaw?: string): MultiEnergyConfig {
     types,
     label,
     primaryColor: isRainbow ? "#FF4216" : primary.hex,
-    secondaryColor: isRainbow ? "#1593F5" : secondary.hex,
+    secondaryColor: isRainbow ? "#00B4D8" : secondary.hex,
     gradientBg,
     borderStyle,
     glowColor: isRainbow ? "rgba(255, 203, 5, 0.5)" : primary.glow,
