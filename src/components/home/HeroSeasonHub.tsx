@@ -227,8 +227,8 @@ export function HeroSeasonHub({
         },
         ptsColor: "text-[#ffcb05]",
         seal: (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 border border-amber-400/30 px-1.5 py-0.2 text-[8px] sm:text-[9px] font-bold uppercase text-amber-300 tracking-wider">
-            <Crown className="h-2 w-2 text-amber-400" /> Líder
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 border border-amber-400/30 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase text-amber-300 tracking-wider">
+            <Crown className="h-2.5 w-2.5 text-amber-400" /> Líder
           </span>
         ),
       };
@@ -332,33 +332,33 @@ export function HeroSeasonHub({
                   >
                     {/* Badge Numérico da Posição */}
                     <div
-                      className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-xs sm:text-sm shrink-0 border ${cardCfg.badgeStyle.bg} ${cardCfg.badgeStyle.border}`}
+                      className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-sm sm:text-base shrink-0 border font-black ${cardCfg.badgeStyle.bg} ${cardCfg.badgeStyle.border}`}
                     >
                       {pos}
                     </div>
 
                     {/* Informações do Jogador e Deck */}
-                    <div className="min-w-0 flex-1 pl-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors truncate">
+                    <div className="min-w-0 flex-1 pl-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-sm sm:text-base md:text-lg text-white group-hover:text-amber-400 transition-colors truncate">
                           {player.jogadorNome}
                         </span>
                         <CategoryBadge category={player.categoria} size="sm" />
                         {cardCfg.seal}
                       </div>
 
-                      <div className="flex items-center gap-1 text-[11px] text-slate-400 truncate mt-0.5">
+                      <div className="flex items-center gap-1.5 text-xs sm:text-[13px] text-slate-400 truncate mt-0.5">
                         {/* Energy Dot / Ícone de Energia */}
                         <div className="flex items-center -space-x-1 shrink-0">
                           {energyCfg.types.map((t, i) => (
                             <span
                               key={i}
-                              className="h-2 w-2 rounded-full border border-black/50 shadow-sm shrink-0"
+                              className="h-2.5 w-2.5 rounded-full border border-black/50 shadow-sm shrink-0"
                               style={{ background: t.bgGradient || t.hex, boxShadow: `0 0 3px ${t.glow || t.hex}` }}
                             />
                           ))}
                         </div>
-                        <span className="truncate max-w-[160px] sm:max-w-[200px] text-slate-300 font-medium">
+                        <span className="truncate max-w-[180px] sm:max-w-[240px] text-slate-300 font-medium">
                           {player.ultimoDeck || "Sem deck registrado"}
                         </span>
                       </div>
@@ -366,9 +366,9 @@ export function HeroSeasonHub({
 
                     {/* Pontos Limpos */}
                     <div className="text-right shrink-0">
-                      <div className={`font-black text-sm sm:text-base tracking-wide tabular-nums ${cardCfg.ptsColor}`}>
+                      <div className={`font-black text-base sm:text-lg md:text-xl tracking-wide tabular-nums ${cardCfg.ptsColor}`}>
                         {player.pontos}{" "}
-                        <span className="text-[10px] font-semibold text-slate-400">PTS</span>
+                        <span className="text-[10px] sm:text-xs font-semibold text-slate-400">PTS</span>
                       </div>
                     </div>
                   </motion.div>

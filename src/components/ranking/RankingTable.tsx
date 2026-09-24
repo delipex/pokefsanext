@@ -370,7 +370,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                       {/* TREINADOR + TAG DE CATEGORIA + ÚLTIMO DECK */}
                       <td className="px-3 sm:px-6 py-3.5 sm:py-4">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors">
+                          <span className="font-bold text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors">
                             {player.jogadorNome}
                           </span>
                           <CategoryBadge category={player.categoria} />
@@ -455,7 +455,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                       {/* TREINADOR + TAG DE CATEGORIA + DECK BADGE */}
                       <td className="px-3 sm:px-6 py-3.5 sm:py-4">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-xs sm:text-sm text-white group-hover:text-amber-400 transition-colors">
+                          <span className="font-bold text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors">
                             {result.jogadorNome}
                           </span>
                           <CategoryBadge category={result.categoria} />
