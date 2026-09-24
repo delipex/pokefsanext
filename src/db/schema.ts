@@ -142,17 +142,20 @@ export const calendario = sqliteTable("calendario", {
   foto: text("foto"),
 });
 
-// 12. Tabela de Submissão de Decklists pelos Jogadores
+// 12. Tabela de Submissão de Decklists e Inscrições Premier
 export const jogadorDecklists = sqliteTable("jogador_decklists", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  jogadorId: text("jogador_id").notNull(),
+  protocolo: text("protocolo"),
+  jogadorId: text("jogador_id"),
   jogadorNome: text("jogador_nome").notNull(),
+  categoria: text("categoria").default("Master"),
   eventoNome: text("evento_nome"),
   etapaData: text("etapa_data").notNull(),
   deckNome: text("deck_nome").notNull(),
   tipoEnergia: text("tipo_energia").default("colorless"),
-  decklistRaw: text("decklist_raw").notNull(),
+  decklistRaw: text("decklist_raw").default(""),
   totalCartas: integer("total_cartas").default(60),
   validada: integer("validada", { mode: "boolean" }).default(false),
+  statusPix: text("status_pix").default("Pendente"),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });

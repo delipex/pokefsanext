@@ -1,6 +1,15 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getAllJogadores, getAllDecks, getConfigMap, getCalendario, getSubmittedDecklists, getEtapasWithSummary } from "@/lib/queries";
+import {
+  getAllJogadores,
+  getAllDecks,
+  getConfigMap,
+  getCalendario,
+  getSubmittedDecklists,
+  getEtapasWithSummary,
+  getCampeoes,
+  getScoresAntigos,
+} from "@/lib/queries";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 export const dynamic = "force-dynamic";
@@ -18,13 +27,15 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  const [jogadores, decks, config, calendar, decklists, etapas] = await Promise.all([
+  const [jogadores, decks, config, calendar, decklists, etapas, campeoes, scoresAntigos] = await Promise.all([
     getAllJogadores(),
     getAllDecks(),
     getConfigMap(),
     getCalendario(),
     getSubmittedDecklists(),
     getEtapasWithSummary(),
+    getCampeoes(),
+    getScoresAntigos(),
   ]);
 
   return (
@@ -36,6 +47,8 @@ export default async function AdminPage() {
         initialCalendar={calendar}
         initialDecklists={decklists}
         initialEtapas={etapas}
+        initialChampions={campeoes}
+        initialScoresAntigos={scoresAntigos}
       />
     </div>
   );

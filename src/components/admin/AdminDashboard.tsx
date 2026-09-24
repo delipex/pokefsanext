@@ -39,6 +39,10 @@ import {
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { parseTDFContent, ParsedPlayerRow } from "@/lib/tdf-parser";
+import { AdminEtapasManager } from "./AdminEtapasManager";
+import { AdminInscricoesPremier } from "./AdminInscricoesPremier";
+import { AdminTemporadasManager } from "./AdminTemporadasManager";
+import { AdminAuditoria } from "./AdminAuditoria";
 
 interface AdminDashboardProps {
   initialPlayers: any[];
@@ -47,6 +51,8 @@ interface AdminDashboardProps {
   initialCalendar?: any[];
   initialDecklists?: any[];
   initialEtapas?: any[];
+  initialChampions?: any[];
+  initialScoresAntigos?: any[];
 }
 
 export function AdminDashboard({
@@ -56,9 +62,13 @@ export function AdminDashboard({
   initialCalendar = [],
   initialDecklists = [],
   initialEtapas = [],
+  initialChampions = [],
+  initialScoresAntigos = [],
 }: AdminDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"tdf" | "jogadores" | "decks" | "metagame" | "calendario" | "inscricoes" | "config" | "fechamento">("tdf");
+  const [activeTab, setActiveTab] = useState<
+    "tdf" | "etapas" | "jogadores" | "decks" | "metagame" | "inscricoes" | "temporadas" | "auditoria" | "calendario" | "config"
+  >("tdf");
 
   // Estado de Metagame por Etapa
   const [adminEtapas, setAdminEtapas] = useState<any[]>(initialEtapas);
@@ -882,107 +892,132 @@ export function AdminDashboard({
         <div className="inline-flex min-w-full sm:min-w-0 items-center justify-between sm:justify-start gap-1.5 bg-slate-900/80 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl">
           <button
             onClick={() => setActiveTab("tdf")}
-            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
               activeTab === "tdf"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
                 : "text-slate-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Upload className="h-4 w-4" />
+            <Upload className="h-3.5 w-3.5" />
             <span>Publicar TDF</span>
           </button>
 
           <button
+            onClick={() => setActiveTab("etapas")}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "etapas"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Calendar className="h-3.5 w-3.5" />
+            <span>Etapas</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
+              {adminEtapas.length}
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab("jogadores")}
-            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
               activeTab === "jogadores"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
                 : "text-slate-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <UserPlus className="h-4 w-4" />
+            <UserPlus className="h-3.5 w-3.5" />
             <span>Jogadores</span>
           </button>
 
           <button
             onClick={() => setActiveTab("decks")}
-            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
               activeTab === "decks"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
                 : "text-slate-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Flame className="h-4 w-4" />
+            <Flame className="h-3.5 w-3.5" />
             <span>Decks</span>
           </button>
 
           <button
             onClick={() => setActiveTab("metagame")}
-            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
               activeTab === "metagame"
                 ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
                 : "text-slate-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <BarChart3 className="h-4 w-4" />
-            <span>Metagame por Etapa</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("calendario")}
-            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
-              activeTab === "calendario"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
-                : "text-slate-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <Calendar className="h-4 w-4" />
-            <span>Calendário</span>
+            <BarChart3 className="h-3.5 w-3.5" />
+            <span>Metagame</span>
           </button>
 
           <button
             onClick={() => setActiveTab("inscricoes")}
-            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
               activeTab === "inscricoes"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
+                ? "bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30 font-black"
                 : "text-slate-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <ClipboardList className="h-4 w-4" />
+            <ClipboardList className="h-3.5 w-3.5" />
             <span>Inscrições</span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                activeTab === "inscricoes" ? "bg-white/20 text-white" : "bg-slate-800 text-slate-400"
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                activeTab === "inscricoes" ? "bg-slate-900 text-white" : "bg-slate-800 text-slate-400"
               }`}
             >
               {decklists.length}
             </span>
           </button>
 
-          <div className="h-5 w-px bg-white/10 mx-1 hidden sm:block shrink-0" />
-
           <button
-            onClick={() => setActiveTab("config")}
-            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
-              activeTab === "config"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400/40"
-                : "text-slate-400 hover:text-white hover:bg-white/5"
+            onClick={() => setActiveTab("temporadas")}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "temporadas"
+                ? "bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 font-black shadow-md shadow-amber-400/30"
+                : "text-amber-400/90 hover:text-amber-300 hover:bg-amber-500/10"
             }`}
           >
-            <Settings className="h-4 w-4" />
-            <span>Configurações</span>
+            <Trophy className="h-3.5 w-3.5" />
+            <span>Temporadas & Hall</span>
           </button>
 
           <button
-            onClick={() => setActiveTab("fechamento")}
-            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
-              activeTab === "fechamento"
-                ? "bg-gradient-to-r from-amber-600 to-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/30 ring-1 ring-amber-300/50"
-                : "text-amber-400/90 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/20"
+            onClick={() => setActiveTab("auditoria")}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "auditoria"
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                : "text-emerald-400/90 hover:text-emerald-300 hover:bg-emerald-500/10"
             }`}
           >
-            <Trophy className="h-4 w-4" />
-            <span>Fechar Temporada</span>
+            <Shield className="h-3.5 w-3.5" />
+            <span>Auditoria</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("calendario")}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "calendario"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Calendar className="h-3.5 w-3.5" />
+            <span>Calendário</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("config")}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "config"
+                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Settings className="h-3.5 w-3.5" />
+            <span>Config</span>
           </button>
         </div>
       </div>
@@ -1227,6 +1262,16 @@ export function AdminDashboard({
             </div>
           )}
         </div>
+      )}
+
+      {/* ABA GERENCIADOR DE ETAPAS */}
+      {activeTab === "etapas" && (
+        <AdminEtapasManager
+          etapas={adminEtapas}
+          onEtapasUpdated={() => {
+            router.refresh();
+          }}
+        />
       )}
 
       {/* 2. ABA JOGADORES */}
@@ -2122,183 +2167,13 @@ export function AdminDashboard({
         </div>
       )}
 
-      {/* ABA INSCRIÇÕES & DECKLISTS SUBMETIDAS */}
+      {/* ABA INSCRIÇÕES & DECKLISTS PREMIER */}
       {activeTab === "inscricoes" && (
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-              <div>
-                <h3 className="text-lg font-black text-white flex items-center gap-2">
-                  <ClipboardList className="h-5 w-5 text-blue-400" /> Decklists Oficiais Submetidas ({decklists.length})
-                </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Decklists de 60 cartas enviadas pelos jogadores no Portal do Treinador para check-in no TOM
-                </p>
-              </div>
-
-              <div className="w-full sm:w-64">
-                <input
-                  type="text"
-                  placeholder="Buscar jogador, ID ou deck..."
-                  value={decklistSearch}
-                  onChange={(e) => setDecklistSearch(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            {/* Lista de Decklists */}
-            {decklists.length === 0 ? (
-              <div className="py-12 text-center text-slate-500 text-xs">
-                Nenhuma decklist foi submetida pelos jogadores até o momento.
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/80">
-                <table className="w-full text-left text-xs text-slate-200">
-                  <thead className="border-b border-white/10 bg-slate-900/90 text-[10px] uppercase font-bold text-slate-400">
-                    <tr>
-                      <th className="py-3 pl-4">Jogador / POP ID</th>
-                      <th className="py-3 px-3">Deck & Arquétipo</th>
-                      <th className="py-3 px-3">Evento / Data</th>
-                      <th className="py-3 px-3 text-center">Cartas</th>
-                      <th className="py-3 pr-4 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {decklists
-                      .filter((dl) => {
-                        if (!decklistSearch.trim()) return true;
-                        const query = decklistSearch.toLowerCase();
-                        return (
-                          dl.jogadorNome?.toLowerCase().includes(query) ||
-                          dl.jogadorId?.toLowerCase().includes(query) ||
-                          dl.deckNome?.toLowerCase().includes(query)
-                        );
-                      })
-                      .map((dl) => (
-                        <tr key={dl.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="py-3 pl-4">
-                            <div className="font-bold text-white">{dl.jogadorNome}</div>
-                            <div className="text-[11px] tabular-nums font-semibold text-slate-400">POP ID: {dl.jogadorId}</div>
-                          </td>
-                          <td className="py-3 px-3">
-                            <div className="flex items-center gap-2">
-                              <EnergyBadge energyRaw={dl.tipoEnergia || "colorless"} size="sm" />
-                              <span className="font-medium text-slate-200">{dl.deckNome}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-3 text-xs text-slate-400">
-                            <div>{dl.eventoNome || "Etapa Oficial"}</div>
-                            <div className="tabular-nums text-[11px] text-slate-500">{dl.etapaData}</div>
-                          </td>
-                          <td className="py-3 px-3 text-center font-bold text-emerald-400 tabular-nums">
-                            {dl.totalCartas || 60} / 60
-                          </td>
-                          <td className="py-3 pr-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setPreviewDecklist(dl)}
-                                className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-xs font-bold text-blue-300 hover:bg-blue-500/20 transition-all cursor-pointer"
-                                title="Ver lista completa"
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                                <span>Ver</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(dl.decklistRaw);
-                                  setCopiedDecklistId(dl.id);
-                                  setTimeout(() => setCopiedDecklistId(null), 2000);
-                                }}
-                                className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer"
-                                title="Copiar formato TCG Live / Limitless"
-                              >
-                                {copiedDecklistId === dl.id ? (
-                                  <>
-                                    <Check className="h-3.5 w-3.5" />
-                                    <span>Copiado!</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="h-3.5 w-3.5" />
-                                    <span>Copiar</span>
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Modal de Pré-visualização de Decklist */}
-          {previewDecklist && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-              <div className="w-full max-w-2xl rounded-3xl border border-white/20 bg-slate-900 p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div>
-                    <h4 className="text-base font-black text-white">{previewDecklist.jogadorNome}</h4>
-                    <p className="text-xs text-slate-400">
-                      {previewDecklist.deckNome} • POP ID: <strong className="tabular-nums font-bold text-slate-200">{previewDecklist.jogadorId}</strong>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setPreviewDecklist(null)}
-                    className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-slate-950 p-4">
-                  <pre className="text-xs text-slate-200 whitespace-pre-wrap leading-relaxed font-sans">
-                    {previewDecklist.decklistRaw}
-                  </pre>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                  <span className="text-xs text-slate-400">
-                    Total: <strong className="text-white">{previewDecklist.totalCartas || 60} cartas</strong>
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(previewDecklist.decklistRaw);
-                        setCopiedDecklistId(previewDecklist.id);
-                        setTimeout(() => setCopiedDecklistId(null), 2000);
-                      }}
-                      className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 transition-all cursor-pointer shadow-lg shadow-emerald-600/30"
-                    >
-                      {copiedDecklistId === previewDecklist.id ? (
-                        <>
-                          <Check className="h-3.5 w-3.5" />
-                          <span>Decklist Copiada!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3.5 w-3.5" />
-                          <span>Copiar Decklist Completa</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setPreviewDecklist(null)}
-                      className="rounded-xl border border-white/10 bg-slate-800 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-slate-700 transition-all cursor-pointer"
-                    >
-                      Fechar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <AdminInscricoesPremier
+          initialConfig={initialConfig}
+          initialCalendar={calendarEvents}
+          initialDecklists={decklists}
+        />
       )}
 
       {/* 5. ABA CONFIGURAÇÕES GLOBAIS */}
@@ -2696,174 +2571,20 @@ export function AdminDashboard({
         </div>
       )}
 
-      {/* 6. ABA FECHADOR DE TEMPORADA */}
-      {activeTab === "fechamento" && (
-        <div className="max-w-3xl rounded-3xl border border-amber-500/30 bg-slate-900/80 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
-          <div className="border-b border-white/10 pb-4">
-            <div className="flex items-center gap-2 text-amber-400">
-              <Trophy className="h-6 w-6" />
-              <h3 className="text-xl font-black text-white">Fechador de Temporadas & Virada Oficial</h3>
-            </div>
-            <p className="text-xs text-slate-300 mt-1">
-              Transponha o ranking final da <strong>Temporada {closureCurrentSeason}</strong> para a memória histórica de <em>Scores Antigos</em>, coroe o Campeão no <em>Hall da Fama</em> e abra a nova <strong>Temporada {closureNextSeason}</strong> mantendo 100% dos Decks e Jogadores salvos.
-            </p>
-          </div>
+      {/* 6. ABA TEMPORADAS & HALL DA FAMA */}
+      {activeTab === "temporadas" && (
+        <AdminTemporadasManager
+          initialChampions={initialChampions}
+          initialScoresAntigos={initialScoresAntigos}
+          currentSeasonNumber={Number(initialConfig.temporadaAtual) || 5}
+          onChampionsUpdated={() => router.refresh()}
+          onScoresUpdated={() => router.refresh()}
+        />
+      )}
 
-          {closureMessage && (
-            <div
-              className={`p-4 rounded-2xl border text-xs font-bold leading-relaxed ${
-                closureSuccess
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                  : "border-amber-500/30 bg-amber-500/10 text-amber-300"
-              }`}
-            >
-              {closureMessage}
-            </div>
-          )}
-
-          <form onSubmit={handleExecuteSeasonClosure} className="space-y-5">
-            {/* Linha das Temporadas */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl border border-white/10 bg-slate-950/60 space-y-2">
-                <label className="block text-xs font-black uppercase tracking-wider text-amber-400">
-                  Temporada Atual a Encerrar:
-                </label>
-                <input
-                  type="number"
-                  value={closureCurrentSeason}
-                  onChange={(e) => setClosureCurrentSeason(Number(e.target.value))}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-sm font-bold text-white focus:outline-none focus:border-amber-500"
-                  required
-                />
-                <p className="text-[10px] text-slate-400">
-                  O ranking consolidado desta temporada será arquivado com a colocação final de cada participante.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl border border-white/10 bg-slate-950/60 space-y-2">
-                <label className="block text-xs font-black uppercase tracking-wider text-emerald-400">
-                  Nova Temporada a Iniciar:
-                </label>
-                <input
-                  type="number"
-                  value={closureNextSeason}
-                  onChange={(e) => setClosureNextSeason(Number(e.target.value))}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-sm font-bold text-white focus:outline-none focus:border-emerald-500"
-                  required
-                />
-                <p className="text-[10px] text-slate-400">
-                  A temporada do site passará a ser a #{closureNextSeason} em todas as telas e cabeçalhos.
-                </p>
-              </div>
-            </div>
-
-            {/* Dados do Campeão a Coroar */}
-            <div className="p-4 rounded-2xl border border-white/10 bg-slate-950/60 space-y-4">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                <Sparkles className="h-4 w-4 text-amber-400" />
-                Dados do Campeão & Vice para o Hall da Fama:
-              </h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                    Nome do Campeão (1º Lugar):
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Auto (detecta do ranking)"
-                    value={closureCampeao}
-                    onChange={(e) => setClosureCampeao(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                    Nome do Vice-Campeão (2º Lugar):
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Auto (detecta do ranking)"
-                    value={closureVice}
-                    onChange={(e) => setClosureVice(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                    Deck do Campeão:
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Dragapult Ex"
-                    value={closureDeck}
-                    onChange={(e) => setClosureDeck(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">
-                  Data Oficial do Fechamento:
-                </label>
-                <input
-                  type="date"
-                  value={closureDate}
-                  onChange={(e) => setClosureDate(e.target.value)}
-                  className="rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            {/* Checkbox de Reset */}
-            <div className="flex items-center gap-3 p-3.5 rounded-2xl border border-white/10 bg-slate-950/60">
-              <input
-                type="checkbox"
-                id="resetRank"
-                checked={closureResetRanking}
-                onChange={(e) => setClosureResetRanking(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-700 text-amber-600 focus:ring-amber-500"
-              />
-              <label htmlFor="resetRank" className="text-xs text-slate-300 select-none cursor-pointer">
-                <strong>Zerar ranking consolidado ativo</strong> para a Temporada {closureNextSeason} (os dados históricos ficam salvos com segurança em <em>Scores Antigos</em>).
-              </label>
-            </div>
-
-            {/* Campo de Segurança com Texto de Confirmação */}
-            <div className="p-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 space-y-2">
-              <label className="block text-xs font-black uppercase tracking-wider text-rose-300">
-                Confirmação de Segurança (Obrigatório):
-              </label>
-              <p className="text-[11px] text-slate-300">
-                Para evitar cliques acidentais, digite exatamente <code className="text-rose-400 font-black bg-slate-900 px-1.5 py-0.5 rounded">ENCERRAR TEMPORADA {closureCurrentSeason}</code> no campo abaixo:
-              </p>
-              <input
-                type="text"
-                placeholder={`Digite "ENCERRAR TEMPORADA ${closureCurrentSeason}"`}
-                value={closureConfirmText}
-                onChange={(e) => setClosureConfirmText(e.target.value)}
-                className="w-full rounded-xl border border-rose-500/40 bg-slate-950 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-rose-400 font-sans"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={closureLoading}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-600 to-rose-600 py-3.5 text-xs font-black uppercase tracking-wider text-white hover:from-amber-500 hover:to-rose-500 transition-all shadow-xl shadow-amber-600/30 disabled:opacity-50 cursor-pointer"
-            >
-              {closureLoading ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trophy className="h-4 w-4" />
-              )}
-              <span>Encerrar Temporada {closureCurrentSeason} & Abrir Temporada {closureNextSeason}</span>
-            </button>
-          </form>
-        </div>
+      {/* 7. ABA AUDITORIA DO SISTEMA */}
+      {activeTab === "auditoria" && (
+        <AdminAuditoria />
       )}
     </div>
   );
