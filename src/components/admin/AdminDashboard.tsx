@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Upload,
@@ -32,8 +32,12 @@ import {
   Eye,
   ClipboardList,
   Database,
+  BarChart3,
+  Search,
+  ChevronRight,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
+import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { parseTDFContent, ParsedPlayerRow } from "@/lib/tdf-parser";
 
 interface AdminDashboardProps {
@@ -42,6 +46,7 @@ interface AdminDashboardProps {
   initialConfig: Record<string, any>;
   initialCalendar?: any[];
   initialDecklists?: any[];
+  initialEtapas?: any[];
 }
 
 export function AdminDashboard({
@@ -50,9 +55,21 @@ export function AdminDashboard({
   initialConfig,
   initialCalendar = [],
   initialDecklists = [],
+  initialEtapas = [],
 }: AdminDashboardProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"tdf" | "jogadores" | "decks" | "calendario" | "inscricoes" | "config" | "fechamento">("tdf");
+  const [activeTab, setActiveTab] = useState<"tdf" | "jogadores" | "decks" | "metagame" | "calendario" | "inscricoes" | "config" | "fechamento">("tdf");
+
+  // Estado de Metagame por Etapa
+  const [adminEtapas, setAdminEtapas] = useState<any[]>(initialEtapas);
+  const [selectedMetaStageDate, setSelectedMetaStageDate] = useState<string>(
+    initialEtapas[0]?.data || ""
+  );
+  const [metaPlayerSearch, setMetaPlayerSearch] = useState<string>("");
+  const [stageDecksMap, setStageDecksMap] = useState<Record<string, string>>({});
+  const [isSavingMeta, setIsSavingMeta] = useState<boolean>(false);
+  const [metaSaveMessage, setMetaSaveMessage] = useState<string>("");
+  const [metaSaveSuccess, setMetaSaveSuccess] = useState<boolean>(false);
 
   // Estado de Decklists Submetidas
   const [decklists, setDecklists] = useState<any[]>(initialDecklists);
@@ -581,6 +598,72 @@ export function AdminDashboard({
     }
   };
 
+  // Sincronizar mapa de decks ao trocar a etapa selecionada no metagame
+  useEffect(() => {
+    if (!selectedMetaStageDate && adminEtapas.length > 0) {
+      setSelectedMetaStageDate(adminEtapas[0].data);
+    }
+    const currentEtapa = adminEtapas.find((e) => e.data === selectedMetaStageDate);
+    if (currentEtapa && currentEtapa.resultados) {
+      const map: Record<string, string> = {};
+      currentEtapa.resultados.forEach((r: any) => {
+        map[r.jogadorNome] = r.deckNome || "Sem deck registrado";
+      });
+      setStageDecksMap(map);
+      setMetaSaveMessage("");
+    }
+  }, [selectedMetaStageDate, adminEtapas]);
+
+  // Salvar alterações de decks na etapa
+  const handleSaveStageMetagame = async () => {
+    if (!selectedMetaStageDate) return;
+    setIsSavingMeta(true);
+    setMetaSaveMessage("");
+
+    try {
+      const res = await fetch("/api/admin/metagame", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          etapaData: selectedMetaStageDate,
+          decksMap: stageDecksMap,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMetaSaveSuccess(true);
+        setMetaSaveMessage("✅ " + data.message);
+
+        // Atualizar estado local de adminEtapas
+        setAdminEtapas((prev) =>
+          prev.map((e) => {
+            if (e.data === selectedMetaStageDate) {
+              const updatedResults = (e.resultados || []).map((r: any) => ({
+                ...r,
+                deckNome: stageDecksMap[r.jogadorNome] || r.deckNome,
+              }));
+              return {
+                ...e,
+                resultados: updatedResults,
+                campeaoDeck: stageDecksMap[e.campeaoNome] || e.campeaoDeck,
+              };
+            }
+            return e;
+          })
+        );
+      } else {
+        setMetaSaveSuccess(false);
+        setMetaSaveMessage(`❌ Erro: ${data.error}`);
+      }
+    } catch (err: any) {
+      setMetaSaveSuccess(false);
+      setMetaSaveMessage(`❌ Erro de conexão: ${err.message}`);
+    } finally {
+      setIsSavingMeta(false);
+    }
+  };
+
   // Selecionar Evento para Edição
   const handleSelectCalToEdit = (ev: any) => {
     setEditingCalId(ev.id);
@@ -830,7 +913,19 @@ export function AdminDashboard({
             }`}
           >
             <Flame className="h-4 w-4" />
-            <span>Metagame</span>
+            <span>Decks</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("metagame")}
+            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "metagame"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400/40"
+                : "text-slate-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span>Metagame por Etapa</span>
           </button>
 
           <button
@@ -1616,6 +1711,218 @@ export function AdminDashboard({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* 4. ABA METAGAME POR ETAPA */}
+      {activeTab === "metagame" && (
+        <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 sm:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
+          {/* Topo / Header */}
+          <div className="flex items-center justify-between gap-4 flex-wrap pb-4 border-b border-white/10">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📊</span>
+                <h3 className="text-xl sm:text-2xl font-black text-white">
+                  Metagame e Decks por Etapa
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Consulte e edite os decks utilizados pelos jogadores em cada torneio
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveStageMetagame}
+              disabled={isSavingMeta || !selectedMetaStageDate}
+              className="flex items-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-xs font-black text-slate-950 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 cursor-pointer"
+            >
+              <Save className="h-4 w-4" />
+              <span>{isSavingMeta ? "Salvando..." : "Salvar Alterações na Etapa"}</span>
+            </button>
+          </div>
+
+          {metaSaveMessage && (
+            <div
+              className={`p-4 rounded-2xl border text-xs font-bold leading-relaxed ${
+                metaSaveSuccess
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                  : "border-rose-500/30 bg-rose-500/10 text-rose-400"
+              }`}
+            >
+              {metaSaveMessage}
+            </div>
+          )}
+
+          {/* Filtros: Seletor de Etapa + Busca de Jogador */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Selecione a Etapa para Visualizar/Editar
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedMetaStageDate}
+                  onChange={(e) => setSelectedMetaStageDate(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/80 py-2.5 pl-4 pr-10 text-xs font-bold text-white focus:outline-none focus:border-blue-400 cursor-pointer appearance-none shadow-inner"
+                >
+                  {adminEtapas.map((etapa) => {
+                    const [y, m, d] = etapa.data.split("-");
+                    const dateBR = `${d}/${m}/${y}`;
+                    const stageTitle = etapa.tipo === "Liga" ? `Etapa #${etapa.numeroEtapa || ""}` : etapa.tipo;
+                    return (
+                      <option key={etapa.data} value={etapa.data} className="bg-slate-900 text-white">
+                        {stageTitle} - Temporada {etapa.temporada || 5} ({dateBR}) ({etapa.multiplicador}x)
+                      </option>
+                    );
+                  })}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400">
+                  <ChevronRight className="h-4 w-4 rotate-90" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Filtrar Jogador
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Digite um nome..."
+                  value={metaPlayerSearch}
+                  onChange={(e) => setMetaPlayerSearch(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/80 py-2.5 pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Badges de Status / Contadores */}
+          {(() => {
+            const currentEtapa = adminEtapas.find((e) => e.data === selectedMetaStageDate);
+            const results = currentEtapa?.resultados || [];
+            const filledCount = results.filter((r: any) => {
+              const d = stageDecksMap[r.jogadorNome];
+              return d && d !== "Sem deck registrado" && d !== "Não registrado";
+            }).length;
+            const pct = results.length > 0 ? Math.round((filledCount / results.length) * 100) : 0;
+
+            return (
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 px-3.5 py-1.5 text-xs font-bold text-purple-300">
+                  <Users className="h-3.5 w-3.5 text-purple-400" />
+                  Total de Jogadores: <strong className="text-white">{results.length}</strong>
+                </span>
+
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold text-emerald-300">
+                  <span>🎴</span>
+                  Decks Preenchidos: <strong className="text-emerald-400">{filledCount}/{results.length} ({pct}%)</strong>
+                </span>
+              </div>
+            );
+          })()}
+
+          {/* Tabela de Jogadores e Decks */}
+          {(() => {
+            const currentEtapa = adminEtapas.find((e) => e.data === selectedMetaStageDate);
+            const results = (currentEtapa?.resultados || []).filter((r: any) =>
+              r.jogadorNome.toLowerCase().includes(metaPlayerSearch.toLowerCase())
+            );
+
+            if (!currentEtapa || results.length === 0) {
+              return (
+                <div className="py-12 text-center rounded-2xl border border-white/5 bg-slate-950/50">
+                  <p className="text-xs text-slate-400">
+                    {metaPlayerSearch
+                      ? `Nenhum jogador encontrado com "${metaPlayerSearch}".`
+                      : "Nenhum participante registrado para esta etapa."}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/80 shadow-inner">
+                <div className="overflow-y-auto max-h-[500px]">
+                  <table className="w-full text-left text-xs text-slate-200">
+                    <thead className="sticky top-0 bg-slate-950/95 border-b border-white/10 text-[10px] uppercase font-bold text-slate-400 z-10 backdrop-blur-md">
+                      <tr>
+                        <th className="py-3 pl-4 w-16">POS</th>
+                        <th className="px-4 py-3">JOGADOR</th>
+                        <th className="px-4 py-3">CATEGORIA</th>
+                        <th className="px-4 py-3">DECK UTILIZADO</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {results.map((res: any, rIdx: number) => {
+                        const currentDeckName = stageDecksMap[res.jogadorNome] || res.deckNome || "Sem deck registrado";
+                        const deckObj = decks.find((d) => d.nome.toLowerCase() === currentDeckName.toLowerCase());
+                        const energyConfig = deckObj ? getMultiEnergyConfig(deckObj.tipoEnergia) : null;
+
+                        return (
+                          <tr key={res.id || rIdx} className="hover:bg-slate-900/60 transition-colors">
+                            <td className="py-3 pl-4 font-black text-amber-400 text-sm">
+                              {res.colocacao}º
+                            </td>
+                            <td className="px-4 py-3 font-bold text-white text-sm">
+                              {res.jogadorNome}
+                            </td>
+                            <td className="px-4 py-3 text-xs font-bold text-slate-400 uppercase">
+                              {res.categoria || "MASTER"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="relative max-w-sm flex items-center gap-2">
+                                <div className="relative flex-1">
+                                  <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center">
+                                    {energyConfig ? (
+                                      <span
+                                        className="h-3 w-3 rounded-full shrink-0 shadow-sm"
+                                        style={{
+                                          background: energyConfig.types[0]?.bgGradient || energyConfig.types[0]?.hex,
+                                          boxShadow: `0 0 6px ${energyConfig.glowColor}`,
+                                        }}
+                                      />
+                                    ) : (
+                                      <span className="h-3 w-3 rounded-full bg-slate-600 shrink-0" />
+                                    )}
+                                  </div>
+                                  <select
+                                    value={currentDeckName}
+                                    onChange={(e) =>
+                                      setStageDecksMap((prev) => ({
+                                        ...prev,
+                                        [res.jogadorNome]: e.target.value,
+                                      }))
+                                    }
+                                    className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2 pl-8 pr-8 text-xs font-bold text-slate-100 focus:outline-none focus:border-amber-400 cursor-pointer appearance-none shadow-sm"
+                                  >
+                                    <option value="Sem deck registrado" className="bg-slate-900 text-slate-400 font-normal">
+                                      ⚪ Sem deck registrado
+                                    </option>
+                                    {decks.map((d) => (
+                                      <option key={d.id} value={d.nome} className="bg-slate-900 text-white font-bold">
+                                        {d.nome}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+                                    <ChevronRight className="h-3.5 w-3.5 rotate-90" />
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
