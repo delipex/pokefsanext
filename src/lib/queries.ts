@@ -115,10 +115,11 @@ function getFallbackRanking(): any[] {
 // Parse completo de todas as etapas e seus resultados a partir dos TDFs
 function getFallbackEtapas(): any[] {
   const rawEtapas = readDataFile<any[]>("etapas.json", []);
+  rawEtapas.sort((a, b) => a.data.localeCompare(b.data)); // Ordem cronológica rigorosa
   const metaMap = getMetagameMap();
   const etapasDir = path.join(process.cwd(), "src", "data", "etapas");
 
-  return rawEtapas.map((etapa, idx) => {
+  const mapped = rawEtapas.map((etapa, idx) => {
     const tdfName = `${etapa.data}.tdf`;
     const tdfPath = path.join(etapasDir, tdfName);
     let stageResults: any[] = [];
@@ -166,6 +167,7 @@ function getFallbackEtapas(): any[] {
 
     return {
       id: idx + 1,
+      numeroEtapa: idx + 1,
       data: etapa.data,
       tipo: etapa.tipo || "Liga",
       multiplicador: etapa.multiplicador || 1.0,
@@ -178,6 +180,8 @@ function getFallbackEtapas(): any[] {
       resultados: stageResults,
     };
   });
+
+  return mapped.sort((a, b) => b.data.localeCompare(a.data));
 }
 
 export async function getRanking(categoria?: string) {
@@ -264,20 +268,21 @@ export async function getAllEtapas() {
 
 export async function getEtapasWithSummary() {
   try {
-    const allEtapas = await db.select().from(etapas).orderBy(desc(etapas.data));
+    const allEtapas = await db.select().from(etapas).orderBy(asc(etapas.data));
     const results = await db
       .select()
       .from(etapaResultados)
       .orderBy(asc(etapaResultados.colocacao));
 
     if (allEtapas && allEtapas.length > 0 && results.length > 0) {
-      return allEtapas.map((etapa) => {
+      const mapped = allEtapas.map((etapa, idx) => {
         const etapaMatches = results.filter((r) => r.etapaData === etapa.data);
         const campeao = etapaMatches.find((r) => r.colocacao === 1);
         const top4 = etapaMatches.filter((r) => r.colocacao <= 4);
 
         return {
           ...etapa,
+          numeroEtapa: idx + 1,
           totalJogadores: etapaMatches.length,
           campeaoNome: campeao?.jogadorNome || null,
           campeaoId: campeao?.jogadorId || null,
@@ -286,6 +291,8 @@ export async function getEtapasWithSummary() {
           resultados: etapaMatches,
         };
       });
+
+      return mapped.sort((a, b) => b.data.localeCompare(a.data));
     }
   } catch (err) {
     // Silencioso

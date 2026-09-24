@@ -29,6 +29,7 @@ export interface DeckItemInfo {
 
 export interface EtapaSummaryItem {
   id: number;
+  numeroEtapa?: number;
   data: string;
   tipo: string;
   multiplicador: number;
@@ -77,7 +78,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
           const isPremier = etapa.multiplicador > 1.0;
           const [year, month, day] = etapa.data.split("-");
           const formattedDate = `${day}/${month}/${year}`;
-          const stageNumber = etapas.length - idx;
+          const stageNumber = etapa.numeroEtapa || (idx + 1);
 
           return (
             <motion.div
@@ -217,7 +218,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
                   </span>
                 </div>
                 <h3 className="text-xl font-black text-white">
-                  Classificação Oficial da Etapa
+                  Classificação Oficial • Etapa #{selectedEtapa.numeroEtapa || ""}
                 </h3>
                 <p className="text-xs text-slate-400">
                   Total de <strong className="tabular-nums">{selectedEtapa.resultados.length}</strong> jogadores participaram desta rodada oficial TOM

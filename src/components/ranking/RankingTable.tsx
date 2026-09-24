@@ -23,6 +23,7 @@ export interface StageResult {
 
 export interface StageSummary {
   id: number;
+  numeroEtapa?: number;
   data: string;
   tipo: string;
   multiplicador: number;
@@ -208,7 +209,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                 </option>
                 <optgroup label="── Etapas da Temporada 5 ──" className="bg-slate-900 text-slate-400">
                   {etapas.map((etapa, idx) => {
-                    const stageNum = etapas.length - idx;
+                    const stageNum = etapa.numeroEtapa || (idx + 1);
                     return (
                       <option key={etapa.data} value={etapa.data} className="bg-slate-900 text-white">
                         Etapa #{stageNum} (T5) • {etapa.data} ({etapa.tipo} • {etapa.multiplicador}x)
