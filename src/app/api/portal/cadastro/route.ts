@@ -12,13 +12,14 @@ import {
   checkRateLimit,
   matchPlayerIdentity,
 } from "@/lib/security";
+import { ensureDatabaseSchema } from "@/db/migrate-auto";
 
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") || "local";
     if (!checkRateLimit(ip, 12, 60000)) {
       return NextResponse.json(
-        { error: "Muitas tentativas em pouco tempo. Por segurança, aguarde 1 minuto." },
+        { error: "Não foi possível se cadastrar devido ao excesso de tentativas em pouco tempo. Por segurança, aguarde 1 minuto." },
         { status: 429 }
       );
     }
@@ -28,45 +29,63 @@ export async function POST(req: Request) {
 
     // 1. Defesa Anti-Bot (Honeypot)
     if (honeypot) {
-      return NextResponse.json({ error: "Cadastro rejeitado por segurança." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Não foi possível se cadastrar devido a restrições automáticas de segurança." },
+        { status: 400 }
+      );
     }
 
-    // 2. Validação Rigorosa de POP ID
+    // 2. Validação de POP ID
     const popCheck = validatePopId(popId || "");
     if (!popCheck.isValid) {
-      return NextResponse.json({ error: popCheck.error }, { status: 400 });
+      return NextResponse.json(
+        { error: `Não foi possível se cadastrar devido a: ${popCheck.error}` },
+        { status: 400 }
+      );
     }
     const cleanId = popCheck.cleanId!;
 
     // 3. Validação de Nome Completo
     const nameCheck = validatePlayerName(nome || "");
     if (!nameCheck.isValid) {
-      return NextResponse.json({ error: nameCheck.error }, { status: 400 });
+      return NextResponse.json(
+        { error: `Não foi possível se cadastrar devido a: ${nameCheck.error}` },
+        { status: 400 }
+      );
     }
     const cleanName = nameCheck.cleanName!;
 
     // 4. Validação de WhatsApp
     const phoneCheck = validateWhatsApp(whatsapp || "");
     if (!phoneCheck.isValid) {
-      return NextResponse.json({ error: phoneCheck.error }, { status: 400 });
+      return NextResponse.json(
+        { error: `Não foi possível se cadastrar devido a: ${phoneCheck.error}` },
+        { status: 400 }
+      );
     }
     const cleanPhone = phoneCheck.cleanPhone!;
 
     // 5. Validação de Data de Nascimento e Cálculo de Categoria Oficial
     const catCheck = calculatePokemonCategory(dataNascimento || "");
     if (!catCheck.isValid) {
-      return NextResponse.json({ error: catCheck.error }, { status: 400 });
+      return NextResponse.json(
+        { error: `Não foi possível se cadastrar devido a: ${catCheck.error}` },
+        { status: 400 }
+      );
     }
     const categoria = catCheck.categoria;
 
     // 6. Validação de PIN de Acesso
     if (!pin || String(pin).trim().length < 4 || String(pin).trim().length > 8) {
       return NextResponse.json(
-        { error: "O PIN de acesso deve ter entre 4 e 8 dígitos numéricos." },
+        { error: "Não foi possível se cadastrar devido a: o PIN de acesso deve conter entre 4 e 8 dígitos numéricos." },
         { status: 400 }
       );
     }
     const hashedPin = hashPin(String(pin).trim());
+
+    // Auto-heal / garante tabelas e colunas atualizadas no Turso
+    await ensureDatabaseSchema();
 
     // 7. Persistência Segura no Banco de Dados
     let existingAthlete: any = null;
@@ -76,11 +95,11 @@ export async function POST(req: Request) {
       if (existing.length > 0 && existing[0]) {
         existingAthlete = existing[0];
       }
-    } catch {
-      // Ignora erro de DB
+    } catch (dbErr) {
+      console.error("Erro ao consultar jogador no banco:", dbErr);
     }
 
-    // Se o banco ainda não tiver o registro, busca em jogadores.json (dados TOM)
+    // Se o banco ainda não tiver o registro, busca em jogadores.json (dados históricos TOM)
     if (!existingAthlete) {
       try {
         const fs = await import("fs");
@@ -103,27 +122,27 @@ export async function POST(req: Request) {
             };
           }
         }
-      } catch {
-        // Ignora erro de leitura
-      }
+      } catch {}
     }
 
     if (existingAthlete) {
-      // Se o atleta já tiver PIN ativo, impede sobrescrita sem redefinição autorizada
+      // Se o atleta já tiver PIN ativo, orienta login
       if (existingAthlete.pinHash) {
         return NextResponse.json(
-          { error: "Este perfil já foi ativado anteriormente. Faça login com seu PIN ou solicite redefinição à organização da Liga." },
+          {
+            error: "Não foi possível se cadastrar devido a: este POP ID já possui um PIN ativo. Acesse a aba 'Já sou Cadastrado' para entrar ou contate a organização da Liga para redefinir.",
+          },
           { status: 403 }
         );
       }
 
-      // Validação de Razoabilidade da Identidade do Atleta (Fuzzy Matching) se houver nome cadastrado
+      // Validação de Identidade do Atleta (Fuzzy Matching) se houver nome cadastrado
       if (existingAthlete.nome) {
         const identityCheck = matchPlayerIdentity(cleanName, existingAthlete.nome);
         if (!identityCheck.isMatch) {
           return NextResponse.json(
             {
-              error: `O nome informado (${cleanName}) não confere com o titular cadastrado para este POP ID (${existingAthlete.nome}). Verifique a digitação ou contate o organizador da Liga.`,
+              error: `Não foi possível se cadastrar devido a: o nome informado (${cleanName}) não confere com o titular cadastrado para este POP ID (${existingAthlete.nome}). Verifique a digitação ou contate o organizador.`,
             },
             { status: 403 }
           );
@@ -159,7 +178,7 @@ export async function POST(req: Request) {
             },
           });
       } catch (dbErr) {
-        console.warn("Aviso ao salvar jogador no DB:", dbErr);
+        console.error("Erro ao salvar jogador no DB:", dbErr);
       }
     } else {
       // Atleta novo
@@ -176,7 +195,7 @@ export async function POST(req: Request) {
           ativo: true,
         });
       } catch (dbErr) {
-        console.warn("Aviso ao inserir jogador no DB:", dbErr);
+        console.error("Erro ao inserir novo jogador no DB:", dbErr);
       }
     }
 
@@ -200,6 +219,10 @@ export async function POST(req: Request) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Erro interno no cadastro:", error);
+    return NextResponse.json(
+      { error: "Não foi possível se cadastrar devido a uma instabilidade no servidor. Por favor, tente novamente em instantes." },
+      { status: 500 }
+    );
   }
 }

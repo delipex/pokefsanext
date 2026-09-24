@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Exo_2 } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
@@ -11,6 +11,15 @@ const exo2 = Exo_2({
   weight: ["300", "400", "500", "600", "700", "800", "900"],
   variable: "--font-exo2",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#090d16",
+};
 
 export const metadata: Metadata = {
   title: "Liga Atlântica TCG | Ranking Oficial Pokémon Feira de Santana",

@@ -35,6 +35,8 @@ import {
   BarChart3,
   Search,
   ChevronRight,
+  KeyRound,
+  Smartphone,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
@@ -117,6 +119,10 @@ export function AdminDashboard({
   const [newPlayerId, setNewPlayerId] = useState("");
   const [newPlayerName, setNewPlayerName] = useState("");
   const [newPlayerCategory, setNewPlayerCategory] = useState("Master");
+  const [newPlayerWhatsapp, setNewPlayerWhatsapp] = useState("");
+  const [newPlayerDataNasc, setNewPlayerDataNasc] = useState("");
+  const [newPlayerCidade, setNewPlayerCidade] = useState("Feira de Santana - BA");
+  const [newPlayerHasPin, setNewPlayerHasPin] = useState(false);
   const [playerSearch, setPlayerSearch] = useState("");
   const [playerMessage, setPlayerMessage] = useState("");
 
@@ -376,6 +382,10 @@ export function AdminDashboard({
     setNewPlayerId(pId);
     setNewPlayerName(pName);
     setNewPlayerCategory(pCat);
+    setNewPlayerWhatsapp(p.whatsapp || "");
+    setNewPlayerDataNasc(p.dataNascimento || "");
+    setNewPlayerCidade(p.cidade || "Feira de Santana - BA");
+    setNewPlayerHasPin(Boolean(p.pinHash));
     setPlayerMessage("");
   };
 
@@ -384,6 +394,10 @@ export function AdminDashboard({
     setNewPlayerId("");
     setNewPlayerName("");
     setNewPlayerCategory("Master");
+    setNewPlayerWhatsapp("");
+    setNewPlayerDataNasc("");
+    setNewPlayerCidade("Feira de Santana - BA");
+    setNewPlayerHasPin(false);
     setPlayerMessage("");
   };
 
@@ -405,23 +419,67 @@ export function AdminDashboard({
           id: newPlayerId,
           nome: newPlayerName,
           categoria: newPlayerCategory,
+          whatsapp: newPlayerWhatsapp,
+          dataNascimento: newPlayerDataNasc,
+          cidade: newPlayerCidade,
         }),
       });
 
       if (res.ok) {
+        const updatedObj = {
+          id: newPlayerId,
+          nome: newPlayerName,
+          categoria: newPlayerCategory,
+          whatsapp: newPlayerWhatsapp,
+          dataNascimento: newPlayerDataNasc,
+          cidade: newPlayerCidade,
+          pinHash: newPlayerHasPin ? "active" : null,
+        };
         setPlayers((prev) => [
-          ...prev.filter((p) => p.id !== newPlayerId),
-          { id: newPlayerId, nome: newPlayerName, categoria: newPlayerCategory },
+          ...prev.filter((p) => String(p.id || p.ID) !== newPlayerId),
+          updatedObj,
         ]);
         setPlayerMessage(isEditing ? "✅ Jogador atualizado com sucesso!" : "✅ Jogador cadastrado com sucesso!");
         if (isEditing) {
-          setEditingPlayerId(null);
+          handleCancelEditPlayer();
+        } else {
+          setNewPlayerId("");
+          setNewPlayerName("");
+          setNewPlayerWhatsapp("");
+          setNewPlayerDataNasc("");
         }
-        setNewPlayerId("");
-        setNewPlayerName("");
       } else {
         const data = await res.json();
         setPlayerMessage(`❌ Erro: ${data.error}`);
+      }
+    } catch (err: any) {
+      setPlayerMessage(`❌ Erro: ${err.message}`);
+    }
+  };
+
+  // Redefinir PIN do Jogador
+  const handleResetPlayerPin = async (id: string, nome: string) => {
+    if (!confirm(`Deseja realmente redefinir o PIN de acesso de "${nome}" (ID: ${id})? O atleta precisará cadastrar um novo PIN no primeiro acesso do Portal.`)) return;
+    try {
+      const res = await fetch("/api/admin/players", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          nome: newPlayerName || nome,
+          categoria: newPlayerCategory,
+          resetPin: true,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNewPlayerHasPin(false);
+        setPlayers((prev) =>
+          prev.map((p) => (String(p.id || p.ID) === id ? { ...p, pinHash: null } : p))
+        );
+        setPlayerMessage("🔑 PIN redefinido com sucesso! O jogador já pode criar um novo PIN no Portal.");
+      } else {
+        setPlayerMessage(`❌ Erro ao redefinir PIN: ${data.error}`);
       }
     } catch (err: any) {
       setPlayerMessage(`❌ Erro: ${err.message}`);
@@ -434,7 +492,7 @@ export function AdminDashboard({
     try {
       const res = await fetch(`/api/admin/players?id=${id}`, { method: "DELETE" });
       if (res.ok) {
-        setPlayers((prev) => prev.filter((p) => p.id !== id));
+        setPlayers((prev) => prev.filter((p) => String(p.id || p.ID) !== id));
         if (editingPlayerId === id) {
           handleCancelEditPlayer();
         }
@@ -1269,180 +1327,343 @@ export function AdminDashboard({
 
       {/* 2. ABA JOGADORES */}
       {activeTab === "jogadores" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className={`rounded-3xl border ${editingPlayerId ? "border-amber-500/40 bg-amber-500/5" : "border-white/10 bg-slate-900/60"} p-6 backdrop-blur-xl shadow-xl space-y-4`}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-black text-white flex items-center gap-2">
-                {editingPlayerId ? (
-                  <>
-                    <Pencil className="h-4 w-4 text-amber-400" /> Editar Jogador
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-4 w-4 text-emerald-400" /> Cadastrar Jogador
-                  </>
-                )}
-              </h3>
-              {editingPlayerId && (
-                <button
-                  type="button"
-                  onClick={handleCancelEditPlayer}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded-lg cursor-pointer"
-                >
-                  <X className="h-3 w-3" /> Cancelar
-                </button>
-              )}
-            </div>
+        <div className="space-y-6">
+          {/* Métricas e Estatísticas da Base de Atletas */}
+          {(() => {
+            const total = players.length;
+            const withPin = players.filter((p) => Boolean(p.pinHash)).length;
+            const masters = players.filter((p) => (p.categoria || p.Categoria || "Master").toLowerCase() === "master").length;
+            const seniors = players.filter((p) => (p.categoria || p.Categoria || "").toLowerCase() === "senior").length;
+            const juniors = players.filter((p) => (p.categoria || p.Categoria || "").toLowerCase() === "junior").length;
 
-            <form onSubmit={handleSavePlayer} className="space-y-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
-                  POP ID / TOM ID:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: 5685779"
-                  value={newPlayerId}
-                  onChange={(e) => setNewPlayerId(e.target.value)}
-                  disabled={Boolean(editingPlayerId)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs tabular-nums font-semibold text-white focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed font-sans"
-                  required
-                />
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-3.5 backdrop-blur-xl">
+                  <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total de Atletas</span>
+                  <span className="text-xl sm:text-2xl font-black text-white mt-0.5 block">{total}</span>
+                </div>
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 backdrop-blur-xl">
+                  <span className="block text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                    <KeyRound className="h-3 w-3" /> Portal Ativado
+                  </span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-0.5 block">
+                    {withPin} <span className="text-xs font-normal text-slate-400">({total > 0 ? Math.round((withPin / total) * 100) : 0}%)</span>
+                  </span>
+                </div>
+                <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-3.5 backdrop-blur-xl">
+                  <span className="block text-[11px] font-bold text-blue-400 uppercase tracking-wider">Divisão Master</span>
+                  <span className="text-xl sm:text-2xl font-black text-white mt-0.5 block">{masters}</span>
+                </div>
+                <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-3.5 backdrop-blur-xl">
+                  <span className="block text-[11px] font-bold text-purple-400 uppercase tracking-wider">Senior & Junior</span>
+                  <span className="text-xl sm:text-2xl font-black text-white mt-0.5 block">
+                    {seniors} S <span className="text-xs text-slate-500">•</span> {juniors} J
+                  </span>
+                </div>
               </div>
+            );
+          })()}
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
-                  Nome Completo:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: Pedro Henrique"
-                  value={newPlayerName}
-                  onChange={(e) => setNewPlayerName(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500 font-sans"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
-                  Categoria:
-                </label>
-                <select
-                  value={newPlayerCategory}
-                  onChange={(e) => setNewPlayerCategory(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="Master">Master</option>
-                  <option value="Senior">Senior</option>
-                  <option value="Junior">Junior</option>
-                </select>
-              </div>
-
-              {playerMessage && <p className="text-xs font-bold text-emerald-400">{playerMessage}</p>}
-
-              <button
-                type="submit"
-                className={`w-full rounded-xl py-2.5 text-xs font-black text-white transition-colors shadow-md cursor-pointer ${
-                  editingPlayerId
-                    ? "bg-amber-600 hover:bg-amber-500 shadow-amber-600/30"
-                    : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/30"
-                }`}
-              >
-                {editingPlayerId ? "Salvar Alterações" : "Cadastrar Jogador"}
-              </button>
-            </form>
-          </div>
-
-          <div className="lg:col-span-2 rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Formulário de Cadastro / Edição */}
+            <div className={`rounded-3xl border ${editingPlayerId ? "border-amber-500/40 bg-amber-500/5" : "border-white/10 bg-slate-900/60"} p-6 backdrop-blur-xl shadow-xl space-y-4`}>
+              <div className="flex items-center justify-between">
                 <h3 className="text-base font-black text-white flex items-center gap-2">
-                  <Users className="h-4 w-4 text-emerald-400" />
-                  Jogadores Cadastrados ({players.length})
+                  {editingPlayerId ? (
+                    <>
+                      <Pencil className="h-4 w-4 text-amber-400" /> Editar Atleta
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 text-emerald-400" /> Cadastrar Novo Atleta
+                    </>
+                  )}
                 </h3>
-                <p className="text-[11px] text-slate-400">Clique em qualquer jogador ou no botão para editar</p>
+                {editingPlayerId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEditPlayer}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded-lg cursor-pointer"
+                  >
+                    <X className="h-3 w-3" /> Cancelar
+                  </button>
+                )}
               </div>
-              <input
-                type="text"
-                placeholder="Buscar jogador..."
-                value={playerSearch}
-                onChange={(e) => setPlayerSearch(e.target.value)}
-                className="rounded-xl border border-white/10 bg-slate-800 py-1.5 px-3 text-xs text-white focus:outline-none"
-              />
+
+              <form onSubmit={handleSavePlayer} className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                    POP ID / TOM ID:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: 5685779"
+                    value={newPlayerId}
+                    onChange={(e) => setNewPlayerId(e.target.value)}
+                    disabled={Boolean(editingPlayerId)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs tabular-nums font-semibold text-white focus:outline-none focus:border-blue-500 disabled:opacity-60 disabled:cursor-not-allowed font-sans"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                    Nome Completo:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Pedro Henrique"
+                    value={newPlayerName}
+                    onChange={(e) => setNewPlayerName(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500 font-sans"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                      Categoria:
+                    </label>
+                    <select
+                      value={newPlayerCategory}
+                      onChange={(e) => setNewPlayerCategory(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="Master">Master</option>
+                      <option value="Senior">Senior</option>
+                      <option value="Junior">Junior</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                      WhatsApp:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="75999998888"
+                      value={newPlayerWhatsapp}
+                      onChange={(e) => setNewPlayerWhatsapp(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                      Nascimento:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="DD/MM/AAAA ou YYYY-MM-DD"
+                      value={newPlayerDataNasc}
+                      onChange={(e) => setNewPlayerDataNasc(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                      Cidade:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Feira de Santana - BA"
+                      value={newPlayerCidade}
+                      onChange={(e) => setNewPlayerCidade(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Status de PIN e Ação de Redefinir */}
+                {editingPlayerId && (
+                  <div className="p-3 rounded-xl border border-white/10 bg-slate-950/60 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">PIN do Portal do Treinador:</span>
+                      {newPlayerHasPin ? (
+                        <span className="text-emerald-400 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Ativo
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 font-semibold">Não definido</span>
+                      )}
+                    </div>
+
+                    {newPlayerHasPin && (
+                      <button
+                        type="button"
+                        onClick={() => handleResetPlayerPin(newPlayerId, newPlayerName)}
+                        className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 py-2 px-3 text-xs font-bold text-amber-300 transition-all cursor-pointer"
+                        title="Permite que o jogador defina um novo PIN"
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                        <span>Redefinir / Limpar PIN</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {playerMessage && (
+                  <p className={`text-xs font-bold py-1 ${playerMessage.startsWith("❌") ? "text-rose-400" : "text-emerald-400"}`}>
+                    {playerMessage}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className={`w-full rounded-xl py-2.5 text-xs font-black text-white transition-colors shadow-md cursor-pointer ${
+                    editingPlayerId
+                      ? "bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20"
+                      : "bg-blue-600 hover:bg-blue-500 shadow-blue-600/30"
+                  }`}
+                >
+                  {editingPlayerId ? "Salvar Alterações no Atleta" : "Cadastrar Atleta no Banco"}
+                </button>
+              </form>
             </div>
 
-            <div className="overflow-y-auto max-h-96 rounded-xl border border-white/10 bg-slate-950/80">
-              <table className="w-full text-left text-xs text-slate-200">
-                <thead className="sticky top-0 bg-slate-950 border-b border-white/10 text-[10px] uppercase font-bold text-slate-400">
-                  <tr>
-                    <th className="py-2.5 pl-3">Nome</th>
-                    <th className="px-3 py-2.5">POP ID</th>
-                    <th className="px-3 py-2.5 text-center">Categoria</th>
-                    <th className="py-2.5 pr-3 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {players
-                    .filter((p) => {
-                      const pName = String(p.nome || p.jogador || p.Jogador || "").toLowerCase();
-                      const pId = String(p.id || p.ID || "").toLowerCase();
-                      const q = (playerSearch || "").toLowerCase().trim();
-                      return pName.includes(q) || pId.includes(q);
-                    })
-                    .map((p, idx) => {
-                      const pId = String(p.id || p.ID || `anon-${idx + 1}`);
-                      const pName = String(p.nome || p.jogador || p.Jogador || "Desconhecido");
-                      const pCat = p.categoria || p.Categoria || "Master";
-                      const isBeingEdited = editingPlayerId === pId;
+            {/* Tabela de Jogadores Cadastrados */}
+            <div className="lg:col-span-2 rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl space-y-4">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <Users className="h-4 w-4 text-emerald-400" />
+                    Atletas no Banco de Dados ({players.length})
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Clique na linha ou nos botões de ação para gerenciar</p>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Buscar nome ou POP ID..."
+                    value={playerSearch}
+                    onChange={(e) => setPlayerSearch(e.target.value)}
+                    className="rounded-xl border border-white/10 bg-slate-800 py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
 
-                      return (
-                        <tr
-                          key={pId}
-                          onClick={() => handleSelectPlayerToEdit(p)}
-                          className={`hover:bg-slate-800/50 cursor-pointer transition-colors ${
-                            isBeingEdited ? "bg-amber-500/10 border-l-2 border-amber-400" : ""
-                          }`}
-                        >
-                          <td className="py-2 pl-3 font-bold text-white flex items-center gap-2">
-                            <span>{pName}</span>
-                            {isBeingEdited && (
-                              <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono">
-                                Editando
+              <div className="overflow-y-auto max-h-[460px] rounded-xl border border-white/10 bg-slate-950/80 custom-scrollbar">
+                <table className="w-full text-left text-xs text-slate-200">
+                  <thead className="sticky top-0 bg-slate-950/95 border-b border-white/10 text-[10px] uppercase font-bold text-slate-400 z-10 backdrop-blur-md">
+                    <tr>
+                      <th className="py-2.5 pl-3">Atleta</th>
+                      <th className="px-3 py-2.5">POP ID</th>
+                      <th className="px-3 py-2.5 text-center">Divisão</th>
+                      <th className="px-3 py-2.5 text-center">Portal</th>
+                      <th className="py-2.5 pr-3 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {players
+                      .filter((p) => {
+                        const pName = String(p.nome || p.jogador || p.Jogador || "").toLowerCase();
+                        const pId = String(p.id || p.ID || "").toLowerCase();
+                        const q = (playerSearch || "").toLowerCase().trim();
+                        return pName.includes(q) || pId.includes(q);
+                      })
+                      .map((p, idx) => {
+                        const pId = String(p.id || p.ID || `anon-${idx + 1}`);
+                        const pName = String(p.nome || p.jogador || p.Jogador || "Desconhecido");
+                        const pCat = p.categoria || p.Categoria || "Master";
+                        const hasPin = Boolean(p.pinHash);
+                        const isBeingEdited = editingPlayerId === pId;
+
+                        return (
+                          <tr
+                            key={pId}
+                            onClick={() => handleSelectPlayerToEdit(p)}
+                            className={`hover:bg-slate-800/50 cursor-pointer transition-colors ${
+                              isBeingEdited ? "bg-amber-500/10 border-l-2 border-amber-400" : ""
+                            }`}
+                          >
+                            <td className="py-2.5 pl-3 font-bold text-white">
+                              <div className="flex items-center gap-2">
+                                <span>{pName}</span>
+                                {isBeingEdited && (
+                                  <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono">
+                                    Editando
+                                  </span>
+                                )}
+                              </div>
+                              {p.whatsapp && (
+                                <a
+                                  href={`https://wa.me/55${p.whatsapp.replace(/\D/g, "")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-mono mt-0.5 hover:underline"
+                                >
+                                  <Smartphone className="h-3 w-3" />
+                                  <span>{p.whatsapp}</span>
+                                </a>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 tabular-nums font-mono text-slate-300">{pId}</td>
+                            <td className="px-3 py-2.5 text-center">
+                              <span
+                                className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+                                  pCat.toLowerCase() === "senior"
+                                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                                    : pCat.toLowerCase() === "junior"
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                    : "bg-slate-800 text-slate-300 border border-white/5"
+                                }`}
+                              >
+                                {pCat}
                               </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 tabular-nums font-semibold text-slate-400">{pId}</td>
-                          <td className="px-3 py-2 text-center">
-                            <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
-                              {pCat}
-                            </span>
-                          </td>
-                          <td className="py-2 pr-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                type="button"
-                                onClick={() => handleSelectPlayerToEdit(p)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors cursor-pointer"
-                                title="Editar Jogador"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeletePlayer(pId, pName)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                                title="Excluir Jogador"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              {hasPin ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                                  <Check className="h-2.5 w-2.5" /> Ativo
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                                  Pendente
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 pr-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectPlayerToEdit(p)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                                  title="Editar Atleta"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                                {hasPin && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetPlayerPin(pId, pName)}
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                                    title="Redefinir PIN de Acesso"
+                                  >
+                                    <KeyRound className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePlayer(pId, pName)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                  title="Excluir Jogador"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

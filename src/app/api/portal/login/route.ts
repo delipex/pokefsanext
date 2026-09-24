@@ -4,13 +4,14 @@ import { db } from "@/db";
 import { jogadores } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { validatePopId, verifyPin, checkRateLimit } from "@/lib/security";
+import { ensureDatabaseSchema } from "@/db/migrate-auto";
 
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") || "local";
-    if (!checkRateLimit(ip, 10, 60000)) {
+    if (!checkRateLimit(ip, 12, 60000)) {
       return NextResponse.json(
-        { error: "Muitas tentativas de login. Aguarde 1 minuto." },
+        { error: "Não foi possível entrar devido a muitas tentativas em pouco tempo. Por segurança, aguarde 1 minuto." },
         { status: 429 }
       );
     }
@@ -20,19 +21,53 @@ export async function POST(req: Request) {
 
     const popCheck = validatePopId(popId || "");
     if (!popCheck.isValid) {
-      return NextResponse.json({ error: popCheck.error }, { status: 400 });
+      return NextResponse.json(
+        { error: `Não foi possível entrar devido a: ${popCheck.error}` },
+        { status: 400 }
+      );
     }
     const cleanId = popCheck.cleanId!;
 
     if (!pin) {
-      return NextResponse.json({ error: "Informe seu PIN de acesso." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Não foi possível entrar devido a: informe seu PIN de acesso de 4 a 8 dígitos." },
+        { status: 400 }
+      );
     }
 
-    const player = await db.select().from(jogadores).where(eq(jogadores.id, cleanId)).limit(1);
+    // Auto-heal / garante tabelas e colunas atualizadas no Turso
+    await ensureDatabaseSchema();
 
+    let player: any[] = [];
+    try {
+      player = await db.select().from(jogadores).where(eq(jogadores.id, cleanId)).limit(1);
+    } catch (dbErr: any) {
+      console.error("Erro ao buscar jogador no login:", dbErr);
+    }
+
+    // Fallback de busca em jogadores.json caso o banco remoto ainda não tenha importado
     if (player.length === 0) {
+      try {
+        const fs = await import("fs");
+        const path = await import("path");
+        const filePath = path.join(process.cwd(), "src", "data", "jogadores.json");
+        if (fs.existsSync(filePath)) {
+          const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+          const found = raw.find((j: any) => String(j.id || j.ID || "").trim() === cleanId);
+          if (found) {
+            return NextResponse.json(
+              {
+                error: `Olá, ${found.nome || found.jogador}! Seu POP ID já consta no histórico da Liga, mas ainda não foi ativado com seu PIN pessoal. Clique na aba 'Primeiro Acesso / Novo' para definir seu PIN.`,
+                needActivation: true,
+              },
+              { status: 403 }
+            );
+          }
+        }
+      } catch {}
+
       return NextResponse.json(
-        { error: "POP ID não encontrado. Cadastre-se na aba de primeiro acesso." },
+        { error: "Não foi possível entrar devido a: POP ID não encontrado. Se é a sua primeira vez na Liga, cadastre-se na aba 'Primeiro Acesso / Novo'." },
         { status: 404 }
       );
     }
@@ -43,7 +78,7 @@ export async function POST(req: Request) {
     if (!athlete.pinHash) {
       return NextResponse.json(
         {
-          error: "Você já está na base da Liga, mas ainda não ativou seu PIN pessoal. Clique em 'Primeiro Acesso / Ativar Perfil' para definir seu PIN.",
+          error: `Olá, ${athlete.nome}! Você já está cadastrado na Liga, mas ainda não ativou seu PIN pessoal. Clique na aba 'Primeiro Acesso / Novo' para definir sua senha.`,
           needActivation: true,
         },
         { status: 403 }
@@ -52,10 +87,13 @@ export async function POST(req: Request) {
 
     const isMatch = verifyPin(String(pin).trim(), athlete.pinHash);
     if (!isMatch) {
-      return NextResponse.json({ error: "PIN incorreto. Tente novamente." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Não foi possível entrar devido a: PIN de acesso incorreto. Verifique os números e tente novamente." },
+        { status: 401 }
+      );
     }
 
-    // Define cookie de sessão
+    // Define cookie de sessão segura
     const cookieStore = await cookies();
     cookieStore.set("player_session", cleanId, {
       httpOnly: true,
@@ -75,6 +113,10 @@ export async function POST(req: Request) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Erro interno no login:", error);
+    return NextResponse.json(
+      { error: "Não foi possível entrar devido a uma instabilidade no servidor. Por favor, tente novamente em alguns instantes." },
+      { status: 500 }
+    );
   }
 }

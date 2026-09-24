@@ -50,6 +50,14 @@
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
     transition: background-color 0.25s ease, color 0.25s ease;
+    touch-action: manipulation;
+  }
+
+  /* Prevenção de auto-zoom e quebra de layout no mobile */
+  @media screen and (max-width: 767px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
   }
 
   /* Fundo Atmosférico Dark Mode */
