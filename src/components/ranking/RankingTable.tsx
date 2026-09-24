@@ -85,6 +85,15 @@ function renderDeckBadge(deckNome?: string | null, allDecks: DeckItemInfo[] = []
   );
 }
 
+function formatDateBR(dateStr: string) {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+}
+
 export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: RankingTableProps) {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("TODOS");
@@ -205,14 +214,14 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                 className="w-full sm:w-auto rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3.5 py-2 text-xs font-bold text-blue-300 focus:outline-none focus:border-blue-400 cursor-pointer backdrop-blur-md"
               >
                 <option value="general" className="bg-slate-900 text-white">
-                  🏆 Ranking Geral Consolidado (Temporada 5)
+                  🏆 Ranking Geral
                 </option>
-                <optgroup label="── Etapas da Temporada 5 ──" className="bg-slate-900 text-slate-400">
+                <optgroup label="── Etapas Individuais ──" className="bg-slate-900 text-slate-400">
                   {etapas.map((etapa, idx) => {
                     const stageNum = etapa.numeroEtapa || (idx + 1);
                     return (
                       <option key={etapa.data} value={etapa.data} className="bg-slate-900 text-white">
-                        Etapa #{stageNum} (T5) • {etapa.data} ({etapa.tipo} • {etapa.multiplicador}x)
+                        Etapa #{stageNum} • {formatDateBR(etapa.data)} ({etapa.tipo} • {etapa.multiplicador}x)
                       </option>
                     );
                   })}
