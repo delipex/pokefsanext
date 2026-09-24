@@ -364,7 +364,7 @@ export function MetagamePerformanceRadar({
           <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-amber-500/[0.03] p-4 sm:p-5 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
             <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap mb-3">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300 whitespace-nowrap shrink-0">
-                <Crown className="h-3 w-3 text-amber-400 shrink-0" /> Mais Vitorioso
+                <Crown className="h-3 w-3 text-amber-400 shrink-0" /> MAIS PÓDIOS
               </span>
               <EnergyBadge energyRaw={highlights.mostTitles.tipoEnergia} />
             </div>
