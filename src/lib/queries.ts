@@ -653,8 +653,8 @@ export async function getAllJogadores() {
   }
 
   const raw = readDataFile<any[]>("jogadores.json", []);
-  return raw.map((j, i) => ({
-    id: String(j.id || j.ID || `anon-${i + 1}`).trim(),
+  return raw.map((j) => ({
+    id: String(j.id || j.ID || "").trim(),
     nome: String(j.nome || j.jogador || j.Jogador || "Desconhecido").trim(),
     categoria: j.categoria || j.Categoria || "Master",
     ativo: true,

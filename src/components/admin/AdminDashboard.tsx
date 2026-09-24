@@ -1567,15 +1567,15 @@ export function AdminDashboard({
                         return pName.includes(q) || pId.includes(q);
                       })
                       .map((p, idx) => {
-                        const pId = String(p.id || p.ID || `anon-${idx + 1}`);
+                        const pId = String(p.id || p.ID || "").trim();
                         const pName = String(p.nome || p.jogador || p.Jogador || "Desconhecido");
                         const pCat = p.categoria || p.Categoria || "Master";
                         const hasPin = Boolean(p.pinHash);
-                        const isBeingEdited = editingPlayerId === pId;
+                        const isBeingEdited = editingPlayerId === pId && pId !== "";
 
                         return (
                           <tr
-                            key={pId}
+                            key={pId || `player-${idx}`}
                             onClick={() => handleSelectPlayerToEdit(p)}
                             className={`hover:bg-slate-800/50 cursor-pointer transition-colors ${
                               isBeingEdited ? "bg-amber-500/10 border-l-2 border-amber-400" : ""
@@ -1603,7 +1603,9 @@ export function AdminDashboard({
                                 </a>
                               )}
                             </td>
-                            <td className="px-3 py-2.5 tabular-nums font-mono text-slate-300">{pId}</td>
+                            <td className="px-3 py-2.5 tabular-nums font-mono text-slate-300">
+                              {pId || <span className="text-slate-500 italic">Sem ID</span>}
+                            </td>
                             <td className="px-3 py-2.5 text-center">
                               <span
                                 className={`rounded px-2 py-0.5 text-[10px] font-bold ${
