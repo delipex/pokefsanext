@@ -66,7 +66,8 @@ export function validatePlayerName(rawName: string): { isValid: boolean; error?:
 }
 
 // Helper para normalizar nomes removendo acentos e pontuações
-export function normalizeName(str: string): string {
+export function normalizeName(str?: string | null): string {
+  if (!str || typeof str !== "string") return "";
   return str
     .toLowerCase()
     .normalize("NFD")
@@ -78,11 +79,16 @@ export function normalizeName(str: string): string {
 
 // 3.1. Algoritmo de Razoabilidade e Correspondência Inteligente de Nomes (Fuzzy Identity Match)
 export function matchPlayerIdentity(
-  inputName: string,
-  storedName: string
+  inputName?: string | null,
+  storedName?: string | null
 ): { isMatch: boolean; confidence: number; reason?: string } {
   const normInput = normalizeName(inputName);
   const normStored = normalizeName(storedName);
+
+  // Se não houver nome pré-registrado na base, aceita o nome digitado
+  if (!normStored) {
+    return { isMatch: true, confidence: 1.0, reason: "Primeiro registro" };
+  }
 
   // 1. Casamento Exato
   if (normInput === normStored) {
@@ -185,7 +191,7 @@ export function validateWhatsApp(rawPhone: string): { isValid: boolean; error?: 
 }
 
 // 5. Calculador Automático e Inviolável de Categoria Play! Pokémon por Data de Nascimento
-export function calculatePokemonCategory(birthDateStr: string): {
+export function calculatePokemonCategory(birthDateStr?: string | null): {
   isValid: boolean;
   categoria: "Master" | "Senior" | "Junior";
   age?: number;
@@ -195,7 +201,21 @@ export function calculatePokemonCategory(birthDateStr: string): {
     return { isValid: false, categoria: "Master", error: "Data de nascimento é obrigatória." };
   }
 
-  const birth = new Date(birthDateStr);
+  let birth: Date;
+  if (birthDateStr.includes("/")) {
+    const parts = birthDateStr.split("/");
+    if (parts.length === 3) {
+      const d = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const y = parseInt(parts[2], 10);
+      birth = new Date(y, m, d);
+    } else {
+      birth = new Date(birthDateStr);
+    }
+  } else {
+    birth = new Date(birthDateStr);
+  }
+
   if (isNaN(birth.getTime())) {
     return { isValid: false, categoria: "Master", error: "Data de nascimento inválida." };
   }

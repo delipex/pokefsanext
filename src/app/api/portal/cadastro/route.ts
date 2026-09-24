@@ -73,7 +73,9 @@ export async function POST(req: Request) {
 
     try {
       const existing = await db.select().from(jogadores).where(eq(jogadores.id, cleanId)).limit(1);
-      if (existing.length > 0) existingAthlete = existing[0];
+      if (existing.length > 0 && existing[0]) {
+        existingAthlete = existing[0];
+      }
     } catch {
       // Ignora erro de DB
     }
@@ -86,9 +88,19 @@ export async function POST(req: Request) {
         const filePath = path.join(process.cwd(), "src", "data", "jogadores.json");
         if (fs.existsSync(filePath)) {
           const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-          const found = raw.find((j: any) => String(j.id).trim() === cleanId || String(j.nome).toLowerCase() === cleanName.toLowerCase());
+          const found = raw.find((j: any) => {
+            const jId = String(j.id || j.ID || "").trim();
+            const jName = (j.jogador || j.Jogador || j.nome || "").toString().toLowerCase().trim();
+            return (jId && jId === cleanId) || (jName && jName === cleanName.toLowerCase().trim());
+          });
           if (found) {
-            existingAthlete = { id: cleanId, nome: found.nome, categoria: found.categoria || "Master", pinHash: null };
+            const foundNome = found.jogador || found.Jogador || found.nome || cleanName;
+            existingAthlete = {
+              id: String(found.id || found.ID || cleanId).trim(),
+              nome: foundNome,
+              categoria: found.categoria || found.Categoria || categoria || "Master",
+              pinHash: null,
+            };
           }
         }
       } catch {
@@ -105,15 +117,17 @@ export async function POST(req: Request) {
         );
       }
 
-      // Validação de Razoabilidade da Identidade do Atleta (Fuzzy Matching)
-      const identityCheck = matchPlayerIdentity(cleanName, existingAthlete.nome);
-      if (!identityCheck.isMatch) {
-        return NextResponse.json(
-          {
-            error: `O nome informado não confere com o titular cadastrado para este POP ID (${existingAthlete.nome}). Verifique a digitação ou contate o organizador da Liga.`,
-          },
-          { status: 403 }
-        );
+      // Validação de Razoabilidade da Identidade do Atleta (Fuzzy Matching) se houver nome cadastrado
+      if (existingAthlete.nome) {
+        const identityCheck = matchPlayerIdentity(cleanName, existingAthlete.nome);
+        if (!identityCheck.isMatch) {
+          return NextResponse.json(
+            {
+              error: `O nome informado (${cleanName}) não confere com o titular cadastrado para este POP ID (${existingAthlete.nome}). Verifique a digitação ou contate o organizador da Liga.`,
+            },
+            { status: 403 }
+          );
+        }
       }
 
       // Jogador validado: ativação de perfil
