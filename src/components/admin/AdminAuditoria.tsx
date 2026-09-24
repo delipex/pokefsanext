@@ -101,9 +101,28 @@ export function AdminAuditoria() {
         )}
 
         {error && (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 shrink-0" />
-            <span>Erro ao auditar: {error}</span>
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-rose-400" />
+              <span>Erro no diagnóstico: {error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  await fetch("/api/admin/sync-db", { method: "POST" });
+                  await runAudit();
+                } catch {
+                  setError("Falha ao sincronizar com o banco.");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-xs font-bold text-white transition-all cursor-pointer whitespace-nowrap"
+            >
+              🔄 Reparar e Sincronizar Banco
+            </button>
           </div>
         )}
 

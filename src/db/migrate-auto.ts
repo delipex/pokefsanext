@@ -2,6 +2,49 @@ import { client } from "./index";
 
 let hasMigrated = false;
 
+const DEFAULT_REGRAS = JSON.stringify([
+  {
+    icon: "ShieldCheck",
+    color: "blue",
+    title: "1. Formato do Torneio",
+    content: [
+      "As partidas das Sessões de Liga seguem o Formato Standard oficial estabelecido pela The Pokémon Company International.",
+      "Legalidade: São permitidas apenas cartas com as marcas de regulamento vigentes (ex: bloco H e posteriores).",
+      "Listas de Deck: Os jogadores são responsáveis por manter seus decks dentro das diretrizes de legalidade vigentes em cada etapa.",
+    ],
+  },
+  {
+    icon: "Trophy",
+    color: "yellow",
+    title: "2. Sistema de Pontuação e Ranking",
+    content: [
+      "Vitória: 3 pontos | Empate: 1 ponto | Derrota: 0 pontos.",
+      "Multiplicadores de Eventos Especiais: League Challenge e League Cup possuem multiplicador de 1.5x a 2.0x sobre a pontuação.",
+      "Critérios de Desempate no Ranking: 1º Pontos Acumulados ➔ 2º Número de Pódios (Top 4) ➔ 3º Média de Colocação (menor é melhor) ➔ 4º Ordem Alfabética.",
+    ],
+  },
+  {
+    icon: "Award",
+    color: "purple",
+    title: "3. Premiação e Playoffs Trimestrais",
+    content: [
+      "Ao final de cada temporada trimestral, os 4 melhores colocados avançam para os Playoffs (Top Cut).",
+      "Formato do Top Cut: Rodada eliminatória presencial (Single Elimination).",
+      "Premiação: Troféus personalizados, boosters exclusivos e premiações especiais para os campeões.",
+    ],
+  },
+  {
+    icon: "Scale",
+    color: "emerald",
+    title: "4. Código de Conduta e Fair Play",
+    content: [
+      "A integridade do jogo e o respeito mútuo são pilares fundamentais da nossa comunidade.",
+      "Seguimos rigorosamente o manual de Play! Pokémon e as orientações da arbitragem oficial.",
+      "Condutas antidesportivas, trapaças ou desrespeito a outros jogadores resultam em advertência ou desclassificação imediata da temporada.",
+    ],
+  },
+]);
+
 export async function ensureDatabaseSchema() {
   if (hasMigrated) return;
 
@@ -185,6 +228,28 @@ export async function ensureDatabaseSchema() {
       await client.execute(alterSql);
     } catch {
       // Ignora erro se coluna já existir (comportamento padrão do SQLite para duplicatas)
+    }
+  }
+
+  // Inserir configurações padrão caso não existam
+  const defaultConfigs = [
+    { chave: "temporadaAtual", valor: "5", descricao: "Número da temporada atual ativa" },
+    { chave: "adminPin", valor: "0408", descricao: "PIN de acesso ao painel de administração" },
+    { chave: "nomeLiga", valor: "Liga Atlântica", descricao: "Nome oficial da liga" },
+    { chave: "regras", valor: DEFAULT_REGRAS, descricao: "Regulamento oficial da Liga" },
+    { chave: "exibirPodio", valor: "true", descricao: "Exibir pódio dos líderes na home" },
+    { chave: "exibirProximoEvento", valor: "true", descricao: "Exibir card de próximo evento na home" },
+    { chave: "inscricoesAtivas", valor: "false", descricao: "Flag de inscrições abertas para torneios" },
+  ];
+
+  for (const cfg of defaultConfigs) {
+    try {
+      await client.execute({
+        sql: `INSERT INTO configuracoes (chave, valor, descricao) VALUES (?, ?, ?) ON CONFLICT(chave) DO NOTHING;`,
+        args: [cfg.chave, cfg.valor, cfg.descricao],
+      });
+    } catch {
+      // Ignora erro
     }
   }
 

@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { configuracoes } from "@/db/schema";
+import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { getConfigMap } from "@/lib/queries";
+
+export async function GET() {
+  try {
+    await ensureDatabaseSchema();
+    const configs = await getConfigMap();
+    return NextResponse.json({ success: true, configs });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
 
 export async function POST(req: Request) {
   try {
+    await ensureDatabaseSchema();
     const body = await req.json();
 
     // Se vier um objeto com múltiplas configs: { configs: { chave: valor, ... } }

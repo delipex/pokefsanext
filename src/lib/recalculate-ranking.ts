@@ -1,13 +1,19 @@
 import { db } from "@/db";
 import { etapas, etapaResultados, rankingConsolidado, configuracoes } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { ensureDatabaseSchema } from "@/db/migrate-auto";
 
 export async function recalculateRankingConsolidado(targetSeason?: number) {
+  await ensureDatabaseSchema();
   // 0. Obter a temporada ativa
   let activeSeason = targetSeason;
   if (!activeSeason) {
-    const configRows = await db.select().from(configuracoes).where(eq(configuracoes.chave, "temporadaAtual"));
-    activeSeason = Number(configRows[0]?.valor) || 5;
+    try {
+      const configRows = await db.select().from(configuracoes).where(eq(configuracoes.chave, "temporadaAtual"));
+      activeSeason = Number(configRows[0]?.valor) || 5;
+    } catch {
+      activeSeason = 5;
+    }
   }
 
   // 1. Buscar todas as etapas da temporada ativa ordenadas cronologicamente

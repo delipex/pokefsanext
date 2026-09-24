@@ -10,9 +10,11 @@ import {
   metagame,
 } from "@/db/schema";
 import { desc, asc, eq } from "drizzle-orm";
+import { ensureDatabaseSchema } from "@/db/migrate-auto";
 
 export async function POST(req: Request) {
   try {
+    await ensureDatabaseSchema();
     const body = await req.json();
     const {
       currentSeason = 5,

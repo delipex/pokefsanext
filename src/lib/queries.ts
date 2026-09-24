@@ -14,6 +14,7 @@ import {
   jogadorDecklists,
 } from "@/db/schema";
 import { desc, asc, eq } from "drizzle-orm";
+import { ensureDatabaseSchema } from "@/db/migrate-auto";
 import fs from "fs";
 import path from "path";
 
@@ -672,6 +673,7 @@ export async function getSubmittedDecklists() {
 
 export async function getConfigMap(): Promise<Record<string, any>> {
   try {
+    await ensureDatabaseSchema();
     const rows = await db.select().from(configuracoes);
     if (rows && rows.length > 0) {
       const map: Record<string, any> = {};

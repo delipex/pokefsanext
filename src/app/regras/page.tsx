@@ -39,17 +39,22 @@ const COLORS_MAP: Record<string, string> = {
 };
 
 export default async function RegrasPage() {
-  const config = await getConfigMap();
+  let config: Record<string, any> = {};
+  try {
+    config = await getConfigMap();
+  } catch (err) {
+    console.error("Erro ao carregar configurações na página de regras:", err);
+  }
 
   let sections: RegraSection[] = DEFAULT_REGRAS_DATA;
 
-  if (config.regras) {
+  if (config && config.regras) {
     if (Array.isArray(config.regras)) {
       sections = config.regras;
     } else if (typeof config.regras === "string") {
       try {
         const parsed = JSON.parse(config.regras);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           sections = parsed;
         }
       } catch {
@@ -58,7 +63,7 @@ export default async function RegrasPage() {
     }
   }
 
-  const nomeLiga = config.nomeLiga || "Liga Atlântica";
+  const nomeLiga = config?.nomeLiga || "Liga Atlântica";
 
   return (
     <div className="space-y-10 max-w-4xl mx-auto">
@@ -75,6 +80,7 @@ export default async function RegrasPage() {
         {sections.map((section, idx) => {
           const IconComp = ICONS_MAP[section.icon] || BookOpen;
           const colorClass = COLORS_MAP[section.color] || COLORS_MAP.blue;
+          const contentList = Array.isArray(section.content) ? section.content : [];
 
           return (
             <div
@@ -89,7 +95,7 @@ export default async function RegrasPage() {
               </div>
 
               <div className="space-y-3 pl-1">
-                {section.content.map((p, pIdx) => (
+                {contentList.map((p, pIdx) => (
                   <div key={pIdx} className="flex items-start gap-3 text-sm text-slate-300 leading-relaxed font-normal">
                     <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
                     <span>{p}</span>

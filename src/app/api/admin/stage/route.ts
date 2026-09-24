@@ -3,10 +3,12 @@ import { db } from "@/db";
 import { etapas, etapaResultados, metagame, configuracoes } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
+import { ensureDatabaseSchema } from "@/db/migrate-auto";
 
 // POST: Publicar nova etapa (ou atualizar existente)
 export async function POST(req: Request) {
   try {
+    await ensureDatabaseSchema();
     const body = await req.json();
     const { data, tipo, multiplicador, resultados, action } = body;
 
@@ -25,8 +27,13 @@ export async function POST(req: Request) {
     }
 
     // 0. Obter a temporada ativa das configurações
-    const configRows = await db.select().from(configuracoes).where(eq(configuracoes.chave, "temporadaAtual"));
-    const activeSeason = Number(configRows[0]?.valor) || 5;
+    let activeSeason = 5;
+    try {
+      const configRows = await db.select().from(configuracoes).where(eq(configuracoes.chave, "temporadaAtual"));
+      activeSeason = Number(configRows[0]?.valor) || 5;
+    } catch {
+      activeSeason = 5;
+    }
 
     // 1. Inserir ou atualizar a etapa
     const [insertedEtapa] = await db

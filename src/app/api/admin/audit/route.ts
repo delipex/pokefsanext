@@ -2,11 +2,19 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { etapas, etapaResultados, rankingConsolidado, jogadores, decks, configuracoes } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
+import { ensureDatabaseSchema } from "@/db/migrate-auto";
 
 export async function GET() {
   try {
-    const configRows = await db.select().from(configuracoes).where(eq(configuracoes.chave, "temporadaAtual"));
-    const activeSeason = Number(configRows[0]?.valor) || 5;
+    await ensureDatabaseSchema();
+
+    let activeSeason = 5;
+    try {
+      const configRows = await db.select().from(configuracoes).where(eq(configuracoes.chave, "temporadaAtual"));
+      activeSeason = Number(configRows[0]?.valor) || 5;
+    } catch {
+      activeSeason = 5;
+    }
 
     // 1. Carregar dados essenciais
     const [allEtapas, allResults, allRanking, allPlayers, allDecks] = await Promise.all([
