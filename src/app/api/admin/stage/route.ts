@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { etapas, etapaResultados, rankingConsolidado, jogadores, metagame } from "@/db/schema";
+import { etapas, etapaResultados, rankingConsolidado, jogadores, metagame, configuracoes } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(req: Request) {
@@ -12,6 +12,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Dados da etapa inválidos" }, { status: 400 });
     }
 
+    // 0. Obter a temporada ativa das configurações
+    const configRows = await db.select().from(configuracoes).where(eq(configuracoes.chave, "temporadaAtual"));
+    const activeSeason = Number(configRows[0]?.valor) || 5;
+
     // 1. Inserir ou atualizar a etapa
     const [insertedEtapa] = await db
       .insert(etapas)
@@ -19,7 +23,7 @@ export async function POST(req: Request) {
         data,
         tipo: tipo || "Liga",
         multiplicador: Number(multiplicador) || 1.0,
-        temporada: 5,
+        temporada: activeSeason,
         status: "concluida",
       })
       .onConflictDoUpdate({
@@ -27,6 +31,7 @@ export async function POST(req: Request) {
         set: {
           tipo: tipo || "Liga",
           multiplicador: Number(multiplicador) || 1.0,
+          temporada: activeSeason,
         },
       })
       .returning();
@@ -66,8 +71,8 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. Recalcular o ranking consolidado da temporada a partir de todas as etapas em ordem cronológica
-    const allEtapas = await db.select().from(etapas);
+    // 4. Recalcular o ranking consolidado da temporada a partir de todas as etapas da temporada ativa
+    const allEtapas = await db.select().from(etapas).where(eq(etapas.temporada, activeSeason));
     allEtapas.sort((a, b) => a.data.localeCompare(b.data));
 
     const etapaMap = new Map(allEtapas.map((e) => [e.data, e]));
@@ -76,8 +81,11 @@ export async function POST(req: Request) {
     // Mapear resultados por jogador (chave: jogadorId ou jogadorNome)
     const playerStatsMap: Record<string, any> = {};
 
-    // Coletar todos os jogadores distintos
+    // Coletar todos os jogadores distintos da temporada ativa
     for (const r of allResults) {
+      const etapaInfo = etapaMap.get(r.etapaData);
+      if (!etapaInfo) continue; // Pula resultados de outras temporadas
+
       const key = r.jogadorId ? String(r.jogadorId).trim() : String(r.jogadorNome).trim();
       if (!playerStatsMap[key]) {
         playerStatsMap[key] = {
@@ -94,8 +102,7 @@ export async function POST(req: Request) {
         };
       }
 
-      const etapaInfo = etapaMap.get(r.etapaData);
-      const mult = etapaInfo?.multiplicador ? Number(etapaInfo.multiplicador) : 1.0;
+      const mult = etapaInfo.multiplicador ? Number(etapaInfo.multiplicador) : 1.0;
       const pontosPonderados = Math.round(r.pontos * mult);
 
       playerStatsMap[key].pontos += pontosPonderados;
@@ -129,7 +136,7 @@ export async function POST(req: Request) {
       const historicoColocacoes = colocacoesList.join(";");
 
       return {
-        temporada: 5,
+        temporada: activeSeason,
         jogadorId: p.jogadorId,
         jogadorNome: p.jogadorNome,
         categoria: p.categoria,
