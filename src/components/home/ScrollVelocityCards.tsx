@@ -266,7 +266,7 @@ export function ScrollVelocityCards({
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-amber-400" />
           <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-            Arquétipos em Destaque no Formato
+            Decks em Destaque na Temporada
           </h2>
         </div>
         <span className="text-[10px] sm:text-xs text-slate-400 font-normal hidden sm:inline">
