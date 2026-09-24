@@ -3,14 +3,34 @@ import { db } from "@/db";
 import { jogadores } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { getAllJogadores } from "@/lib/queries";
+import fs from "fs";
+import path from "path";
+
+// Helper para salvar em jogadores.json quando em ambiente com permissão de escrita
+function syncJogadoresJson(fn: (list: any[]) => any[]) {
+  try {
+    const filePath = path.join(process.cwd(), "src", "data", "jogadores.json");
+    if (fs.existsSync(filePath)) {
+      const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      const updated = fn(raw);
+      fs.writeFileSync(filePath, JSON.stringify(updated, null, 4), "utf-8");
+    }
+  } catch {}
+}
 
 export async function GET() {
   try {
     await ensureDatabaseSchema();
     const list = await db.select().from(jogadores).orderBy(asc(jogadores.nome));
-    return NextResponse.json({ success: true, players: list });
+    if (list && list.length > 0) {
+      return NextResponse.json({ success: true, players: list });
+    }
+    const fallbackList = await getAllJogadores();
+    return NextResponse.json({ success: true, players: fallbackList });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const fallbackList = await getAllJogadores();
+    return NextResponse.json({ success: true, players: fallbackList });
   }
 }
 
@@ -52,6 +72,24 @@ export async function POST(req: Request) {
         },
       });
 
+    syncJogadoresJson((list) => {
+      const idx = list.findIndex((j: any) => String(j.id || j.ID || "").trim() === cleanId);
+      const item = {
+        id: cleanId,
+        jogador: cleanName,
+        categoria: validCat,
+        whatsapp: whatsapp ? String(whatsapp).trim() : undefined,
+        dataNascimento: dataNascimento ? String(dataNascimento).trim() : undefined,
+        cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
+      };
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...item };
+      } else {
+        list.push(item);
+      }
+      return list;
+    });
+
     return NextResponse.json({ success: true, message: "Jogador salvo com sucesso no banco de dados!" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -90,6 +128,24 @@ export async function PUT(req: Request) {
 
     await db.update(jogadores).set(updateData).where(eq(jogadores.id, cleanId));
 
+    syncJogadoresJson((list) => {
+      const idx = list.findIndex((j: any) => String(j.id || j.ID || "").trim() === cleanId);
+      if (idx >= 0) {
+        list[idx] = {
+          ...list[idx],
+          jogador: cleanName,
+          categoria: validCat,
+          whatsapp: whatsapp ? String(whatsapp).trim() : list[idx].whatsapp,
+          dataNascimento: dataNascimento ? String(dataNascimento).trim() : list[idx].dataNascimento,
+          cidade: cidade ? String(cidade).trim() : list[idx].cidade,
+        };
+        if (resetPin) {
+          list[idx].pinHash = null;
+        }
+      }
+      return list;
+    });
+
     return NextResponse.json({
       success: true,
       message: resetPin
@@ -112,6 +168,8 @@ export async function DELETE(req: Request) {
     }
 
     await db.delete(jogadores).where(eq(jogadores.id, id));
+
+    syncJogadoresJson((list) => list.filter((j: any) => String(j.id || j.ID || "").trim() !== id));
 
     return NextResponse.json({ success: true, message: "Jogador excluído com sucesso do banco de dados!" });
   } catch (error: any) {

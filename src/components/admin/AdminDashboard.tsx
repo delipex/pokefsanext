@@ -125,6 +125,29 @@ export function AdminDashboard({
   const [newPlayerHasPin, setNewPlayerHasPin] = useState(false);
   const [playerSearch, setPlayerSearch] = useState("");
   const [playerMessage, setPlayerMessage] = useState("");
+  const [isRefreshingPlayers, setIsRefreshingPlayers] = useState(false);
+
+  // Buscar lista atualizada de jogadores do banco
+  const fetchPlayers = async () => {
+    setIsRefreshingPlayers(true);
+    try {
+      const res = await fetch("/api/admin/players");
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.players)) {
+        setPlayers(data.players);
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar lista de atletas:", err);
+    } finally {
+      setIsRefreshingPlayers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "jogadores") {
+      fetchPlayers();
+    }
+  }, [activeTab]);
 
   // Estado de Decks
   const [decks, setDecks] = useState(initialDecks);
@@ -448,6 +471,7 @@ export function AdminDashboard({
           setNewPlayerWhatsapp("");
           setNewPlayerDataNasc("");
         }
+        fetchPlayers();
       } else {
         const data = await res.json();
         setPlayerMessage(`❌ Erro: ${data.error}`);
@@ -478,6 +502,7 @@ export function AdminDashboard({
           prev.map((p) => (String(p.id || p.ID) === id ? { ...p, pinHash: null } : p))
         );
         setPlayerMessage("🔑 PIN redefinido com sucesso! O jogador já pode criar um novo PIN no Portal.");
+        fetchPlayers();
       } else {
         setPlayerMessage(`❌ Erro ao redefinir PIN: ${data.error}`);
       }
@@ -497,6 +522,7 @@ export function AdminDashboard({
           handleCancelEditPlayer();
         }
         setPlayerMessage("✅ Jogador excluído com sucesso!");
+        fetchPlayers();
       }
     } catch (err: any) {
       setPlayerMessage(`❌ Erro ao excluir: ${err.message}`);
@@ -1535,15 +1561,27 @@ export function AdminDashboard({
                   </h3>
                   <p className="text-[11px] text-slate-400">Clique na linha ou nos botões de ação para gerenciar</p>
                 </div>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
-                  <input
-                    type="text"
-                    placeholder="Buscar nome ou POP ID..."
-                    value={playerSearch}
-                    onChange={(e) => setPlayerSearch(e.target.value)}
-                    className="rounded-xl border border-white/10 bg-slate-800 py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                  />
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <button
+                    type="button"
+                    onClick={fetchPlayers}
+                    disabled={isRefreshingPlayers}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition-all disabled:opacity-50 cursor-pointer shadow-sm active:scale-95"
+                    title="Atualizar lista de atletas do banco agora"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingPlayers ? "animate-spin text-blue-400" : "text-slate-400"}`} />
+                    <span>{isRefreshingPlayers ? "Atualizando..." : "Atualizar"}</span>
+                  </button>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="Buscar nome ou POP ID..."
+                      value={playerSearch}
+                      onChange={(e) => setPlayerSearch(e.target.value)}
+                      className="rounded-xl border border-white/10 bg-slate-800 py-1.5 pl-8 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
 

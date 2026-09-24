@@ -175,6 +175,30 @@ export async function POST(req: Request) {
         },
       });
 
+    // 8.1 Sincronização redundante com jogadores.json se o sistema de arquivos for gravável
+    try {
+      const filePath = path.join(process.cwd(), "src", "data", "jogadores.json");
+      if (fs.existsSync(filePath)) {
+        const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+        const idx = raw.findIndex((j: any) => String(j.id || j.ID || "").trim() === cleanId);
+        const itemToSave = {
+          id: cleanId,
+          jogador: cleanName,
+          categoria,
+          whatsapp: cleanPhone,
+          dataNascimento: dataNascimento ? String(dataNascimento).trim() : undefined,
+          cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
+          pinHash: hashedPin,
+        };
+        if (idx >= 0) {
+          raw[idx] = { ...raw[idx], ...itemToSave };
+        } else {
+          raw.push(itemToSave);
+        }
+        fs.writeFileSync(filePath, JSON.stringify(raw, null, 4), "utf-8");
+      }
+    } catch {}
+
     // 9. Criação de Sessão Segura via Cookie HTTP-only
     const cookieStore = await cookies();
     cookieStore.set("player_session", cleanId, {
