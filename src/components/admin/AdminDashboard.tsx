@@ -1111,7 +1111,7 @@ export function AdminDashboard({
                   Importar Arquivo Oficial TOM (.tdf)
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Suporta arquivos TOM XML (`.tdf`) e TSV exportados pelo Tournament Operations Manager
+                  Formato oficial e exclusivo do Tournament Operations Manager (.tdf)
                 </p>
               </div>
 
@@ -1120,7 +1120,7 @@ export function AdminDashboard({
                 <span>Selecionar TDF</span>
                 <input
                   type="file"
-                  accept=".tdf,.txt,.tsv"
+                  accept=".tdf"
                   multiple
                   onChange={handleFileInputChange}
                   className="hidden"
