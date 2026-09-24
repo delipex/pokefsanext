@@ -43,8 +43,7 @@ export default function PlayerLoginPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        router.push("/portal");
-        router.refresh();
+        window.location.href = "/portal";
       } else {
         if (data.needActivation) {
           setTab("cadastro");
@@ -86,11 +85,10 @@ export default function PlayerLoginPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setCadSuccess("Cadastro realizado com sucesso! Redirecionando para seu painel...");
+        setCadSuccess("Cadastro realizado com sucesso! Entrando no seu perfil...");
         setTimeout(() => {
-          router.push("/portal");
-          router.refresh();
-        }, 1200);
+          window.location.href = "/portal";
+        }, 600);
       } else {
         setCadError(data.error || "Erro ao realizar cadastro.");
       }

@@ -13,11 +13,13 @@ import {
   matchPlayerIdentity,
 } from "@/lib/security";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import fs from "fs";
+import path from "path";
 
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get("x-forwarded-for") || "local";
-    if (!checkRateLimit(ip, 12, 60000)) {
+    if (!checkRateLimit(ip, 20, 60000)) {
       return NextResponse.json(
         { error: "Não foi possível se cadastrar devido ao excesso de tentativas em pouco tempo. Por segurança, aguarde 1 minuto." },
         { status: 429 }
@@ -75,7 +77,7 @@ export async function POST(req: Request) {
     }
     const categoria = catCheck.categoria;
 
-    // 6. Validação de PIN de Acesso
+    // 6. Validação de PIN de Acesso (Exatamente 4 dígitos numéricos)
     const cleanPin = String(pin || "").trim().replace(/\D/g, "");
     if (!cleanPin || cleanPin.length !== 4) {
       return NextResponse.json(
@@ -85,10 +87,10 @@ export async function POST(req: Request) {
     }
     const hashedPin = hashPin(cleanPin);
 
-    // Auto-heal / garante tabelas e colunas atualizadas no Turso
+    // Auto-heal / garante schema do banco pronto
     await ensureDatabaseSchema();
 
-    // 7. Persistência Segura no Banco de Dados
+    // 7. Busca se atleta já existe no banco ou em jogadores.json
     let existingAthlete: any = null;
 
     try {
@@ -100,11 +102,8 @@ export async function POST(req: Request) {
       console.error("Erro ao consultar jogador no banco:", dbErr);
     }
 
-    // Se o banco ainda não tiver o registro, busca em jogadores.json (dados históricos TOM)
     if (!existingAthlete) {
       try {
-        const fs = await import("fs");
-        const path = await import("path");
         const filePath = path.join(process.cwd(), "src", "data", "jogadores.json");
         if (fs.existsSync(filePath)) {
           const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
@@ -114,10 +113,9 @@ export async function POST(req: Request) {
             return (jId && jId === cleanId) || (jName && jName === cleanName.toLowerCase().trim());
           });
           if (found) {
-            const foundNome = found.jogador || found.Jogador || found.nome || cleanName;
             existingAthlete = {
               id: String(found.id || found.ID || cleanId).trim(),
-              nome: foundNome,
+              nome: found.jogador || found.Jogador || found.nome || cleanName,
               categoria: found.categoria || found.Categoria || categoria || "Master",
               pinHash: null,
             };
@@ -126,81 +124,58 @@ export async function POST(req: Request) {
       } catch {}
     }
 
-    if (existingAthlete) {
-      // Se o atleta já tiver PIN ativo, orienta login
-      if (existingAthlete.pinHash) {
+    // Se já existe com PIN ativo, orienta a fazer login
+    if (existingAthlete && existingAthlete.pinHash) {
+      return NextResponse.json(
+        {
+          error: "Não foi possível se cadastrar devido a: este POP ID já possui um PIN cadastrado. Acesse a aba 'Já sou Cadastrado' para entrar ou contate o organizador para redefinir seu PIN.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Se existe com nome cadastrado, verifica correspondência razoável
+    if (existingAthlete && existingAthlete.nome) {
+      const identityCheck = matchPlayerIdentity(cleanName, existingAthlete.nome);
+      if (!identityCheck.isMatch) {
         return NextResponse.json(
           {
-            error: "Não foi possível se cadastrar devido a: este POP ID já possui um PIN ativo. Acesse a aba 'Já sou Cadastrado' para entrar ou contate a organização da Liga para redefinir.",
+            error: `Não foi possível se cadastrar devido a: o nome informado (${cleanName}) não confere com o titular cadastrado para este POP ID (${existingAthlete.nome}). Verifique a digitação ou contate o organizador.`,
           },
           { status: 403 }
         );
       }
+    }
 
-      // Validação de Identidade do Atleta (Fuzzy Matching) se houver nome cadastrado
-      if (existingAthlete.nome) {
-        const identityCheck = matchPlayerIdentity(cleanName, existingAthlete.nome);
-        if (!identityCheck.isMatch) {
-          return NextResponse.json(
-            {
-              error: `Não foi possível se cadastrar devido a: o nome informado (${cleanName}) não confere com o titular cadastrado para este POP ID (${existingAthlete.nome}). Verifique a digitação ou contate o organizador.`,
-            },
-            { status: 403 }
-          );
-        }
-      }
-
-      // Jogador validado: ativação de perfil
-      try {
-        await db
-          .insert(jogadores)
-          .values({
-            id: cleanId,
-            nome: cleanName,
-            categoria,
-            whatsapp: cleanPhone,
-            dataNascimento,
-            cidade: cidade || "Feira de Santana - BA",
-            pinHash: hashedPin,
-            status: "ativo",
-            ativo: true,
-          })
-          .onConflictDoUpdate({
-            target: jogadores.id,
-            set: {
-              nome: cleanName,
-              categoria,
-              whatsapp: cleanPhone,
-              dataNascimento,
-              cidade: cidade || "Feira de Santana - BA",
-              pinHash: hashedPin,
-              status: "ativo",
-              ativo: true,
-            },
-          });
-      } catch (dbErr) {
-        console.error("Erro ao salvar jogador no DB:", dbErr);
-      }
-    } else {
-      // Atleta novo
-      try {
-        await db.insert(jogadores).values({
-          id: cleanId,
+    // 8. Persistência Atômica no Banco de Dados
+    await db
+      .insert(jogadores)
+      .values({
+        id: cleanId,
+        nome: cleanName,
+        categoria,
+        whatsapp: cleanPhone,
+        dataNascimento: dataNascimento ? String(dataNascimento).trim() : null,
+        cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
+        pinHash: hashedPin,
+        status: "ativo",
+        ativo: true,
+      })
+      .onConflictDoUpdate({
+        target: jogadores.id,
+        set: {
           nome: cleanName,
           categoria,
           whatsapp: cleanPhone,
-          dataNascimento,
-          cidade: cidade || "Feira de Santana - BA",
+          dataNascimento: dataNascimento ? String(dataNascimento).trim() : null,
+          cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
           pinHash: hashedPin,
           status: "ativo",
           ativo: true,
-        });
-      } catch (dbErr) {
-        console.error("Erro ao inserir novo jogador no DB:", dbErr);
-      }
-    }
+        },
+      });
 
-    // 8. Criação de Sessão Segura via Cookie HTTP-only
+    // 9. Criação de Sessão Segura via Cookie HTTP-only
     const cookieStore = await cookies();
     cookieStore.set("player_session", cleanId, {
       httpOnly: true,
@@ -222,7 +197,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Erro interno no cadastro:", error);
     return NextResponse.json(
-      { error: "Não foi possível se cadastrar devido a uma instabilidade no servidor. Por favor, tente novamente em instantes." },
+      { error: `Não foi possível se cadastrar devido a: ${error?.message || "instabilidade no servidor. Tente novamente."}` },
       { status: 500 }
     );
   }
