@@ -179,13 +179,15 @@ export default function PlayerLoginPage() {
 
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Seu PIN de Acesso:
+                  PIN de Acesso (4 Dígitos):
                 </label>
                 <input
                   type="password"
-                  placeholder="PIN pessoal (4 a 8 dígitos)"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="DIGITE SEU PIN DE 4 DÍGITOS"
                   value={loginPin}
-                  onChange={(e) => setLoginPin(e.target.value)}
+                  onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-2.5 text-sm tabular-nums font-semibold text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none font-sans"
                   required
                 />
@@ -299,16 +301,19 @@ export default function PlayerLoginPage() {
 
                 <div className="space-y-1">
                   <label className="block text-[11px] font-bold uppercase text-slate-300">
-                    Crie seu PIN de Acesso:
+                    Crie um PIN de 4 dígitos:
                   </label>
                   <input
                     type="password"
-                    placeholder="4 a 8 dígitos"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="CRIE UM PIN DE 4 DÍGITOS"
                     value={cadPin}
-                    onChange={(e) => setCadPin(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs tabular-nums font-semibold text-white focus:border-blue-500 focus:outline-none font-sans"
+                    onChange={(e) => setCadPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs tabular-nums font-semibold text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none font-sans"
                     required
                   />
+                  <span className="text-[10px] text-slate-400 block">Ex: 1234 (apenas 4 números)</span>
                 </div>
               </div>
 

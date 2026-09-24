@@ -76,13 +76,14 @@ export async function POST(req: Request) {
     const categoria = catCheck.categoria;
 
     // 6. Validação de PIN de Acesso
-    if (!pin || String(pin).trim().length < 4 || String(pin).trim().length > 8) {
+    const cleanPin = String(pin || "").trim().replace(/\D/g, "");
+    if (!cleanPin || cleanPin.length !== 4) {
       return NextResponse.json(
-        { error: "Não foi possível se cadastrar devido a: o PIN de acesso deve conter entre 4 e 8 dígitos numéricos." },
+        { error: "Não foi possível se cadastrar devido a: crie um PIN de exatamente 4 dígitos numéricos (Ex: 1234)." },
         { status: 400 }
       );
     }
-    const hashedPin = hashPin(String(pin).trim());
+    const hashedPin = hashPin(cleanPin);
 
     // Auto-heal / garante tabelas e colunas atualizadas no Turso
     await ensureDatabaseSchema();
