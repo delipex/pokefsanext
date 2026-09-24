@@ -342,7 +342,7 @@ export function MetagameDashboard({
 
             {/* Informações do Deck Ativo */}
             {displayedDeck && (
-              <div className="w-full flex flex-col items-center text-center mt-3">
+              <div className="w-full flex flex-col items-center text-center mt-3 min-h-[145px] justify-start">
                 {/* Nome do Deck + Bolinhas de Energia ao lado (sem texto) */}
                 <div className="flex items-center justify-center gap-2">
                   <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate max-w-[280px]">
@@ -423,7 +423,6 @@ export function MetagameDashboard({
             <div className="w-full space-y-2.5 max-h-[440px] overflow-y-auto pr-1 sm:pr-2 custom-scrollbar">
               {deckStats.map((deck, idx) => {
                 const colors = getEnergyColor(deck.tipoEnergia);
-                const isCurrent = displayedDeck?.deckName.toLowerCase() === deck.deckName.toLowerCase();
                 const isHovered = hoveredDeck === deck.deckName;
                 const barWidth = `${(deck.percent / maxPercent) * 100}%`;
 
@@ -433,10 +432,10 @@ export function MetagameDashboard({
                     onMouseEnter={() => handleDeckHover(deck.deckName)}
                     onMouseLeave={() => setHoveredDeck(null)}
                     onClick={() => handleDeckHover(deck.deckName)}
-                    className={`group relative rounded-2xl p-3 border transition-all duration-200 cursor-pointer ${
-                      isCurrent || isHovered
-                        ? "bg-white/[0.08] border-white/30 shadow-lg scale-[1.01]"
-                        : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05]"
+                    className={`group relative rounded-2xl p-3 border transition-colors duration-150 cursor-pointer ${
+                      isHovered
+                        ? "bg-white/[0.08] border-white/20 shadow-md"
+                        : "bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.05] hover:border-white/10"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3 relative z-10 mb-2">
