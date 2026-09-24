@@ -1584,177 +1584,181 @@ export function AdminDashboard({
 
           {/* MODAL PERSONALIZADO DE CADASTRO / EDIÇÃO DE DECK */}
           {isDeckModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-              <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#0B0F19]/95 p-6 sm:p-7 backdrop-blur-2xl shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
-                {/* Topo do Modal */}
-                <div className="flex items-center justify-between pb-1">
-                  <div className="flex items-center gap-2">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+              <div className="relative w-full max-w-lg rounded-2xl sm:rounded-3xl border border-white/10 bg-slate-950/95 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                {/* Topo / Header Fixo do Modal */}
+                <div className="flex items-center justify-between px-5 py-4 sm:px-6 sm:py-4.5 border-b border-white/10 bg-slate-900/60 backdrop-blur-md shrink-0">
+                  <div className="flex items-center gap-2.5">
                     <span className="text-xl">🎴</span>
-                    <h3 className="text-lg font-bold text-white">
+                    <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
                       {editingDeckId ? "Editar Deck" : "Cadastrar Novo Deck"}
                     </h3>
                   </div>
                   <button
                     type="button"
                     onClick={handleCloseDeckModal}
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+                    title="Fechar"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveDeck} className="space-y-4">
-                  {/* Nome Oficial do Deck */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                      Nome Oficial do Deck
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: Charizard ex, Gardevoir ex..."
-                      value={newDeckName}
-                      onChange={(e) => setNewDeckName(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2.5 px-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
-                      required
-                    />
-                  </div>
-
-                  {/* Tipo de Energia Pokémon */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-slate-300">
-                        Tipo de Energia Pokémon
+                {/* Corpo do Formulário com Scroll Suave */}
+                <form onSubmit={handleSaveDeck} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                  <div className="p-5 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto custom-scrollbar flex-1">
+                    {/* Nome Oficial do Deck */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        Nome Oficial do Deck
                       </label>
-                      <span className="text-[11px] text-slate-400">
-                        Clique em até 2 energias (ou Multi)
-                      </span>
+                      <input
+                        type="text"
+                        placeholder="Ex: Charizard ex, Gardevoir ex..."
+                        value={newDeckName}
+                        onChange={(e) => setNewDeckName(e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
+                        required
+                      />
                     </div>
 
-                    {/* Preview Box */}
-                    <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-3.5 flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center -space-x-1.5">
-                          {selectedEnergies.map((eid, idx) => {
-                            const opt = ENERGY_OPTIONS.find((o) => o.id === eid) || ENERGY_OPTIONS[9];
-                            return (
+                    {/* Tipo de Energia Pokémon */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-300">
+                          Tipo de Energia Pokémon
+                        </label>
+                        <span className="text-[11px] text-slate-400">
+                          Selecione até 2 energias (ou Multi)
+                        </span>
+                      </div>
+
+                      {/* Preview Box */}
+                      <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-3 sm:p-3.5 flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex items-center -space-x-1.5 shrink-0">
+                            {selectedEnergies.map((eid, idx) => {
+                              const opt = ENERGY_OPTIONS.find((o) => o.id === eid) || ENERGY_OPTIONS[9];
+                              return (
+                                <span
+                                  key={idx}
+                                  className="h-7 w-7 rounded-full border border-black/40 shadow-sm shrink-0"
+                                  style={{
+                                    background: opt.bgGradient || opt.hex,
+                                    boxShadow: `0 0 10px ${opt.glow}`,
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                          <div className="min-w-0 truncate">
+                            <strong className="block text-xs font-bold text-white truncate">
+                              {selectedEnergies
+                                .map((eid) => ENERGY_OPTIONS.find((o) => o.id === eid)?.label || eid)
+                                .join(" / ")}
+                            </strong>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {newDeckEnergy || "colorless"}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleClearEnergy}
+                          className="text-[11px] font-medium text-slate-400 hover:text-white underline cursor-pointer shrink-0 ml-2"
+                        >
+                          Limpar
+                        </button>
+                      </div>
+
+                      {/* Grid de Energias (11 botões com responsividade equilibrada) */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 sm:gap-2">
+                        {ENERGY_OPTIONS.map((opt) => {
+                          const isSelected = selectedEnergies.includes(opt.id);
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => handleToggleEnergy(opt.id)}
+                              className={`flex items-center gap-1.5 sm:gap-2 rounded-xl py-2 px-2 sm:px-2.5 text-xs font-semibold transition-all border cursor-pointer ${
+                                isSelected
+                                  ? "border-amber-400/80 bg-amber-500/15 text-white ring-1 ring-amber-400/50 shadow-sm shadow-amber-400/10"
+                                  : "border-white/5 bg-slate-900/60 text-slate-300 hover:bg-slate-800/80 hover:text-white hover:border-white/10"
+                              }`}
+                            >
                               <span
-                                key={idx}
-                                className="h-7 w-7 rounded-full border border-black/40 shadow-sm shrink-0"
+                                className="h-2.5 w-2.5 rounded-full shrink-0"
                                 style={{
                                   background: opt.bgGradient || opt.hex,
-                                  boxShadow: `0 0 10px ${opt.glow}`,
+                                  boxShadow: isSelected ? `0 0 8px ${opt.glow}` : "none",
                                 }}
                               />
-                            );
-                          })}
-                        </div>
-                        <div>
-                          <strong className="block text-xs font-bold text-white">
-                            {selectedEnergies
-                              .map((eid) => ENERGY_OPTIONS.find((o) => o.id === eid)?.label || eid)
-                              .join(" / ")}
-                          </strong>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            {newDeckEnergy || "colorless"}
-                          </span>
-                        </div>
+                              <span className="truncate">{opt.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
-                      <button
-                        type="button"
-                        onClick={handleClearEnergy}
-                        className="text-[11px] font-medium text-slate-400 hover:text-white underline cursor-pointer"
-                      >
-                        Limpar
-                      </button>
                     </div>
 
-                    {/* Grid de Energias (11 botões em 3 colunas) */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {ENERGY_OPTIONS.map((opt) => {
-                        const isSelected = selectedEnergies.includes(opt.id);
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => handleToggleEnergy(opt.id)}
-                            className={`flex items-center gap-2 rounded-xl py-2 px-2.5 text-xs font-semibold transition-all border cursor-pointer ${
-                              isSelected
-                                ? "border-amber-400/80 bg-amber-500/15 text-white ring-1 ring-amber-400/50 shadow-sm shadow-amber-400/10"
-                                : "border-white/5 bg-slate-900/60 text-slate-300 hover:bg-slate-800/80 hover:text-white hover:border-white/10"
-                            }`}
-                          >
-                            <span
-                              className="h-2.5 w-2.5 rounded-full shrink-0"
-                              style={{
-                                background: opt.bgGradient || opt.hex,
-                                boxShadow: isSelected ? `0 0 8px ${opt.glow}` : "none",
-                              }}
-                            />
-                            <span className="truncate">{opt.label}</span>
-                          </button>
-                        );
-                      })}
+                    {/* URL da Imagem da Carta Principal */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        URL da Imagem da Carta Principal (Opcional)
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/..."
+                        value={newDeckImage}
+                        onChange={(e) => setNewDeckImage(e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
+                      />
                     </div>
+
+                    {/* URL do Ícone Pokémon / Pokedex */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        URL do Ícone Pokémon / Pokedex (Opcional)
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://www.pokemon.com/static-assets/.../006.png"
+                        value={newDeckIcone}
+                        onChange={(e) => setNewDeckIcone(e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
+                      />
+                    </div>
+
+                    {/* Link da Lista no Limitless TCG */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        Link da Lista no Limitless TCG (Opcional)
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://limitlesstcg.com/decks/..."
+                        value={newDeckLimitless}
+                        onChange={(e) => setNewDeckLimitless(e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2.5 px-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
+                      />
+                    </div>
+
+                    {deckMessage && (
+                      <p className="text-xs font-bold text-emerald-400 py-1">{deckMessage}</p>
+                    )}
                   </div>
 
-                  {/* URL da Imagem da Carta Principal */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                      URL da Imagem da Carta Principal (Opcional)
-                    </label>
-                    <input
-                      type="url"
-                      placeholder="https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/..."
-                      value={newDeckImage}
-                      onChange={(e) => setNewDeckImage(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
-
-                  {/* URL do Ícone Pokémon / Pokedex */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                      URL do Ícone Pokémon / Pokedex (Opcional)
-                    </label>
-                    <input
-                      type="url"
-                      placeholder="https://www.pokemon.com/static-assets/.../006.png"
-                      value={newDeckIcone}
-                      onChange={(e) => setNewDeckIcone(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
-
-                  {/* Link da Lista no Limitless TCG */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                      Link da Lista no Limitless TCG (Opcional)
-                    </label>
-                    <input
-                      type="url"
-                      placeholder="https://limitlesstcg.com/decks/..."
-                      value={newDeckLimitless}
-                      onChange={(e) => setNewDeckLimitless(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 py-2 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
-
-                  {deckMessage && (
-                    <p className="text-xs font-bold text-emerald-400 py-1">{deckMessage}</p>
-                  )}
-
-                  {/* Botões Cancelar e Salvar */}
-                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                  {/* Rodapé Fixo / Sticky com Botões Cancelar e Salvar */}
+                  <div className="flex items-center justify-end gap-3 px-5 py-3.5 sm:px-6 sm:py-4 border-t border-white/10 bg-slate-900/80 backdrop-blur-md shrink-0">
                     <button
                       type="button"
                       onClick={handleCloseDeckModal}
-                      className="rounded-xl bg-slate-800/90 border border-white/10 px-5 py-2.5 text-xs font-bold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
+                      className="rounded-xl bg-slate-800/90 border border-white/10 px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-bold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
-                      className="flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-6 py-2.5 text-xs font-black text-slate-950 shadow-md shadow-amber-400/20 transition-all cursor-pointer"
+                      className="flex items-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 px-5 sm:px-6 py-2.5 text-xs sm:text-sm font-black text-slate-950 shadow-md shadow-amber-400/20 transition-all cursor-pointer"
                     >
                       <span>💾</span>
                       <span>Salvar no Catálogo</span>
