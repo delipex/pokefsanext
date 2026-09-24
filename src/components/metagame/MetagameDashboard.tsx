@@ -362,19 +362,6 @@ export function MetagameDashboard({
                   </span>
                 </div>
 
-                {/* Link Limitless TCG */}
-                {displayedDeck.limitless && (
-                  <a
-                    href={displayedDeck.limitless}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-2.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-lg"
-                  >
-                    <span>Ver Listas no Limitless TCG</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-
                 {/* Controles de Navegação (Setas e Indicadores de Ponto) */}
                 {carouselDecks.length > 1 && (
                   <div className="flex items-center gap-3 mt-3.5">
@@ -464,8 +451,22 @@ export function MetagameDashboard({
                         </div>
                       </div>
 
-                      {/* Estatísticas Numéricas: % e Jogos */}
-                      <div className="text-right shrink-0 flex items-baseline gap-2">
+                      {/* Estatísticas Numéricas: % e Jogos + Botão Limitless */}
+                      <div className="text-right shrink-0 flex items-center gap-2">
+                        {deck.limitless && (
+                          <a
+                            href={deck.limitless}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 hover:border-blue-500/40 px-2 py-0.5 rounded-lg transition-all shadow-sm shrink-0 cursor-pointer"
+                            title={`Ver listas de ${deck.deckName} no Limitless TCG`}
+                          >
+                            <span>Listas</span>
+                            <ExternalLink className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                          </a>
+                        )}
+
                         <span
                           className="text-base sm:text-lg font-black tabular-nums"
                           style={{ color: colors.primary }}
