@@ -52,13 +52,14 @@ export async function GET() {
 
       for (const row of stageRows) {
         const pIssues: string[] = [];
-        const expectedPoints = Math.round((row.vitorias * 3 + row.empates * 1) * mult);
+        const expectedStagePoints = row.vitorias * 3 + row.empates * 1;
         const actualPoints = row.pontos;
+        const seasonImpact = Number((actualPoints * mult).toFixed(1));
 
-        // V/E/D check
-        const pointsDiff = Math.abs(actualPoints - expectedPoints);
+        // V/E/D check no padrão oficial TOM
+        const pointsDiff = Math.abs(actualPoints - expectedStagePoints);
         if (pointsDiff > 0 && !row.dropou) {
-          pIssues.push(`Divergência de Pontos: Registrado ${actualPoints} vs Fórmula Esperada ${expectedPoints} (${row.vitorias}V-${row.empates}E-${row.derrotas}D x ${mult})`);
+          pIssues.push(`Divergência de Pontos TOM: Registrado ${actualPoints} vs Fórmula Esperada ${expectedStagePoints} (${row.vitorias}V-${row.empates}E-${row.derrotas}D)`);
           stageWarningsCount++;
           totalFormulaMismatches++;
         }
@@ -95,7 +96,8 @@ export async function GET() {
           jogadorId: row.jogadorId,
           categoria: row.categoria,
           pontos: actualPoints,
-          esperado: expectedPoints,
+          pontosLiga: seasonImpact,
+          esperado: expectedStagePoints,
           record: `${row.vitorias}-${row.empates}-${row.derrotas}`,
           deckNome: row.deckNome || "Sem deck",
           issues: pIssues,

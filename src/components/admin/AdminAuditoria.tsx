@@ -292,7 +292,7 @@ export function AdminAuditoria() {
                                     {p.record}
                                   </td>
                                   <td className="py-2 px-3 text-center font-bold text-emerald-400">
-                                    {p.pontos}
+                                    {p.pontos} {stg.multiplicador > 1 ? <span className="text-[10px] text-amber-300 font-normal block">({p.pontosLiga} na Liga)</span> : null}
                                   </td>
                                   <td className="py-2 px-3 text-slate-300">
                                     {p.deckNome}

@@ -41,7 +41,7 @@ export async function recalculateRankingConsolidado(targetSeason?: number) {
     }
 
     const mult = etapaInfo.multiplicador ? Number(etapaInfo.multiplicador) : 1.0;
-    const pontosPonderados = Math.round(r.pontos * mult);
+    const pontosPonderados = Number((r.pontos * mult).toFixed(1));
 
     playerStatsMap[key].pontos += pontosPonderados;
     playerStatsMap[key].vitorias += r.vitorias;
