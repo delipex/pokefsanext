@@ -29,7 +29,7 @@ export function EnergyBadge({
 
   return (
     <span
-      className={`inline-flex items-center rounded-full font-semibold transition-all backdrop-blur-md ${sizeClasses[size]} ${className}`}
+      className={`inline-flex items-center rounded-full font-semibold transition-all backdrop-blur-md whitespace-nowrap shrink-0 select-none ${sizeClasses[size]} ${className}`}
       style={{
         background: config.gradientBg,
         border: config.borderStyle,
