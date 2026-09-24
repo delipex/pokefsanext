@@ -332,17 +332,19 @@ export function MetagamePerformanceRadar({
         {/* 1. Maior Winrate */}
         {highlights.bestWinRate && (
           <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4 sm:p-5 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap mb-3">
+            <div className="flex items-center justify-between gap-2 mb-3">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-300 whitespace-nowrap shrink-0">
                 <Zap className="h-3 w-3 text-emerald-400 shrink-0" /> Maior Winrate
               </span>
-              <EnergyBadge energyRaw={highlights.bestWinRate.tipoEnergia} />
             </div>
 
             <div className="space-y-1 my-1">
-              <h3 className="text-base sm:text-lg font-bold text-white truncate">
-                {highlights.bestWinRate.deckNome}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white truncate">
+                  {highlights.bestWinRate.deckNome}
+                </h3>
+                <EnergyBadge energyRaw={highlights.bestWinRate.tipoEnergia} showLabel={false} size="sm" />
+              </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl sm:text-3xl font-black text-emerald-400 tabular-nums">
                   {highlights.bestWinRate.winRate.toFixed(1)}%
@@ -362,17 +364,19 @@ export function MetagamePerformanceRadar({
         {/* 2. Mais Campeão (Títulos e Pódios) */}
         {highlights.mostTitles && (
           <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-amber-500/[0.03] p-4 sm:p-5 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap mb-3">
+            <div className="flex items-center justify-between gap-2 mb-3">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300 whitespace-nowrap shrink-0">
                 <Crown className="h-3 w-3 text-amber-400 shrink-0" /> MAIS PÓDIOS
               </span>
-              <EnergyBadge energyRaw={highlights.mostTitles.tipoEnergia} />
             </div>
 
             <div className="space-y-1 my-1">
-              <h3 className="text-base sm:text-lg font-bold text-white truncate">
-                {highlights.mostTitles.deckNome}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white truncate">
+                  {highlights.mostTitles.deckNome}
+                </h3>
+                <EnergyBadge energyRaw={highlights.mostTitles.tipoEnergia} showLabel={false} size="sm" />
+              </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl sm:text-3xl font-black text-amber-400 tabular-nums">
                   {highlights.mostTitles.titulos} 🏆
@@ -392,17 +396,19 @@ export function MetagamePerformanceRadar({
         {/* 3. Mais Popular (Volume) */}
         {highlights.mostPopular && (
           <div className="relative overflow-hidden rounded-3xl border border-blue-500/20 bg-blue-500/[0.03] p-4 sm:p-5 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap mb-3">
+            <div className="flex items-center justify-between gap-2 mb-3">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 border border-blue-500/30 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-blue-300 whitespace-nowrap shrink-0">
                 <Flame className="h-3 w-3 text-blue-400 shrink-0" /> Mais Escolhido
               </span>
-              <EnergyBadge energyRaw={highlights.mostPopular.tipoEnergia} />
             </div>
 
             <div className="space-y-1 my-1">
-              <h3 className="text-base sm:text-lg font-bold text-white truncate">
-                {highlights.mostPopular.deckNome}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white truncate">
+                  {highlights.mostPopular.deckNome}
+                </h3>
+                <EnergyBadge energyRaw={highlights.mostPopular.tipoEnergia} showLabel={false} size="sm" />
+              </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl sm:text-3xl font-black text-blue-400 tabular-nums">
                   {highlights.mostPopular.percentMeta.toFixed(1)}%
@@ -422,17 +428,19 @@ export function MetagamePerformanceRadar({
         {/* 4. Menor Winrate (Lanterna) */}
         {highlights.lowestWinRate && (
           <div className="relative overflow-hidden rounded-3xl border border-rose-500/20 bg-rose-500/[0.03] p-4 sm:p-5 backdrop-blur-2xl shadow-xl flex flex-col justify-between">
-            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap mb-3">
+            <div className="flex items-center justify-between gap-2 mb-3">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-rose-300 whitespace-nowrap shrink-0">
                 <TrendingDown className="h-3 w-3 text-rose-400 shrink-0" /> Menor Winrate
               </span>
-              <EnergyBadge energyRaw={highlights.lowestWinRate.tipoEnergia} />
             </div>
 
             <div className="space-y-1 my-1">
-              <h3 className="text-base sm:text-lg font-bold text-white truncate">
-                {highlights.lowestWinRate.deckNome}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white truncate">
+                  {highlights.lowestWinRate.deckNome}
+                </h3>
+                <EnergyBadge energyRaw={highlights.lowestWinRate.tipoEnergia} showLabel={false} size="sm" />
+              </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl sm:text-3xl font-black text-rose-400 tabular-nums">
                   {highlights.lowestWinRate.winRate.toFixed(1)}%
@@ -555,7 +563,7 @@ export function MetagamePerformanceRadar({
                               <span className="font-bold text-white group-hover:text-amber-300 transition-colors truncate">
                                 {deck.deckNome}
                               </span>
-                              <EnergyBadge energyRaw={deck.tipoEnergia} />
+                              <EnergyBadge energyRaw={deck.tipoEnergia} size="sm" showLabel={false} />
                             </div>
                             <span className="text-[11px] text-slate-400">
                               {deck.totalAparicoes} participações registradas
