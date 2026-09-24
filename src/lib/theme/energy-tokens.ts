@@ -121,24 +121,6 @@ export const BASE_ENERGIES: Record<string, SingleEnergyInfo> = {
     bgGradient:
       "conic-gradient(from 180deg at 50% 50%, #FF4216 0deg, #EBC816 60deg, #78C850 120deg, #1593F5 180deg, #7C3AED 240deg, #D94293 300deg, #FF4216 360deg)",
   },
-  terabox: {
-    name: "multi",
-    label: "Multi",
-    hex: "#FF4216",
-    glow: "rgba(255, 203, 5, 0.55)",
-    isRainbow: true,
-    bgGradient:
-      "conic-gradient(from 180deg at 50% 50%, #FF4216 0deg, #EBC816 60deg, #78C850 120deg, #1593F5 180deg, #7C3AED 240deg, #D94293 300deg, #FF4216 360deg)",
-  },
-  toolbox: {
-    name: "multi",
-    label: "Multi",
-    hex: "#FF4216",
-    glow: "rgba(255, 203, 5, 0.55)",
-    isRainbow: true,
-    bgGradient:
-      "conic-gradient(from 180deg at 50% 50%, #FF4216 0deg, #EBC816 60deg, #78C850 120deg, #1593F5 180deg, #7C3AED 240deg, #D94293 300deg, #FF4216 360deg)",
-  },
 };
 
 export interface MultiEnergyConfig {
@@ -156,8 +138,8 @@ export function parseEnergyTypes(raw?: string): SingleEnergyInfo[] {
   if (!raw) return [BASE_ENERGIES.colorless];
   const lower = raw.toLowerCase().trim();
 
-  // Caso especial: se for multi, rainbow, terabox ou toolbox
-  if (lower === "multi" || lower === "rainbow" || lower === "terabox" || lower === "toolbox") {
+  // Caso especial: se for multi ou rainbow
+  if (lower === "multi" || lower === "rainbow") {
     return [BASE_ENERGIES.multi];
   }
 
