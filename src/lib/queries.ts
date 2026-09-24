@@ -651,7 +651,15 @@ export async function getAllJogadores() {
     // Silencioso
   }
 
-  return readDataFile<any[]>("jogadores.json", []);
+  const raw = readDataFile<any[]>("jogadores.json", []);
+  return raw.map((j, i) => ({
+    id: String(j.id || j.ID || `anon-${i + 1}`).trim(),
+    nome: String(j.nome || j.jogador || j.Jogador || "Desconhecido").trim(),
+    categoria: j.categoria || j.Categoria || "Master",
+    ativo: true,
+    deckAtivoNome: j.deckAtivoNome || null,
+    decklistTexto: j.decklistTexto || null,
+  }));
 }
 
 export async function getSubmittedDecklists() {

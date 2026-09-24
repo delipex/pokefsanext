@@ -368,10 +368,13 @@ export function AdminDashboard({
 
   // Selecionar Jogador para Edição
   const handleSelectPlayerToEdit = (p: any) => {
-    setEditingPlayerId(p.id);
-    setNewPlayerId(p.id);
-    setNewPlayerName(p.nome);
-    setNewPlayerCategory(p.categoria || "Master");
+    const pId = String(p.id || p.ID || "");
+    const pName = String(p.nome || p.jogador || p.Jogador || "");
+    const pCat = p.categoria || p.Categoria || "Master";
+    setEditingPlayerId(pId);
+    setNewPlayerId(pId);
+    setNewPlayerName(pName);
+    setNewPlayerCategory(pCat);
     setPlayerMessage("");
   };
 
@@ -1391,33 +1394,38 @@ export function AdminDashboard({
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {players
-                    .filter(
-                      (p) =>
-                        p.nome.toLowerCase().includes(playerSearch.toLowerCase()) ||
-                        p.id.includes(playerSearch)
-                    )
-                    .map((p) => {
-                      const isBeingEdited = editingPlayerId === p.id;
+                    .filter((p) => {
+                      const pName = String(p.nome || p.jogador || p.Jogador || "").toLowerCase();
+                      const pId = String(p.id || p.ID || "").toLowerCase();
+                      const q = (playerSearch || "").toLowerCase().trim();
+                      return pName.includes(q) || pId.includes(q);
+                    })
+                    .map((p, idx) => {
+                      const pId = String(p.id || p.ID || `anon-${idx + 1}`);
+                      const pName = String(p.nome || p.jogador || p.Jogador || "Desconhecido");
+                      const pCat = p.categoria || p.Categoria || "Master";
+                      const isBeingEdited = editingPlayerId === pId;
+
                       return (
                         <tr
-                          key={p.id}
+                          key={pId}
                           onClick={() => handleSelectPlayerToEdit(p)}
                           className={`hover:bg-slate-800/50 cursor-pointer transition-colors ${
                             isBeingEdited ? "bg-amber-500/10 border-l-2 border-amber-400" : ""
                           }`}
                         >
                           <td className="py-2 pl-3 font-bold text-white flex items-center gap-2">
-                            <span>{p.nome}</span>
+                            <span>{pName}</span>
                             {isBeingEdited && (
                               <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono">
                                 Editando
                               </span>
                             )}
                           </td>
-                          <td className="px-3 py-2 tabular-nums font-semibold text-slate-400">{p.id}</td>
+                          <td className="px-3 py-2 tabular-nums font-semibold text-slate-400">{pId}</td>
                           <td className="px-3 py-2 text-center">
                             <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-300">
-                              {p.categoria}
+                              {pCat}
                             </span>
                           </td>
                           <td className="py-2 pr-3 text-right">
@@ -1432,7 +1440,7 @@ export function AdminDashboard({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDeletePlayer(p.id, p.nome)}
+                                onClick={() => handleDeletePlayer(pId, pName)}
                                 className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                                 title="Excluir Jogador"
                               >
