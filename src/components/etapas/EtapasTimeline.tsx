@@ -272,7 +272,16 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
                             {renderDeckBadge(res.deckNome)}
                           </td>
                           <td className="px-3 py-2.5 text-right font-black text-sm text-yellow-400 tabular-nums">
-                            {res.pontos}
+                            {selectedEtapa.multiplicador && Number(selectedEtapa.multiplicador) > 1 ? (
+                              <div>
+                                <span className="block">{Number((res.pontos * Number(selectedEtapa.multiplicador)).toFixed(1))} PTS</span>
+                                <span className="block text-[10px] text-yellow-400/70 font-semibold">
+                                  {res.pontos} &times; {selectedEtapa.multiplicador}x
+                                </span>
+                              </div>
+                            ) : (
+                              <span>{res.pontos} PTS</span>
+                            )}
                           </td>
                           <td className="px-3 py-2.5 text-center tabular-nums text-slate-300">
                             <span className="text-emerald-400 font-bold">{res.vitorias}</span>

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { jogadores, rankingConsolidado, etapaResultados, jogadorDecklists } from "@/db/schema";
+import { jogadores, rankingConsolidado, etapas, etapaResultados, jogadorDecklists } from "@/db/schema";
 import { eq, desc, or } from "drizzle-orm";
 import { getAllDecks, getNextEvent } from "@/lib/queries";
 import { PlayerPortalDashboard } from "@/components/portal/PlayerPortalDashboard";
@@ -63,14 +63,28 @@ export default async function PlayerPortalPage() {
     rankingItem = rankingRows[0] || null;
   } catch {}
 
-  // Fetch stage match history (por ID ou por Nome)
+  // Fetch stage match history (por ID ou por Nome) com multiplicador oficial
   let stageResults: any[] = [];
   try {
-    stageResults = await db
-      .select()
-      .from(etapaResultados)
-      .where(or(eq(etapaResultados.jogadorId, popId), eq(etapaResultados.jogadorNome, player.nome)))
-      .orderBy(desc(etapaResultados.etapaData));
+    const [allEtapasRows, rawResults] = await Promise.all([
+      db.select().from(etapas),
+      db
+        .select()
+        .from(etapaResultados)
+        .where(or(eq(etapaResultados.jogadorId, popId), eq(etapaResultados.jogadorNome, player.nome)))
+        .orderBy(desc(etapaResultados.etapaData)),
+    ]);
+    const etapaMap = new Map(allEtapasRows.map((e) => [e.data, e]));
+    stageResults = rawResults.map((r) => {
+      const eInfo = etapaMap.get(r.etapaData);
+      const mult = eInfo?.multiplicador ? Number(eInfo.multiplicador) : 1.0;
+      return {
+        ...r,
+        tipo: eInfo?.tipo || "Liga",
+        multiplicador: mult,
+        pontosFinal: Number((r.pontos * mult).toFixed(1)),
+      };
+    });
   } catch {}
 
   // Fetch decks, next event and submitted decklist

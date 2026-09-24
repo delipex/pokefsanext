@@ -372,7 +372,18 @@ export function PlayerPortalDashboard({
                     <td className="py-2.5 px-3 text-center text-slate-300 tabular-nums">
                       {r.vitorias}-{r.derrotas}-{r.empates}
                     </td>
-                    <td className="py-2.5 px-3 text-center font-black text-amber-400 tabular-nums">{Math.round(r.pontos)}</td>
+                    <td className="py-2.5 px-3 text-center font-black text-amber-400 tabular-nums">
+                      {r.multiplicador && Number(r.multiplicador) > 1 ? (
+                        <div>
+                          <span>{r.pontosFinal ?? Number((r.pontos * r.multiplicador).toFixed(1))} PTS</span>
+                          <span className="block text-[10px] text-amber-400/70 font-semibold">
+                            {r.pontos} &times; {r.multiplicador}x
+                          </span>
+                        </div>
+                      ) : (
+                        <span>{Math.round(r.pontos)} PTS</span>
+                      )}
+                    </td>
                     <td className="py-2.5 pr-4 font-medium text-slate-300">{r.deckNome || "—"}</td>
                   </tr>
                 ))}

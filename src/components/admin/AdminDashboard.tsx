@@ -1315,7 +1315,16 @@ export function AdminDashboard({
                           {row.vitorias}-{row.derrotas}-{row.empates}
                         </td>
                         <td className="py-2.5 px-3 text-center font-black text-amber-400">
-                          {Math.round(row.pontos * multiplier)}
+                          {multiplier > 1 ? (
+                            <div>
+                              <span>{Number((row.pontos * multiplier).toFixed(1))} PTS</span>
+                              <span className="block text-[10px] text-amber-300 font-normal">
+                                ({row.pontos} &times; {multiplier}x)
+                              </span>
+                            </div>
+                          ) : (
+                            <span>{row.pontos} PTS</span>
+                          )}
                         </td>
                         <td className="py-2.5 pr-4">
                           <select

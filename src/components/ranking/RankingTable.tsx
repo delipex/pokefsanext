@@ -438,8 +438,9 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                   const vPercent = total > 0 ? (v / total) * 100 : 0;
                   const ePercent = total > 0 ? (e / total) * 100 : 0;
                   const dPercent = total > 0 ? (d / total) * 100 : 0;
-                  const mult = currentStage?.multiplicador || 1;
-                  const basePts = mult > 0 ? result.pontos / mult : result.pontos;
+                  const mult = currentStage?.multiplicador ? Number(currentStage.multiplicador) : 1;
+                  const basePts = Number(result.pontos) || 0;
+                  const finalPts = Number((basePts * mult).toFixed(1));
 
                   return (
                     <tr
@@ -466,11 +467,11 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                       {/* PONTOS COM BASE × MULTIPLICADOR */}
                       <td className="px-6 py-4 text-center">
                         <span className="font-bold text-base text-[#ffcb05] tracking-wide block">
-                          {result.pontos} PTS
+                          {finalPts} PTS
                         </span>
                         {mult !== 1 && (
                           <span className="text-[11px] font-semibold text-[#ffcb05]/80 block mt-0.5">
-                            {Number.isInteger(basePts) ? basePts : basePts.toFixed(1)} &times; {mult}x
+                            {basePts} &times; {mult}x
                           </span>
                         )}
                       </td>
