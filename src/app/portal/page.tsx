@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { jogadores, rankingConsolidado, etapas, etapaResultados, jogadorDecklists, solicitacoesDecks } from "@/db/schema";
 import { eq, desc, or } from "drizzle-orm";
-import { getAllDecks, getNextEvent, getRanking, getEtapasWithSummary, getConfigMap } from "@/lib/queries";
+import { getAllDecks, getNextEvent, getRanking, getEtapasWithSummary, getConfigMap, getScoresAntigos, getCampeoes } from "@/lib/queries";
 import { PlayerPortalDashboard } from "@/components/portal/PlayerPortalDashboard";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
 import fs from "fs";
@@ -126,8 +126,17 @@ export default async function PlayerPortalPage() {
     } catch {}
   }
 
-  // Fetch decks, next event, deck requests e submitted decklist
-  const [allDecks, nextEvent, submittedDecklistRows, configMap, userDeckRequests] = await Promise.all([
+  // Fetch decks, next event, deck requests, submitted decklist, ranking geral e scores antigos
+  const [
+    allDecks,
+    nextEvent,
+    submittedDecklistRows,
+    configMap,
+    userDeckRequests,
+    allRanking,
+    allScoresAntigos,
+    allChampions,
+  ] = await Promise.all([
     getAllDecks(),
     getNextEvent(),
     db
@@ -144,6 +153,9 @@ export default async function PlayerPortalPage() {
       .where(eq(solicitacoesDecks.jogadorId, cleanPopId))
       .orderBy(desc(solicitacoesDecks.createdAt))
       .catch(() => []),
+    getRanking().catch(() => []),
+    getScoresAntigos().catch(() => []),
+    getCampeoes().catch(() => []),
   ]);
 
   const submittedDecklist = submittedDecklistRows[0] || null;
@@ -151,6 +163,43 @@ export default async function PlayerPortalPage() {
     configMap.exigirDecklist === "true" ||
     configMap.premierExigirDecklist === "true" ||
     configMap.inscricoesAtivas === "true";
+
+  // Classificação Geral e por Categoria
+  const totalAtletas = allRanking.length;
+  const pGeralIdx = allRanking.findIndex(
+    (r: any) =>
+      (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
+      (r.jogadorNome && r.jogadorNome.toLowerCase().trim() === cleanPlayerName)
+  );
+  const posicaoGeral = pGeralIdx >= 0 ? pGeralIdx + 1 : null;
+
+  const catClean = (player.categoria || "Master").toLowerCase().trim();
+  const rankingCat = allRanking.filter(
+    (r: any) => (r.categoria || "Master").toLowerCase().trim() === catClean
+  );
+  const pCatIdx = rankingCat.findIndex(
+    (r: any) =>
+      (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
+      (r.jogadorNome && r.jogadorNome.toLowerCase().trim() === cleanPlayerName)
+  );
+  const posicaoCategoria = pCatIdx >= 0 ? pCatIdx + 1 : null;
+
+  // Trajetória Histórica (Multi-Temporadas)
+  const historicoTemporadas = allScoresAntigos.filter(
+    (s: any) =>
+      s.jogador &&
+      (s.jogador.toLowerCase().trim() === cleanPlayerName ||
+        (cleanPopId && String(s.id) === cleanPopId))
+  );
+
+  // Títulos e Reconhecimentos
+  const titulos = allChampions.filter(
+    (c: any) =>
+      (c.Campeao && c.Campeao.toLowerCase().trim() === cleanPlayerName) ||
+      (c.campeao && c.campeao.toLowerCase().trim() === cleanPlayerName) ||
+      (c.Vice && c.Vice.toLowerCase().trim() === cleanPlayerName) ||
+      (c.vice && c.vice.toLowerCase().trim() === cleanPlayerName)
+  );
 
   return (
     <PlayerPortalDashboard
@@ -162,6 +211,11 @@ export default async function PlayerPortalPage() {
       submittedDecklist={submittedDecklist}
       exigirDecklist={exigirDecklist}
       deckRequests={userDeckRequests || []}
+      posicaoGeral={posicaoGeral}
+      posicaoCategoria={posicaoCategoria}
+      totalAtletas={totalAtletas}
+      historicoTemporadas={historicoTemporadas}
+      titulos={titulos}
     />
   );
 }

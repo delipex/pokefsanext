@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Trophy,
@@ -20,10 +20,22 @@ import {
   X,
   Layers,
   HelpCircle,
+  TrendingUp,
+  ExternalLink,
+  Flame,
+  Shield,
+  Swords,
+  Target,
+  BarChart3,
+  History,
+  Medal,
+  ChevronRight,
+  Zap,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { CategoryBadge } from "../ui/CategoryBadge";
 import { PokeballIcon } from "../ui/BrandLogo";
+import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 
 interface PlayerPortalDashboardProps {
   player: any;
@@ -34,6 +46,11 @@ interface PlayerPortalDashboardProps {
   submittedDecklist?: any | null;
   exigirDecklist?: boolean;
   deckRequests?: any[];
+  posicaoGeral?: number | null;
+  posicaoCategoria?: number | null;
+  totalAtletas?: number;
+  historicoTemporadas?: any[];
+  titulos?: any[];
 }
 
 export function PlayerPortalDashboard({
@@ -45,6 +62,11 @@ export function PlayerPortalDashboard({
   submittedDecklist,
   exigirDecklist = false,
   deckRequests = [],
+  posicaoGeral = null,
+  posicaoCategoria = null,
+  totalAtletas = 0,
+  historicoTemporadas = [],
+  titulos = [],
 }: PlayerPortalDashboardProps) {
   const router = useRouter();
 
@@ -206,10 +228,6 @@ export function PlayerPortalDashboard({
     }
   };
 
-  const totalMatches = (rankingItem?.vitorias || 0) + (rankingItem?.derrotas || 0) + (rankingItem?.empates || 0);
-  const winRate = totalMatches > 0 ? (((rankingItem?.vitorias || 0) / totalMatches) * 100).toFixed(1) : "0.0";
-  const activeDeckObj = allDecks.find((d) => d.nome.toLowerCase() === selectedDeck.toLowerCase());
-
   // Helper de energia para decks da tabela
   const getDeckEnergy = (deckName?: string | null) => {
     if (!deckName) return "colorless";
@@ -217,9 +235,207 @@ export function PlayerPortalDashboard({
     return found?.tipoEnergia || "colorless";
   };
 
+  // Helper para buscar dados de deck
+  const getDeckInfo = (deckName?: string | null) => {
+    if (!deckName) return null;
+    return allDecks.find((d) => d.nome.toLowerCase() === deckName.toLowerCase()) || null;
+  };
+
+  // --- ANÁLISE DE PERFORMANCE & DECKS ---
+
+  // 1. Agrupamento por Deck a partir das etapas jogadas
+  const deckStatsList = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        deckNome: string;
+        tipoEnergia: string;
+        imagem: string | null;
+        icone: string | null;
+        limitless: string | null;
+        etapasCount: number;
+        vitorias: number;
+        derrotas: number;
+        empates: number;
+        pontosTotal: number;
+        melhorColocacao: number;
+        podiosCount: number;
+      }
+    > = {};
+
+    const invalidNames = [
+      "sem deck",
+      "sem deck registrado",
+      "não registrado",
+      "outros",
+      "",
+    ];
+
+    for (const r of stageResults) {
+      const rawName = (r.deckNome || "").trim();
+      if (!rawName || invalidNames.includes(rawName.toLowerCase())) continue;
+
+      if (!map[rawName]) {
+        const foundDeck = allDecks.find(
+          (d) => d.nome.toLowerCase() === rawName.toLowerCase()
+        );
+        map[rawName] = {
+          deckNome: rawName,
+          tipoEnergia: foundDeck?.tipoEnergia || "colorless",
+          imagem: foundDeck?.imagem || null,
+          icone: foundDeck?.icone || null,
+          limitless: foundDeck?.limitless || null,
+          etapasCount: 0,
+          vitorias: 0,
+          derrotas: 0,
+          empates: 0,
+          pontosTotal: 0,
+          melhorColocacao: 999,
+          podiosCount: 0,
+        };
+      }
+
+      const item = map[rawName];
+      item.etapasCount += 1;
+      item.vitorias += Number(r.vitorias) || 0;
+      item.derrotas += Number(r.derrotas) || 0;
+      item.empates += Number(r.empates) || 0;
+      const pts = r.pontosFinal ?? (Number(r.pontos) || 0);
+      item.pontosTotal += pts;
+      const col = Number(r.colocacao) || 999;
+      if (col < item.melhorColocacao) item.melhorColocacao = col;
+      if (col <= 4) item.podiosCount += 1;
+    }
+
+    const list = Object.values(map).map((d) => {
+      const totalPartidas = d.vitorias + d.derrotas + d.empates;
+      const winRate = totalPartidas > 0 ? (d.vitorias / totalPartidas) * 100 : 0;
+      return {
+        ...d,
+        totalPartidas,
+        winRate: Number(winRate.toFixed(1)),
+        pontosTotal: Number(d.pontosTotal.toFixed(1)),
+      };
+    });
+
+    // Ordenação de destaque: 1º Pontos Totais, 2º Melhor Colocação, 3º Win Rate
+    list.sort((a, b) => {
+      if (b.pontosTotal !== a.pontosTotal) return b.pontosTotal - a.pontosTotal;
+      if (a.melhorColocacao !== b.melhorColocacao) return a.melhorColocacao - b.melhorColocacao;
+      return b.winRate - a.winRate;
+    });
+
+    return list;
+  }, [stageResults, allDecks]);
+
+  // Estatísticas Gerais de Partidas
+  const totalMatches = (rankingItem?.vitorias || 0) + (rankingItem?.derrotas || 0) + (rankingItem?.empates || 0);
+  const winRate = totalMatches > 0 ? (((rankingItem?.vitorias || 0) / totalMatches) * 100).toFixed(1) : "0.0";
+  const lethalityRate = totalMatches > 0 ? (((rankingItem?.vitorias || 0) / totalMatches) * 100).toFixed(1) : "0.0";
+  const undefeatedRate = totalMatches > 0 ? ((((rankingItem?.vitorias || 0) + (rankingItem?.empates || 0)) / totalMatches) * 100).toFixed(1) : "0.0";
+
+  const participacoes = rankingItem?.participacoes || stageResults.length || 0;
+  const podiumConversion = participacoes > 0 ? (((rankingItem?.podios || 0) / participacoes) * 100).toFixed(0) : "0";
+  const pointsPerStage = participacoes > 0 ? ((rankingItem?.pontos || 0) / participacoes).toFixed(1) : "0.0";
+
+  // Identificação do "Melhor Deck"
+  const melhorDeck = useMemo(() => {
+    if (deckStatsList.length > 0) {
+      return deckStatsList[0];
+    }
+    const activeDeckName = selectedDeck || player.deckAtivoNome || allDecks[0]?.nome || "Mewtwo Ex";
+    const foundDeck = allDecks.find(
+      (d) => d.nome.toLowerCase() === activeDeckName.toLowerCase()
+    );
+    return {
+      deckNome: activeDeckName,
+      tipoEnergia: foundDeck?.tipoEnergia || "colorless",
+      imagem: foundDeck?.imagem || null,
+      icone: foundDeck?.icone || null,
+      limitless: foundDeck?.limitless || null,
+      etapasCount: 0,
+      vitorias: rankingItem?.vitorias || 0,
+      derrotas: rankingItem?.derrotas || 0,
+      empates: rankingItem?.empates || 0,
+      totalPartidas: totalMatches,
+      winRate: Number(winRate),
+      pontosTotal: rankingItem ? Math.round(rankingItem.pontos) : 0,
+      melhorColocacao: rankingItem?.podios > 0 ? 1 : 4,
+      podiosCount: rankingItem?.podios || 0,
+    };
+  }, [deckStatsList, selectedDeck, player, allDecks, rankingItem, totalMatches, winRate]);
+
+  // Estilo temático da energia do Melhor Deck
+  const melhorDeckEnergyConfig = useMemo(() => {
+    return getMultiEnergyConfig(melhorDeck.tipoEnergia);
+  }, [melhorDeck.tipoEnergia]);
+
+  // Percentual dos pontos gerados pelo melhor deck
+  const percentualPontosMelhorDeck = useMemo(() => {
+    const totalPts = rankingItem ? Number(rankingItem.pontos) : 0;
+    if (totalPts <= 0 || melhorDeck.pontosTotal <= 0) return 0;
+    return Math.min(100, Math.round((melhorDeck.pontosTotal / totalPts) * 100));
+  }, [rankingItem, melhorDeck]);
+
+  // Trajetória de etapas em ordem cronológica para forma recente
+  const chronologicalStages = useMemo(() => {
+    return [...stageResults].sort((a, b) => a.etapaData.localeCompare(b.etapaData));
+  }, [stageResults]);
+
+  // Helper de badges de colocação
+  const getPlacementBadge = (colocacao: number) => {
+    if (colocacao === 1) {
+      return {
+        label: "🏆 1º Lugar",
+        short: "1º",
+        bg: "bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30 font-black",
+        border: "border-amber-400/50",
+        text: "text-amber-400",
+      };
+    }
+    if (colocacao === 2) {
+      return {
+        label: "🥈 2º Lugar",
+        short: "2º",
+        bg: "bg-slate-200 text-slate-950 shadow-md shadow-white/20 font-black",
+        border: "border-slate-300/50",
+        text: "text-slate-200",
+      };
+    }
+    if (colocacao === 3) {
+      return {
+        label: "🥉 3º Lugar",
+        short: "3º",
+        bg: "bg-amber-700 text-white shadow-md shadow-amber-700/20 font-black",
+        border: "border-amber-600/50",
+        text: "text-amber-500",
+      };
+    }
+    if (colocacao === 4) {
+      return {
+        label: "⭐ 4º Lugar (Top 4)",
+        short: "4º",
+        bg: "bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold",
+        border: "border-purple-500/50",
+        text: "text-purple-400",
+      };
+    }
+    return {
+      label: `${colocacao}º Lugar`,
+      short: `${colocacao}º`,
+      bg: "bg-slate-800 text-slate-300 font-bold",
+      border: "border-white/10",
+      text: "text-slate-400",
+    };
+  };
+
+  const activeDeckObj = allDecks.find((d) => d.nome.toLowerCase() === selectedDeck.toLowerCase());
+
   return (
     <div className="max-w-5xl mx-auto py-6 px-3 space-y-6">
-      {/* 1. PASSAPORTE OFICIAL PLAY! POKÉMON (Crachá do Competidor) */}
+      {/* ========================================================================= */}
+      {/* 1. PASSAPORTE OFICIAL PLAY! POKÉMON (CRACHÁ DO COMPETIDOR) */}
+      {/* ========================================================================= */}
       <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 shadow-2xl p-6 sm:p-8">
         {/* Marca d'água oficial & Glow holográfico */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -238,27 +454,48 @@ export function PlayerPortalDashboard({
             </div>
 
             <div>
-              <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
                   PLAY! POKÉMON COMPETITOR
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Temporada 5
                 </span>
+                {posicaoGeral && (
+                  <span className="text-[10px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/40 px-2.5 py-0.5 rounded-full">
+                    #{posicaoGeral}º Geral {totalAtletas > 0 && `(de ${totalAtletas})`}
+                  </span>
+                )}
+                {posicaoCategoria && (
+                  <span className="text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                    #{posicaoCategoria}º na Divisão
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-3 flex-wrap mt-1">
+
+              <div className="flex items-center gap-3 flex-wrap mt-1.5">
                 <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                   {player.nome}
                 </h1>
                 <CategoryBadge category={player.categoria} />
               </div>
-              <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-3 flex-wrap">
+
+              <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2.5 flex-wrap">
                 <span>POP ID: <strong className="text-white tabular-nums font-bold">{player.id}</strong></span>
                 <span>•</span>
                 <span className="text-amber-300 font-bold">{player.categoria.toUpperCase()} DIVISION</span>
                 <span>•</span>
                 <span>{player.cidade || "Feira de Santana - BA"}</span>
               </p>
+
+              {titulos.length > 0 && (
+                <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-400/10 border border-amber-400/40 text-amber-300 text-xs font-black shadow-sm">
+                  <span>👑</span>
+                  <span>
+                    Campeão da Liga Atlântica ({titulos.map((t) => t.Temporada || t.temporada).join(", ")})
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -306,7 +543,430 @@ export function PlayerPortalDashboard({
         </div>
       </div>
 
-      {/* 2. PRÓXIMO TORNEIO & CONTROLE DE DECK */}
+      {/* ========================================================================= */}
+      {/* 2. PANORAMA DO MELHOR DECK ("DECK ASSINATURA & CARRO-CHEFE") */}
+      {/* ========================================================================= */}
+      <div
+        className="relative overflow-hidden rounded-3xl border p-6 sm:p-8 backdrop-blur-2xl shadow-2xl transition-all"
+        style={{
+          background: melhorDeckEnergyConfig.gradientBg,
+          borderColor: `${melhorDeckEnergyConfig.primaryColor}55`,
+          boxShadow: `0 15px 35px -10px ${melhorDeckEnergyConfig.glowColor}`,
+        }}
+      >
+        <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8">
+          {/* Visual da Carta / Foto do Deck */}
+          <div className="shrink-0 relative group">
+            {melhorDeck.imagem ? (
+              <div
+                className="relative w-36 h-48 sm:w-44 sm:h-60 rounded-2xl overflow-hidden border-2 bg-slate-950 shadow-2xl transition-transform duration-300 group-hover:scale-105"
+                style={{
+                  borderColor: `${melhorDeckEnergyConfig.primaryColor}88`,
+                  boxShadow: `0 0 25px ${melhorDeckEnergyConfig.glowColor}`,
+                }}
+              >
+                {/* Imagem oficial da carta Pokémon */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={melhorDeck.imagem}
+                  alt={melhorDeck.deckNome}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-40 pointer-events-none" />
+              </div>
+            ) : (
+              <div
+                className="w-36 h-48 sm:w-44 sm:h-60 rounded-2xl flex flex-col items-center justify-center p-4 text-center border-2 bg-slate-950/80 shadow-2xl"
+                style={{
+                  borderColor: `${melhorDeckEnergyConfig.primaryColor}66`,
+                }}
+              >
+                {melhorDeck.icone ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={melhorDeck.icone} alt="" className="w-20 h-20 object-contain drop-shadow" />
+                ) : (
+                  <Flame className="w-16 h-16 text-amber-400" />
+                )}
+                <span className="text-xs font-black text-white mt-2 leading-tight">{melhorDeck.deckNome}</span>
+              </div>
+            )}
+
+            {/* Selo no canto da carta */}
+            <div className="absolute -top-2.5 -left-2.5 bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-lg flex items-center gap-1">
+              <Zap className="h-3 w-3" />
+              <span>CARRO-CHEFE</span>
+            </div>
+          </div>
+
+          {/* Dados & Estatísticas de Desempenho do Melhor Deck */}
+          <div className="flex-1 w-full space-y-4">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                  ⚡ PANORAMA DO MELHOR DECK
+                </span>
+                <span className="text-[10px] font-bold text-slate-300 bg-white/5 px-2 py-0.5 rounded-full">
+                  Maior Eficiência na Temporada
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                    {melhorDeck.deckNome}
+                  </h2>
+                  <EnergyBadge energyRaw={melhorDeck.tipoEnergia} size="md" />
+                </div>
+
+                {melhorDeck.limitless && (
+                  <a
+                    href={melhorDeck.limitless}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-white bg-blue-600/15 hover:bg-blue-600 border border-blue-500/30 px-3 py-1.5 rounded-xl transition-all"
+                  >
+                    <span>Metagame Limitless</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-300 mt-1">
+                Arquétipo de maior rendimento competitivo do atleta.
+                {percentualPontosMelhorDeck > 0 && (
+                  <span className="text-amber-300 font-bold ml-1">
+                    Gerou {percentualPontosMelhorDeck}% de todos os seus pontos oficiais nesta edição.
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {/* Pilares Bento do Melhor Deck */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+              <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                  Melhor Resultado
+                </span>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="text-xl font-black text-white">
+                    {melhorDeck.melhorColocacao !== 999 ? `${melhorDeck.melhorColocacao}º` : "-"}
+                  </span>
+                  {melhorDeck.melhorColocacao <= 4 && (
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-400 text-slate-950">
+                      PÓDIO
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Colocação Máxima</span>
+              </div>
+
+              <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                  Aproveitamento
+                </span>
+                <span className="text-xl font-black text-emerald-400 mt-1 block">
+                  {melhorDeck.winRate}%
+                </span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Win Rate com o Deck</span>
+              </div>
+
+              <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                  Recorde Oficial
+                </span>
+                <div className="text-xl font-black text-white mt-1">
+                  <span className="text-emerald-400">{melhorDeck.vitorias}V</span>{" "}
+                  <span className="text-rose-400">{melhorDeck.derrotas}D</span>
+                  {melhorDeck.empates > 0 && <span className="text-slate-400 text-xs font-bold"> {melhorDeck.empates}E</span>}
+                </div>
+                <span className="text-[10px] text-slate-400 block mt-0.5">
+                  {melhorDeck.etapasCount} torneio(s) jogado(s)
+                </span>
+              </div>
+
+              <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                  Pontos Gerados
+                </span>
+                <span className="text-xl font-black text-amber-400 mt-1 block">
+                  {melhorDeck.pontosTotal} <span className="text-xs font-bold text-amber-300">PTS</span>
+                </span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Acumulado no Circuito</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. ARSENAL DE DECKS NA TEMPORADA (Se pilotou mais de um arquétipo) */}
+      {/* ========================================================================= */}
+      {deckStatsList.length > 1 && (
+        <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center gap-2">
+              <Swords className="h-4 w-4 text-amber-400" />
+              <h3 className="text-base font-black text-white">
+                Arsenal de Arquétipos Disputados ({deckStatsList.length})
+              </h3>
+            </div>
+            <span className="text-xs text-slate-400">Distribuição ao longo das etapas</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {deckStatsList.map((d, idx) => {
+              const energyCfg = getMultiEnergyConfig(d.tipoEnergia);
+              return (
+                <div
+                  key={idx}
+                  className="rounded-2xl border p-4 bg-slate-950/80 transition-all hover:border-white/20 space-y-3"
+                  style={{
+                    borderColor: idx === 0 ? `${energyCfg.primaryColor}55` : "rgba(255, 255, 255, 0.08)",
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <EnergyBadge energyRaw={d.tipoEnergia} size="sm" showLabel={false} />
+                      <span className="font-bold text-white text-sm truncate max-w-[170px]">
+                        {d.deckNome}
+                      </span>
+                    </div>
+                    {idx === 0 && (
+                      <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
+                        TOP 1
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5 text-xs text-slate-300">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Torneios Disputados:</span>
+                      <strong className="text-white">{d.etapasCount} etapa(s)</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Score com o Deck:</span>
+                      <strong className="text-white">
+                        <span className="text-emerald-400">{d.vitorias}V</span> -{" "}
+                        <span className="text-rose-400">{d.derrotas}D</span> - {d.empates}E
+                      </strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Melhor Colocação:</span>
+                      <strong className="text-amber-400">
+                        {d.melhorColocacao !== 999 ? `${d.melhorColocacao}º Lugar` : "-"}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Pontos Conquistados:</span>
+                      <strong className="text-white font-bold">{d.pontosTotal} PTS</strong>
+                    </div>
+                  </div>
+
+                  {/* Barra de Win Rate */}
+                  <div>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span className="text-slate-400">Win Rate:</span>
+                      <span className="font-bold text-emerald-400">{d.winRate}%</span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, d.winRate)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 4. RAIO-X DE DESEMPENHO & PILARES DE EFICIÊNCIA */}
+      {/* ========================================================================= */}
+      <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 sm:p-7 shadow-xl space-y-6">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+              <BarChart3 className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-white">
+                Raio-X de Desempenho & Pilares de Eficiência
+              </h3>
+              <p className="text-xs text-slate-400">
+                Diagnóstico estatístico da performance do competidor no circuito
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 4A. Forma Recente (Linha do Tempo de Colocações Etapa a Etapa) */}
+        {chronologicalStages.length > 0 && (
+          <div className="rounded-2xl bg-slate-950 p-4 sm:p-5 border border-white/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5 text-amber-400" />
+                <span>Forma Recente (Trajetória Etapa a Etapa)</span>
+              </span>
+              <span className="text-[11px] text-slate-400">Cronológico</span>
+            </div>
+
+            <div className="flex items-center gap-3 overflow-x-auto py-2">
+              {chronologicalStages.map((stg, i) => {
+                const badge = getPlacementBadge(Number(stg.colocacao) || 999);
+                return (
+                  <div
+                    key={i}
+                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-900/90 border border-white/10 shrink-0 min-w-[110px] space-y-1.5"
+                  >
+                    <span className="text-[10px] font-bold text-slate-400">{stg.etapaData}</span>
+                    <span className={`px-2.5 py-1 rounded-xl text-xs ${badge.bg}`}>
+                      {badge.label}
+                    </span>
+                    <div className="text-[11px] text-slate-300 font-semibold">
+                      <span>{stg.pontosFinal ?? stg.pontos} PTS</span>
+                    </div>
+                    {stg.deckNome && (
+                      <span className="text-[10px] text-slate-400 truncate max-w-[100px]" title={stg.deckNome}>
+                        {stg.deckNome}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 4B. Os 4 Pilares de Eficiência Competitiva */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="rounded-2xl bg-slate-950 p-4 border border-white/5 space-y-1">
+            <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
+              <Swords className="h-3.5 w-3.5" />
+              <span>Taxa de Letalidade</span>
+            </div>
+            <div className="text-2xl font-black text-white">{lethalityRate}%</div>
+            <p className="text-[10px] text-slate-400">Vitórias puras em partidas oficiais</p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-950 p-4 border border-white/5 space-y-1">
+            <div className="flex items-center gap-1.5 text-blue-400 text-xs font-bold">
+              <Shield className="h-3.5 w-3.5" />
+              <span>Invencibilidade</span>
+            </div>
+            <div className="text-2xl font-black text-white">{undefeatedRate}%</div>
+            <p className="text-[10px] text-slate-400">Partidas sem sofrer derrota (V + E)</p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-950 p-4 border border-white/5 space-y-1">
+            <div className="flex items-center gap-1.5 text-purple-400 text-xs font-bold">
+              <Target className="h-3.5 w-3.5" />
+              <span>Conversão em Pódio</span>
+            </div>
+            <div className="text-2xl font-black text-white">{podiumConversion}%</div>
+            <p className="text-[10px] text-slate-400">Torneios que resultaram em Top 4</p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-950 p-4 border border-white/5 space-y-1">
+            <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
+              <Award className="h-3.5 w-3.5" />
+              <span>Eficiência por Etapa</span>
+            </div>
+            <div className="text-2xl font-black text-white">{pointsPerStage} <span className="text-xs text-amber-300">PTS</span></div>
+            <p className="text-[10px] text-slate-400">Média de pontos conquistados por evento</p>
+          </div>
+        </div>
+
+        {/* 4C. Balanço de Partidas (Distribuição Visual) */}
+        {totalMatches > 0 && (
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-300">Balanço Global de Partidas ({totalMatches} disputadas)</span>
+              <span className="text-slate-400">
+                <span className="text-emerald-400 font-bold">{rankingItem?.vitorias || 0}V</span> •{" "}
+                <span className="text-amber-400 font-bold">{rankingItem?.empates || 0}E</span> •{" "}
+                <span className="text-rose-400 font-bold">{rankingItem?.derrotas || 0}D</span>
+              </span>
+            </div>
+
+            <div className="h-3 w-full rounded-full bg-slate-950 overflow-hidden flex p-0.5 border border-white/10">
+              <div
+                className="h-full bg-emerald-500 rounded-l-full transition-all"
+                style={{ width: `${((rankingItem?.vitorias || 0) / totalMatches) * 100}%` }}
+                title={`${rankingItem?.vitorias || 0} Vitórias`}
+              />
+              <div
+                className="h-full bg-amber-400 transition-all"
+                style={{ width: `${((rankingItem?.empates || 0) / totalMatches) * 100}%` }}
+                title={`${rankingItem?.empates || 0} Empates`}
+              />
+              <div
+                className="h-full bg-rose-500 rounded-r-full transition-all"
+                style={{ width: `${((rankingItem?.derrotas || 0) / totalMatches) * 100}%` }}
+                title={`${rankingItem?.derrotas || 0} Derrotas`}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 5. LEGADO HISTÓRICO MULTI-TEMPORADAS (QUANDO HOUVER REGISTROS ANTERIORES) */}
+      {/* ========================================================================= */}
+      {historicoTemporadas.length > 0 && (
+        <div className="rounded-3xl border border-amber-500/20 bg-slate-900/80 p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center gap-2">
+              <History className="h-4 w-4 text-amber-400" />
+              <h3 className="text-base font-black text-white">
+                Trajetória Histórica na Liga Atlântica ({historicoTemporadas.length} Edições Anteriores)
+              </h3>
+            </div>
+            <span className="text-xs text-slate-400">Hall da Fama & Eras Passadas</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {historicoTemporadas.map((hist, idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl border border-white/10 bg-slate-950/80 p-4 space-y-2 hover:border-amber-400/30 transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                    {hist.temporada}
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">
+                    {hist.pos ? `${hist.pos}º Lugar` : ""}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs text-slate-300">Pontuação Final:</span>
+                  <span className="text-sm font-black text-white">
+                    {hist.pontos ? `${hist.pontos} PTS` : "-"}
+                  </span>
+                </div>
+
+                {hist.deck && (
+                  <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                    <span className="text-[11px] text-slate-400">Deck Utilizado:</span>
+                    <span className="text-xs font-bold text-amber-300 truncate max-w-[140px]">
+                      {hist.deck}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 6. PRÓXIMO TORNEIO & CONTROLE DE DECK */}
+      {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Coluna Esquerda: Próxima Etapa Oficial */}
         <div className="lg:col-span-4 rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl space-y-5">
@@ -512,13 +1172,15 @@ export function PlayerPortalDashboard({
         </div>
       </div>
 
-      {/* 3. HISTÓRICO DE ETAPAS & COLOCAÇÕES + ENVIO DE DECK POR ETAPA */}
+      {/* ========================================================================= */}
+      {/* 7. HISTÓRICO DE ETAPAS & COLOCAÇÕES + ENVIO DE DECK POR ETAPA */}
+      {/* ========================================================================= */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
           <div>
             <h3 className="text-base font-black text-white flex items-center gap-2">
               <Trophy className="h-4 w-4 text-amber-400" />
-              Histórico de Participações ({stageResults.length})
+              Histórico Oficial de Participações ({stageResults.length} Etapas)
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
               Partidas disputadas oficialmente. Você pode informar o deck utilizado nas etapas que estiverem sem registro.
@@ -533,7 +1195,7 @@ export function PlayerPortalDashboard({
             <table className="w-full text-left text-xs text-slate-200">
               <thead className="border-b border-white/10 bg-slate-900/90 text-[10px] uppercase font-bold text-slate-400">
                 <tr>
-                  <th className="py-3 pl-4">Data</th>
+                  <th className="py-3 pl-4">Data & Torneio</th>
                   <th className="py-3 px-3 text-center">Colocação</th>
                   <th className="py-3 px-3 text-center">Score</th>
                   <th className="py-3 px-3 text-center font-bold text-amber-400">Pontos</th>
@@ -553,10 +1215,24 @@ export function PlayerPortalDashboard({
                     (req) => req.etapaData === r.etapaData && req.status === "pendente"
                   );
 
+                  const placementBadge = getPlacementBadge(Number(r.colocacao) || 999);
+
                   return (
                     <tr key={idx} className="hover:bg-slate-800/40">
-                      <td className="py-2.5 pl-4 tabular-nums text-slate-300">{r.etapaData}</td>
-                      <td className="py-2.5 px-3 text-center font-bold text-white tabular-nums">{r.colocacao}º</td>
+                      <td className="py-2.5 pl-4 tabular-nums text-slate-300">
+                        <div className="font-semibold text-white">{r.etapaData}</div>
+                        <div className="text-[10px] text-slate-400">
+                          {r.tipo || "Liga"}{" "}
+                          {Number(r.multiplicador) > 1 && (
+                            <span className="text-amber-400 font-bold">({r.multiplicador}x)</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-lg text-xs ${placementBadge.bg}`}>
+                          {placementBadge.short}
+                        </span>
+                      </td>
                       <td className="py-2.5 px-3 text-center text-slate-300 tabular-nums">
                         {r.vitorias}-{r.derrotas}-{r.empates}
                       </td>
@@ -607,7 +1283,9 @@ export function PlayerPortalDashboard({
         )}
       </div>
 
+      {/* ========================================================================= */}
       {/* MODAL: INFORMAR DECK UTILIZADO NA ETAPA */}
+      {/* ========================================================================= */}
       {selectedStageForDeck && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl space-y-4">
