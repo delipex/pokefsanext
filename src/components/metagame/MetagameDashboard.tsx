@@ -276,7 +276,7 @@ export function MetagameDashboard({
           {/* Lado Esquerdo: Carrossel 3D Coverflow de Cartas */}
           <div className="md:col-span-5 flex flex-col items-center justify-center relative">
             {/* Palco 3D do Carrossel */}
-            <div className="relative w-full h-[290px] sm:h-[330px] flex items-center justify-center [perspective:1000px] overflow-visible select-none my-1">
+            <div className="relative w-full max-w-full h-[290px] sm:h-[330px] flex items-center justify-center [perspective:1000px] overflow-hidden select-none my-1">
               <div className="relative w-[180px] sm:w-[210px] h-[252px] sm:h-[294px] [transform-style:preserve-3d]">
                 {carouselDecks.map((deck, i) => {
                   const N = carouselDecks.length;
@@ -325,6 +325,7 @@ export function MetagameDashboard({
                           alt={deck.deckName}
                           className="w-full h-full object-cover"
                           loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="w-full h-full bg-slate-900 border border-white/20 flex flex-col items-center justify-center p-4">

@@ -226,7 +226,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
               </div>
 
               {/* Tabela de Standings da Etapa com Scroll */}
-              <div className="mt-4 flex-1 overflow-y-auto rounded-2xl border border-white/[0.06] bg-slate-900/60 pr-1">
+              <div className="mt-4 flex-1 overflow-y-auto overflow-x-auto max-w-full rounded-2xl border border-white/[0.06] bg-slate-900/60 pr-1">
                 <table className="w-full text-left text-xs text-slate-200">
                   <thead className="sticky top-0 bg-slate-950/95 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-white/10 z-10">
                     <tr>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { etapas, etapaResultados, metagame, configuracoes } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -15,6 +16,10 @@ export async function POST(req: Request) {
     // Se for apenas uma ação de recalcular o ranking geral:
     if (action === "recalculate") {
       const result = await recalculateRankingConsolidado();
+      revalidatePath("/");
+      revalidatePath("/ranking");
+      revalidatePath("/metagame");
+      revalidatePath("/campeoes");
       return NextResponse.json({
         success: true,
         message: `Ranking geral recalculado com sucesso! (${result.totalEtapas} etapas processadas, ${result.totalJogadores} jogadores consolidados).`,
@@ -93,6 +98,11 @@ export async function POST(req: Request) {
     // 4. Recalcular o ranking consolidado da temporada
     await recalculateRankingConsolidado(activeSeason);
 
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/metagame");
+    revalidatePath("/campeoes");
+
     return NextResponse.json({
       success: true,
       message: "Etapa publicada, metagame atualizado e ranking consolidado recalculado com sucesso!",
@@ -120,6 +130,11 @@ export async function DELETE(req: Request) {
 
     // 2. Recalcular ranking geral consolidado
     const result = await recalculateRankingConsolidado();
+
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/metagame");
+    revalidatePath("/campeoes");
 
     return NextResponse.json({
       success: true,

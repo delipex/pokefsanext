@@ -6,6 +6,7 @@ import { EnergyBadge } from "../ui/EnergyBadge";
 import { CategoryBadge } from "../ui/CategoryBadge";
 
 export interface PlayerModalData {
+  posicaoOficial?: number;
   jogadorNome: string;
   jogadorId: string;
   categoria: string;
@@ -80,6 +81,11 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-xl font-extrabold text-white">{player.jogadorNome}</h3>
                 <CategoryBadge category={player.categoria} />
+                {player.posicaoOficial && (
+                  <span className="rounded-lg bg-blue-500/20 border border-blue-500/40 px-2 py-0.5 text-xs font-black text-blue-300">
+                    #{player.posicaoOficial}º Geral
+                  </span>
+                )}
               </div>
               {player.ultimoDeck ? (
                 <div className="mt-1 flex items-center gap-2">

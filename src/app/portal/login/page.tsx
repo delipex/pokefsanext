@@ -219,7 +219,7 @@ export default function PlayerLoginPage() {
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-lg relative">
         {/* Glow de fundo */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl blur-2xl opacity-25"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl blur-xl opacity-25"></div>
 
         <div className="relative rounded-3xl border border-white/10 bg-slate-900/80 p-6 sm:p-10 backdrop-blur-2xl shadow-2xl space-y-6">
           {/* Header do Card */}

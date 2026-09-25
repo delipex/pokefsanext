@@ -4,7 +4,7 @@ import { ScrollVelocityCards } from "@/components/home/ScrollVelocityCards";
 import { SeasonAwardsSection } from "@/components/ranking/SeasonAwardsSection";
 import { PlayerModalData } from "@/components/ranking/PlayerModal";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function HomePage() {
   const [rankingRaw, top4Raw, metaData, etapas, config, nextEvent, awards] = await Promise.all([

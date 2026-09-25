@@ -11,7 +11,7 @@ import {
 import { getConfigMap } from "@/lib/queries";
 import { DEFAULT_REGRAS_DATA, RegraSection } from "@/components/admin/AdminRegrasManager";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Regulamento Oficial | Liga Atlântica TCG",

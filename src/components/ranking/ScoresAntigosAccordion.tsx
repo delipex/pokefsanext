@@ -88,7 +88,7 @@ export function ScoresAntigosAccordion({ scores }: ScoresAntigosAccordionProps) 
               ))}
             </div>
 
-            <div className="relative min-w-[220px]">
+            <div className="relative w-full min-w-0 sm:min-w-[220px] flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type="text"

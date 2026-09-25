@@ -18,16 +18,30 @@ import { ensureDatabaseSchema } from "@/db/migrate-auto";
 import fs from "fs";
 import path from "path";
 
-// Helper para ler arquivos de dados locais com segurança
+// Cache em memória baseado em timestamp de modificação (mtime) para máxima velocidade
+const fileCache = new Map<string, { mtime: number; data: any }>();
+
+// Helper para ler arquivos de dados locais com segurança e cache de alta performance
 function readDataFile<T = any>(filename: string, defaultValue: T): T {
   try {
     const filePath = path.join(process.cwd(), "src", "data", filename);
     if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, "utf-8");
-      if (filename.endsWith(".json")) {
-        return JSON.parse(content) as T;
+      const stat = fs.statSync(filePath);
+      const cached = fileCache.get(filePath);
+      if (cached && cached.mtime === stat.mtimeMs) {
+        return cached.data as T;
       }
-      return content as unknown as T;
+      const content = fs.readFileSync(filePath, "utf-8");
+      let parsed: any = content;
+      if (filename.endsWith(".json")) {
+        try {
+          parsed = JSON.parse(content);
+        } catch {
+          parsed = defaultValue;
+        }
+      }
+      fileCache.set(filePath, { mtime: stat.mtimeMs, data: parsed });
+      return parsed as T;
     }
   } catch (err) {
     console.error(`Erro ao ler arquivo ${filename}:`, err);
@@ -127,9 +141,9 @@ function getFallbackEtapas(): any[] {
     let campeaoNome = etapa.campeao || null;
     let campeaoDeck = etapa.deckCampeao || null;
 
-    if (fs.existsSync(tdfPath)) {
+    const tdfContent = readDataFile<string>(path.join("etapas", tdfName), "");
+    if (tdfContent) {
       try {
-        const tdfContent = fs.readFileSync(tdfPath, "utf-8");
         const lines = tdfContent.split(/\r?\n/).filter(Boolean);
         const rows = lines.slice(1);
 

@@ -362,16 +362,16 @@ export function PlayerPortalDashboard({
         </div>
 
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-white/10">
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4 sm:gap-5 min-w-0 flex-1">
             {/* Badge de Avatar & Categoria */}
-            <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-slate-950 border-2 border-amber-400/40 text-amber-400 shadow-inner">
-              <User className="h-10 w-10 text-slate-300" />
+            <div className="relative flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 items-center justify-center rounded-2xl bg-slate-950 border-2 border-amber-400/40 text-amber-400 shadow-inner">
+              <User className="h-8 w-8 sm:h-10 sm:w-10 text-slate-300" />
               <div className="absolute -bottom-2 -right-2 bg-amber-500 text-slate-950 rounded-full p-1 shadow">
                 <Award className="h-4 w-4" />
               </div>
             </div>
 
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
                   PLAY! POKÉMON COMPETITOR
@@ -391,8 +391,8 @@ export function PlayerPortalDashboard({
                 )}
               </div>
 
-              <div className="flex items-center gap-3 flex-wrap mt-1.5">
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap mt-1.5">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight truncate">
                   {player.nome}
                 </h1>
                 <CategoryBadge category={player.categoria} />

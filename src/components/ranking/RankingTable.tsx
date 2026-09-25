@@ -116,9 +116,17 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
     return found?.tipoEnergia || "colorless";
   };
 
+  // Garante a atribuição da colocação consolidada oficial (1º a N)
+  const playersWithOfficialRank = useMemo(() => {
+    return initialPlayers.map((p, idx) => ({
+      ...p,
+      posicaoOficial: p.posicaoOficial ?? (idx + 1),
+    }));
+  }, [initialPlayers]);
+
   // Filtragem no Ranking Geral
   const filteredGeneralPlayers = useMemo(() => {
-    return initialPlayers.filter((p) => {
+    return playersWithOfficialRank.filter((p) => {
       const matchCategory =
         selectedCategory === "TODOS" ||
         formatCategoryAbbr(p.categoria) === selectedCategory;
@@ -130,7 +138,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
       return matchCategory && matchSearch;
     });
-  }, [initialPlayers, selectedCategory, search]);
+  }, [playersWithOfficialRank, selectedCategory, search]);
 
   // Filtragem na Etapa Selecionada
   const filteredStageResults = useMemo(() => {
@@ -260,7 +268,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         </div>
 
         {/* Campo de Busca Rápida */}
-        <div className="relative min-w-[240px]">
+        <div className="relative w-full min-w-0 sm:min-w-[240px] flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <input
             type="text"
@@ -345,8 +353,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                 </tr>
               ) : (
                 paginatedGeneralPlayers.map((player, index) => {
-                  const globalIndex = (currentPage - 1) * pageSize + index;
-                  const pos = globalIndex + 1;
+                  const pos = player.posicaoOficial ?? ((currentPage - 1) * pageSize + index + 1);
                   const v = player.vitorias || 0;
                   const e = player.empates || 0;
                   const d = player.derrotas || 0;
@@ -358,7 +365,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
                   return (
                     <tr
-                      key={player.jogadorId || globalIndex}
+                      key={player.jogadorId || player.posicaoOficial || index}
                       onClick={() => setSelectedPlayer(player)}
                       className="group cursor-pointer transition-all duration-150 hover:bg-white/[0.06] hover:shadow-[inset_4px_0_0_0_#ffcb05] even:bg-black/15"
                     >

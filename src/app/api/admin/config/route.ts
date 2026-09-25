@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { configuracoes } from "@/db/schema";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
@@ -36,6 +37,12 @@ export async function POST(req: Request) {
             },
           });
       }
+      revalidatePath("/");
+      revalidatePath("/ranking");
+      revalidatePath("/metagame");
+      revalidatePath("/calendario");
+      revalidatePath("/campeoes");
+      revalidatePath("/regras");
       return NextResponse.json({ success: true, message: "Todas as configurações foram salvas com sucesso!" });
     }
 
@@ -57,6 +64,13 @@ export async function POST(req: Request) {
           valor: typeof valor === "object" ? JSON.stringify(valor) : String(valor),
         },
       });
+
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/metagame");
+    revalidatePath("/calendario");
+    revalidatePath("/campeoes");
+    revalidatePath("/regras");
 
     return NextResponse.json({ success: true, message: "Configuração atualizada com sucesso!" });
   } catch (error: any) {

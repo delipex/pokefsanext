@@ -1,7 +1,7 @@
 import { getCalendario } from "@/lib/queries";
 import { Clock, MapPin, ExternalLink, CheckCircle2, CalendarDays, Sparkles } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Calendário Oficial de Torneios | Liga Atlântica TCG",

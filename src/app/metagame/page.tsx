@@ -2,7 +2,7 @@ import { getMetagameData } from "@/lib/queries";
 import { MetagameDashboard } from "@/components/metagame/MetagameDashboard";
 import { MetagamePerformanceRadar } from "@/components/metagame/MetagamePerformanceRadar";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Metagame | Liga Atlântica TCG",

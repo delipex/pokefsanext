@@ -2,7 +2,7 @@ import { getRanking, getEtapasWithSummary, getAllDecks } from "@/lib/queries";
 import { RankingTable } from "@/components/ranking/RankingTable";
 import { PlayerModalData } from "@/components/ranking/PlayerModal";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Ranking & Etapas | Liga Atlântica TCG",
@@ -16,11 +16,12 @@ export default async function RankingPage() {
     getAllDecks(),
   ]);
 
-  const ranking: PlayerModalData[] = rankingRaw.map((r) => {
+  const ranking: PlayerModalData[] = rankingRaw.map((r, idx) => {
     const deckInfo = allDecks.find(
       (d) => d.nome.toLowerCase() === r.ultimoDeck?.toLowerCase()
     );
     return {
+      posicaoOficial: idx + 1,
       jogadorNome: r.jogadorNome,
       jogadorId: r.jogadorId,
       categoria: r.categoria,

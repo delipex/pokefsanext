@@ -2,7 +2,7 @@ import { getCampeoes, getGaleria, getScoresAntigos } from "@/lib/queries";
 import { Trophy, Award, Camera, History, Sparkles, ExternalLink } from "lucide-react";
 import { ChampionsClient } from "@/components/campeoes/ChampionsClient";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata = {
   title: "Hall dos Campeões & Galeria | Liga Atlântica TCG",

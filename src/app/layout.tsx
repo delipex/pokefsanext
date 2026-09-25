@@ -46,7 +46,7 @@ export default async function RootLayout({
 
   return (
     <html lang="pt-BR" className="dark">
-      <body className={`${exo2.className} min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white relative font-sans`}>
+      <body className={`${exo2.className} min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white relative font-sans w-full max-w-full overflow-x-clip`}>
         {/* Blobs Atmosféricos de Fundo */}
         <div className="bg-blobs" aria-hidden="true">
           <div className="blob blob-1" />
@@ -64,7 +64,7 @@ export default async function RootLayout({
           statusTemporada={config.statusTemporada || "ativa"}
           exibirPortal={config.exibirPortalAtleta !== "false"}
         />
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 lg:pt-16 pb-16 sm:pb-20 lg:pb-24 relative z-10">
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 lg:pt-16 pb-16 sm:pb-20 lg:pb-24 relative z-10 min-w-0 overflow-x-clip">
           {children}
         </main>
         <Footer

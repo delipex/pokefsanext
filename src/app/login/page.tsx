@@ -42,7 +42,7 @@ export default function LoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md relative">
         {/* Glow de fundo */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-amber-500 rounded-3xl blur-xl opacity-30 group-hover:opacity-100 transition duration-1000"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-amber-500 rounded-3xl blur-xl opacity-30 group-hover:opacity-100 transition duration-1000"></div>
 
         <div className="relative rounded-3xl border border-white/10 bg-slate-900/80 p-8 sm:p-10 backdrop-blur-2xl shadow-2xl space-y-6">
           {/* Header do Card */}
