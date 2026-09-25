@@ -124,6 +124,7 @@ export async function POST() {
 
     // 6. Scores Antigos
     const rawScores = readDataFile<any[]>("scores_antigos.json", []);
+    await db.delete(scoresAntigos);
     for (const s of rawScores) {
       await db
         .insert(scoresAntigos)

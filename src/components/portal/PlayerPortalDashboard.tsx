@@ -618,90 +618,7 @@ export function PlayerPortalDashboard({
       ) : null}
 
       {/* ========================================================================= */}
-      {/* 3. ARSENAL DE DECKS DISPUTADOS NA TEMPORADA */}
-      {/* ========================================================================= */}
-      {deckStatsList.length > 1 && (
-        <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2">
-              <Swords className="h-4 w-4 text-amber-400" />
-              <h3 className="text-base font-black text-white">
-                Arsenal de Arquétipos Disputados ({deckStatsList.length})
-              </h3>
-            </div>
-            <span className="text-xs text-slate-400">Distribuição na Temporada 5</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {deckStatsList.map((d, idx) => {
-              const energyCfg = getMultiEnergyConfig(d.tipoEnergia);
-              return (
-                <div
-                  key={idx}
-                  className="rounded-2xl border p-4 bg-slate-950/80 transition-all hover:border-white/20 space-y-3"
-                  style={{
-                    borderColor: idx === 0 ? `${energyCfg.primaryColor}55` : "rgba(255, 255, 255, 0.08)",
-                  }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <EnergyBadge energyRaw={d.tipoEnergia} size="sm" showLabel={false} />
-                      <span className="font-bold text-white text-sm truncate max-w-[170px]">
-                        {d.deckNome}
-                      </span>
-                    </div>
-                    {idx === 0 && (
-                      <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
-                        TOP 1
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-1.5 text-xs text-slate-300">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Torneios Disputados:</span>
-                      <strong className="text-white">{d.etapasCount} etapa(s)</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Score com o Deck:</span>
-                      <strong className="text-white">
-                        <span className="text-emerald-400">{d.vitorias}V</span> -{" "}
-                        <span className="text-rose-400">{d.derrotas}D</span> - {d.empates}E
-                      </strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Melhor Colocação:</span>
-                      <strong className="text-amber-400">
-                        {d.melhorColocacao !== 999 ? `${d.melhorColocacao}º Lugar` : "-"}
-                      </strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Pontos Conquistados:</span>
-                      <strong className="text-white font-bold">{d.pontosTotal} PTS</strong>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-[11px] mb-1">
-                      <span className="text-slate-400">Win Rate:</span>
-                      <span className="font-bold text-emerald-400">{d.winRate}%</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full transition-all"
-                        style={{ width: `${Math.min(100, d.winRate)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 4. RAIO-X DE DESEMPENHO DA TEMPORADA ATUAL (TEMPORADA 5) */}
+      {/* 3. RAIO-X DE DESEMPENHO & MÉTRICAS DA TEMPORADA 5 */}
       {/* ========================================================================= */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 sm:p-7 shadow-xl space-y-6">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
@@ -790,10 +707,98 @@ export function PlayerPortalDashboard({
             </div>
           </div>
         )}
+
+        {/* Detalhamento dos Decks Utilizados pelo Atleta */}
+        {deckStatsList.length > 0 && (
+          <div className="space-y-4 pt-4 border-t border-white/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Swords className="h-4 w-4 text-amber-400" />
+                <h4 className="text-sm font-black text-white">
+                  Detalhamento dos Decks Utilizados ({deckStatsList.length} {deckStatsList.length === 1 ? "Arquétipo" : "Arquétipos"})
+                </h4>
+              </div>
+              <span className="text-xs text-slate-400">Rendimento por arquétipo</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {deckStatsList.map((d, idx) => {
+                const energyCfg = getMultiEnergyConfig(d.tipoEnergia);
+                const totalPts = rankingItem ? Number(rankingItem.pontos) : 0;
+                const percentOfTotal = totalPts > 0 ? Math.min(100, Math.round((d.pontosTotal / totalPts) * 100)) : 0;
+
+                return (
+                  <div
+                    key={idx}
+                    className="rounded-2xl border p-4 bg-slate-950/80 transition-all hover:border-white/20 space-y-3"
+                    style={{
+                      borderColor: idx === 0 ? `${energyCfg.primaryColor}55` : "rgba(255, 255, 255, 0.08)",
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <EnergyBadge energyRaw={d.tipoEnergia} size="sm" showLabel={false} />
+                        <span className="font-bold text-white text-sm truncate max-w-[170px]">
+                          {d.deckNome}
+                        </span>
+                      </div>
+                      {idx === 0 && (
+                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
+                          TOP 1
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5 text-xs text-slate-300">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Etapas Disputadas:</span>
+                        <strong className="text-white">{d.etapasCount} etapa(s)</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Score com o Deck:</span>
+                        <strong className="text-white">
+                          <span className="text-emerald-400">{d.vitorias}V</span> -{" "}
+                          <span className="text-rose-400">{d.derrotas}D</span>
+                          {d.empates > 0 && <span className="text-slate-400"> - {d.empates}E</span>}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Melhor Colocação:</span>
+                        <strong className="text-amber-400">
+                          {d.melhorColocacao !== 999 ? `${d.melhorColocacao}º Lugar` : "-"}
+                          {d.melhorColocacao <= 4 && " 🏆"}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Pontos Conquistados:</span>
+                        <strong className="text-white font-bold">
+                          {d.pontosTotal} PTS {percentOfTotal > 0 && <span className="text-amber-400 font-semibold text-[10px]">({percentOfTotal}%)</span>}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[11px] mb-1">
+                        <span className="text-slate-400">Win Rate:</span>
+                        <span className="font-bold text-emerald-400">{d.winRate}%</span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all"
+                          style={{ width: `${Math.min(100, d.winRate)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ========================================================================= */}
-      {/* 5. TRAJETÓRIA HISTÓRICA NO HALL DA FAMA (APENAS PONTUAÇÃO CONSOLIDADA) */}
+      {/* 4. TRAJETÓRIA HISTÓRICA NO HALL DA FAMA (APENAS PONTUAÇÃO CONSOLIDADA) */}
       {/* ========================================================================= */}
       {historicoTemporadas.length > 0 && (
         <div className="rounded-3xl border border-amber-500/20 bg-slate-900/80 p-6 shadow-xl space-y-4">
@@ -801,7 +806,7 @@ export function PlayerPortalDashboard({
             <div className="flex items-center gap-2">
               <History className="h-4 w-4 text-amber-400" />
               <h3 className="text-base font-black text-white">
-                Trajetória Histórica na Liga Atlântica ({historicoTemporadas.length} Edições Anteriores)
+                Trajetória Histórica na Liga Atlântica ({historicoTemporadas.length} {historicoTemporadas.length === 1 ? "Edição Anterior" : "Edições Anteriores"})
               </h3>
             </div>
             <span className="text-xs text-slate-400">Pontuação final consolidada</span>

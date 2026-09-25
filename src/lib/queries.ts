@@ -186,6 +186,7 @@ function getFallbackEtapas(): any[] {
 }
 
 export async function getRanking(categoria?: string) {
+  const fallback = getFallbackRanking();
   try {
     let query = db
       .select()
@@ -203,12 +204,18 @@ export async function getRanking(categoria?: string) {
     }
 
     const res = await query;
+    if (res && res.length >= fallback.length) return res;
+    if (fallback.length > 0) {
+      if (categoria && categoria !== "TODOS") {
+        return fallback.filter((r) => r.categoria?.toUpperCase() === categoria.toUpperCase());
+      }
+      return fallback;
+    }
     if (res && res.length > 0) return res;
   } catch (err) {
     // Silencioso
   }
 
-  const fallback = getFallbackRanking();
   if (categoria && categoria !== "TODOS") {
     return fallback.filter((r) => r.categoria?.toUpperCase() === categoria.toUpperCase());
   }
@@ -268,6 +275,9 @@ export async function getAllEtapas() {
 }
 
 export async function getEtapasWithSummary() {
+  const fallback = getFallbackEtapas();
+  const metaMap = getMetagameMap();
+
   try {
     const allEtapas = await db.select().from(etapas).orderBy(asc(etapas.data));
     const results = await db
@@ -275,31 +285,62 @@ export async function getEtapasWithSummary() {
       .from(etapaResultados)
       .orderBy(asc(etapaResultados.colocacao));
 
-    if (allEtapas && allEtapas.length > 0 && results.length > 0) {
+    // Se o banco tiver dados completos (todas as etapas do fallback)
+    if (allEtapas && allEtapas.length >= fallback.length && results.length >= 100) {
       const mapped = allEtapas.map((etapa, idx) => {
         const etapaMatches = results.filter((r) => r.etapaData === etapa.data);
-        const campeao = etapaMatches.find((r) => r.colocacao === 1);
-        const top4 = etapaMatches.filter((r) => r.colocacao <= 4);
+        const enrichedMatches = etapaMatches.map((m) => {
+          let deck = m.deckNome;
+          if (!deck || deck === "Sem deck" || deck === "Sem deck registrado" || deck === "Não registrado") {
+            const fromMeta = metaMap[etapa.data]?.[(m.jogadorNome || "").toLowerCase().trim()];
+            if (fromMeta) deck = fromMeta;
+          }
+          return {
+            ...m,
+            deckNome: deck || null,
+          };
+        });
+
+        const campeao = enrichedMatches.find((r) => r.colocacao === 1);
+        const top4 = enrichedMatches.filter((r) => r.colocacao <= 4);
 
         return {
           ...etapa,
           numeroEtapa: idx + 1,
-          totalJogadores: etapaMatches.length,
+          totalJogadores: enrichedMatches.length,
           campeaoNome: campeao?.jogadorNome || null,
           campeaoId: campeao?.jogadorId || null,
           campeaoDeck: campeao?.deckNome || null,
           top4,
-          resultados: etapaMatches,
+          resultados: enrichedMatches,
         };
       });
 
       return mapped.sort((a, b) => b.data.localeCompare(a.data));
+    } else if (results.length > 0) {
+      // Se o banco tiver apenas algumas etapas ou decks aprovados, mesclar sobre o fallback
+      const dbDeckMap = new Map<string, string>();
+      for (const r of results) {
+        if (r.deckNome && r.deckNome !== "Sem deck" && r.deckNome !== "Sem deck registrado" && r.deckNome !== "Não registrado") {
+          dbDeckMap.set(`${r.etapaData}_${(r.jogadorNome || "").toLowerCase().trim()}`, r.deckNome);
+        }
+      }
+      return fallback.map((etapa: any) => ({
+        ...etapa,
+        resultados: (etapa.resultados || []).map((r: any) => {
+          const overrideDeck = dbDeckMap.get(`${etapa.data}_${(r.jogadorNome || "").toLowerCase().trim()}`);
+          return {
+            ...r,
+            deckNome: overrideDeck || r.deckNome,
+          };
+        }),
+      }));
     }
   } catch (err) {
     // Silencioso
   }
 
-  return getFallbackEtapas();
+  return fallback;
 }
 
 export async function getMetagameData() {
@@ -416,24 +457,38 @@ export async function getGaleria() {
 }
 
 export async function getScoresAntigos() {
+  let list: any[] = [];
   try {
     const res = await db.select().from(scoresAntigos).orderBy(asc(scoresAntigos.pos));
-    if (res && res.length > 0) return res;
+    if (res && res.length > 0) {
+      list = res;
+    }
   } catch (err) {
     // Silencioso
   }
 
-  const raw = readDataFile<any[]>("scores_antigos.json", []);
-  return raw.map((s, i) => ({
-    id: i + 1,
-    temporada: s.temporada || s.Temporada || "Temporada #1",
-    dataFechamento: s.dataFechamento || s.DataFechamento || null,
-    pos: Number(s.pos || s.Pos) || i + 1,
-    jogador: s.jogador || s.Jogador || "",
-    categoria: s.categoria || s.Categoria || "ME",
-    pontos: String(s.pontos || s.Pontos || "0"),
-    deck: s.deck || s.Deck || "",
-  }));
+  if (list.length === 0) {
+    const raw = readDataFile<any[]>("scores_antigos.json", []);
+    list = raw.map((s, i) => ({
+      id: i + 1,
+      temporada: s.temporada || s.Temporada || "Temporada #1",
+      dataFechamento: s.dataFechamento || s.DataFechamento || null,
+      pos: Number(s.pos || s.Pos) || i + 1,
+      jogador: s.jogador || s.Jogador || "",
+      categoria: s.categoria || s.Categoria || "ME",
+      pontos: String(s.pontos || s.Pontos || "0"),
+      deck: s.deck || s.Deck || "",
+    }));
+  }
+
+  const uniqueMap = new Map<string, any>();
+  for (const s of list) {
+    const key = `${(s.temporada || "").trim()}-${s.pos}-${(s.jogador || "").toLowerCase().trim()}`;
+    if (!uniqueMap.has(key)) {
+      uniqueMap.set(key, s);
+    }
+  }
+  return Array.from(uniqueMap.values());
 }
 
 export async function getCalendario() {

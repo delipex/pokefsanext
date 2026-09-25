@@ -54,80 +54,7 @@ export default async function PlayerPortalPage() {
   const cleanPopId = popId.trim();
   const cleanPlayerName = (player.nome || "").toLowerCase().trim();
 
-  // Fetch performance in ranking (por ID ou por Nome)
-  let rankingItem = null;
-  try {
-    const rankingRows = await db
-      .select()
-      .from(rankingConsolidado)
-      .where(or(eq(rankingConsolidado.jogadorId, cleanPopId), eq(rankingConsolidado.jogadorNome, player.nome)))
-      .limit(1);
-    rankingItem = rankingRows[0] || null;
-  } catch {}
-
-  // Fallback resiliente para getRanking() se não encontrou no banco
-  if (!rankingItem) {
-    try {
-      const allRanking = await getRanking();
-      rankingItem = allRanking.find(
-        (r) =>
-          (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
-          (r.jogadorNome && r.jogadorNome.toLowerCase().trim() === cleanPlayerName)
-      ) || null;
-    } catch {}
-  }
-
-  // Fetch stage match history (lendo sempre os dados oficiais do TDF + metagame.json e mesclando com banco)
-  const officialEtapas = await getEtapasWithSummary().catch(() => []);
-  const officialMatchesMap = new Map<string, any>();
-
-  for (const etapa of officialEtapas) {
-    const mult = etapa.multiplicador ? Number(etapa.multiplicador) : 1.0;
-    const found = (etapa.resultados || []).find(
-      (r: any) =>
-        (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
-        (r.jogadorNome && String(r.jogadorNome).toLowerCase().trim() === cleanPlayerName)
-    );
-    if (found) {
-      officialMatchesMap.set(etapa.data, {
-        ...found,
-        tipo: etapa.tipo || "Liga",
-        multiplicador: mult,
-        pontosFinal: Number((Number(found.pontos) * mult).toFixed(1)),
-      });
-    }
-  }
-
-  // Mesclar com atualizações do banco de dados (se houver decks moderados/aprovados no banco)
-  try {
-    const rawResults = await db
-      .select()
-      .from(etapaResultados)
-      .where(or(eq(etapaResultados.jogadorId, cleanPopId), eq(etapaResultados.jogadorNome, player.nome)));
-
-    for (const r of rawResults) {
-      const existing = officialMatchesMap.get(r.etapaData);
-      const mult = existing?.multiplicador ? Number(existing.multiplicador) : 1.0;
-      if (existing) {
-        if (r.deckNome && r.deckNome.trim() && r.deckNome !== "Sem deck registrado" && r.deckNome !== "Sem deck") {
-          existing.deckNome = r.deckNome.trim();
-        }
-      } else {
-        officialMatchesMap.set(r.etapaData, {
-          ...r,
-          tipo: "Liga",
-          multiplicador: mult,
-          pontosFinal: Number((Number(r.pontos) * mult).toFixed(1)),
-        });
-      }
-    }
-  } catch {}
-
-  const stageResults = Array.from(officialMatchesMap.values()).sort((a, b) =>
-    b.etapaData.localeCompare(a.etapaData)
-  );
-
-  // Fetch decks, next event, deck requests, submitted decklist, ranking geral e scores antigos
+  // Carregamento paralelo resiliente de todas as fontes de dados
   const [
     allDecks,
     nextEvent,
@@ -137,6 +64,9 @@ export default async function PlayerPortalPage() {
     allRanking,
     allScoresAntigos,
     allChampions,
+    officialEtapas,
+    rawDbResults,
+    dbRankingRows,
   ] = await Promise.all([
     getAllDecks(),
     getNextEvent(),
@@ -157,7 +87,98 @@ export default async function PlayerPortalPage() {
     getRanking().catch(() => []),
     getScoresAntigos().catch(() => []),
     getCampeoes().catch(() => []),
+    getEtapasWithSummary().catch(() => []),
+    db
+      .select()
+      .from(etapaResultados)
+      .where(or(eq(etapaResultados.jogadorId, cleanPopId), eq(etapaResultados.jogadorNome, player.nome)))
+      .catch(() => []),
+    db
+      .select()
+      .from(rankingConsolidado)
+      .where(or(eq(rankingConsolidado.jogadorId, cleanPopId), eq(rankingConsolidado.jogadorNome, player.nome)))
+      .limit(1)
+      .catch(() => []),
   ]);
+
+  // Histórico de partidas oficiais da Temporada 5 (lê de todas as 21 etapas oficiais)
+  const officialMatchesMap = new Map<string, any>();
+
+  for (const etapa of officialEtapas) {
+    const mult = etapa.multiplicador ? Number(etapa.multiplicador) : 1.0;
+    const found = (etapa.resultados || []).find(
+      (r: any) =>
+        (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
+        (r.jogadorNome && String(r.jogadorNome).toLowerCase().trim() === cleanPlayerName)
+    );
+    if (found) {
+      officialMatchesMap.set(etapa.data, {
+        ...found,
+        tipo: etapa.tipo || "Liga",
+        multiplicador: mult,
+        pontosFinal: Number((Number(found.pontos) * mult).toFixed(1)),
+      });
+    }
+  }
+
+  // Mesclar com atualizações do banco de dados (decks moderados/aprovados)
+  for (const r of rawDbResults) {
+    const existing = officialMatchesMap.get(r.etapaData);
+    const mult = existing?.multiplicador ? Number(existing.multiplicador) : 1.0;
+    if (existing) {
+      if (r.deckNome && r.deckNome.trim() && r.deckNome !== "Sem deck registrado" && r.deckNome !== "Sem deck" && r.deckNome !== "Não registrado") {
+        existing.deckNome = r.deckNome.trim();
+      }
+    } else {
+      officialMatchesMap.set(r.etapaData, {
+        ...r,
+        tipo: "Liga",
+        multiplicador: mult,
+        pontosFinal: Number((Number(r.pontos) * mult).toFixed(1)),
+      });
+    }
+  }
+
+  const stageResults = Array.from(officialMatchesMap.values()).sort((a, b) =>
+    b.etapaData.localeCompare(a.etapaData)
+  );
+
+  // Resolução do Ranking Oficial da Temporada Atual
+  let rankingItem = dbRankingRows[0] || null;
+
+  if (!rankingItem) {
+    rankingItem = allRanking.find(
+      (r) =>
+        (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
+        (r.jogadorNome && r.jogadorNome.toLowerCase().trim() === cleanPlayerName)
+    ) || null;
+  }
+
+  // Fallback computado caso o ranking remoto esteja desatualizado mas o atleta tenha partidas
+  if ((!rankingItem || Number(rankingItem.pontos) === 0) && stageResults.length > 0) {
+    const pts = stageResults.reduce((acc, cur) => acc + (cur.pontosFinal ?? (Number(cur.pontos) || 0)), 0);
+    const v = stageResults.reduce((acc, cur) => acc + (Number(cur.vitorias) || 0), 0);
+    const d = stageResults.reduce((acc, cur) => acc + (Number(cur.derrotas) || 0), 0);
+    const e = stageResults.reduce((acc, cur) => acc + (Number(cur.empates) || 0), 0);
+    const pod = stageResults.filter((cur) => Number(cur.colocacao) <= 4).length;
+    const avg = stageResults.reduce((acc, cur) => acc + (Number(cur.colocacao) || 0), 0) / stageResults.length;
+    rankingItem = {
+      id: 0,
+      temporada: 5,
+      jogadorId: cleanPopId,
+      jogadorNome: player.nome,
+      categoria: player.categoria || "Master",
+      pontos: pts,
+      vitorias: v,
+      empates: e,
+      derrotas: d,
+      podios: pod,
+      mediaColocacao: Number(avg.toFixed(2)),
+      participacoes: stageResults.length,
+      historicoColocacoes: stageResults.map((s) => s.colocacao).join(";"),
+      ultimoDeck: stageResults[0]?.deckNome || null,
+    };
+  }
 
   const submittedDecklist = submittedDecklistRows[0] || null;
   const exigirDecklist =
@@ -167,31 +188,67 @@ export default async function PlayerPortalPage() {
 
   // Classificação Geral e por Categoria
   const totalAtletas = allRanking.length;
-  const pGeralIdx = allRanking.findIndex(
+  let pGeralIdx = allRanking.findIndex(
     (r: any) =>
       (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
       (r.jogadorNome && r.jogadorNome.toLowerCase().trim() === cleanPlayerName)
   );
+
+  if (pGeralIdx < 0 && rankingItem && Number(rankingItem.pontos) > 0) {
+    const simulated = [...allRanking, rankingItem].sort((a, b) => {
+      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+      if (b.podios !== a.podios) return b.podios - a.podios;
+      return a.mediaColocacao - b.mediaColocacao;
+    });
+    pGeralIdx = simulated.findIndex(
+      (r: any) =>
+        (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
+        (r.jogadorNome && r.jogadorNome.toLowerCase().trim() === cleanPlayerName)
+    );
+  }
   const posicaoGeral = pGeralIdx >= 0 ? pGeralIdx + 1 : null;
 
   const catClean = (player.categoria || "Master").toLowerCase().trim();
   const rankingCat = allRanking.filter(
     (r: any) => (r.categoria || "Master").toLowerCase().trim() === catClean
   );
-  const pCatIdx = rankingCat.findIndex(
+  let pCatIdx = rankingCat.findIndex(
     (r: any) =>
       (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
       (r.jogadorNome && r.jogadorNome.toLowerCase().trim() === cleanPlayerName)
   );
+  if (pCatIdx < 0 && rankingItem && Number(rankingItem.pontos) > 0) {
+    const simulatedCat = [...rankingCat, rankingItem].sort((a, b) => {
+      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+      if (b.podios !== a.podios) return b.podios - a.podios;
+      return a.mediaColocacao - b.mediaColocacao;
+    });
+    pCatIdx = simulatedCat.findIndex(
+      (r: any) =>
+        (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
+        (r.jogadorNome && r.jogadorNome.toLowerCase().trim() === cleanPlayerName)
+    );
+  }
   const posicaoCategoria = pCatIdx >= 0 ? pCatIdx + 1 : null;
 
-  // Trajetória Histórica (Multi-Temporadas)
-  const historicoTemporadas = allScoresAntigos.filter(
-    (s: any) =>
-      s.jogador &&
-      (s.jogador.toLowerCase().trim() === cleanPlayerName ||
-        (cleanPopId && String(s.id) === cleanPopId))
-  );
+  // Trajetória Histórica (Multi-Temporadas): deduplicação rigorosa por temporada
+  // Apenas temporadas nas quais o atleta efetivamente participou e pontuou
+  const seasonMap = new Map<string, any>();
+  for (const s of allScoresAntigos) {
+    if (!s.jogador || s.jogador.toLowerCase().trim() !== cleanPlayerName) continue;
+    const seasonKey = (s.temporada || "").trim();
+    if (!seasonKey) continue;
+    const pts = Number(s.pontos) || 0;
+    if (pts <= 0) continue; // Não exibe temporadas que o atleta não jogou
+
+    if (!seasonMap.has(seasonKey) || (Number(seasonMap.get(seasonKey).pontos) || 0) < pts) {
+      seasonMap.set(seasonKey, s);
+    }
+  }
+
+  const historicoTemporadas = Array.from(seasonMap.values()).sort((a, b) => {
+    return b.temporada.localeCompare(a.temporada, undefined, { numeric: true });
+  });
 
   // Títulos e Reconhecimentos
   const titulos = allChampions.filter(
