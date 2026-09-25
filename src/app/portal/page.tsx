@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { jogadores, rankingConsolidado, etapas, etapaResultados, jogadorDecklists } from "@/db/schema";
+import { jogadores, rankingConsolidado, etapas, etapaResultados, jogadorDecklists, solicitacoesDecks } from "@/db/schema";
 import { eq, desc, or } from "drizzle-orm";
-import { getAllDecks, getNextEvent } from "@/lib/queries";
+import { getAllDecks, getNextEvent, getRanking, getEtapasWithSummary, getConfigMap } from "@/lib/queries";
 import { PlayerPortalDashboard } from "@/components/portal/PlayerPortalDashboard";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
 import fs from "fs";
@@ -51,6 +51,8 @@ export default async function PlayerPortalPage() {
   }
 
   const player = playerRows[0];
+  const cleanPopId = popId.trim();
+  const cleanPlayerName = (player.nome || "").toLowerCase().trim();
 
   // Fetch performance in ranking (por ID ou por Nome)
   let rankingItem = null;
@@ -58,10 +60,22 @@ export default async function PlayerPortalPage() {
     const rankingRows = await db
       .select()
       .from(rankingConsolidado)
-      .where(or(eq(rankingConsolidado.jogadorId, popId), eq(rankingConsolidado.jogadorNome, player.nome)))
+      .where(or(eq(rankingConsolidado.jogadorId, cleanPopId), eq(rankingConsolidado.jogadorNome, player.nome)))
       .limit(1);
     rankingItem = rankingRows[0] || null;
   } catch {}
+
+  // Fallback resiliente para getRanking() se não encontrou no banco
+  if (!rankingItem) {
+    try {
+      const allRanking = await getRanking();
+      rankingItem = allRanking.find(
+        (r) =>
+          (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
+          (r.jogadorNome && r.jogadorNome.toLowerCase().trim() === cleanPlayerName)
+      ) || null;
+    } catch {}
+  }
 
   // Fetch stage match history (por ID ou por Nome) com multiplicador oficial
   let stageResults: any[] = [];
@@ -71,7 +85,7 @@ export default async function PlayerPortalPage() {
       db
         .select()
         .from(etapaResultados)
-        .where(or(eq(etapaResultados.jogadorId, popId), eq(etapaResultados.jogadorNome, player.nome)))
+        .where(or(eq(etapaResultados.jogadorId, cleanPopId), eq(etapaResultados.jogadorNome, player.nome)))
         .orderBy(desc(etapaResultados.etapaData)),
     ]);
     const etapaMap = new Map(allEtapasRows.map((e) => [e.data, e]));
@@ -87,20 +101,56 @@ export default async function PlayerPortalPage() {
     });
   } catch {}
 
-  // Fetch decks, next event and submitted decklist
-  const [allDecks, nextEvent, submittedDecklistRows] = await Promise.all([
+  // Fallback resiliente para getEtapasWithSummary() se stageResults estiver vazio
+  if (stageResults.length === 0) {
+    try {
+      const fallbackEtapas = await getEtapasWithSummary();
+      const matches: any[] = [];
+      for (const etapa of fallbackEtapas) {
+        const mult = etapa.multiplicador ? Number(etapa.multiplicador) : 1.0;
+        const found = (etapa.resultados || []).find(
+          (r: any) =>
+            (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
+            (r.jogadorNome && String(r.jogadorNome).toLowerCase().trim() === cleanPlayerName)
+        );
+        if (found) {
+          matches.push({
+            ...found,
+            tipo: etapa.tipo || "Liga",
+            multiplicador: mult,
+            pontosFinal: Number((found.pontos * mult).toFixed(1)),
+          });
+        }
+      }
+      stageResults = matches.sort((a, b) => b.etapaData.localeCompare(a.etapaData));
+    } catch {}
+  }
+
+  // Fetch decks, next event, deck requests e submitted decklist
+  const [allDecks, nextEvent, submittedDecklistRows, configMap, userDeckRequests] = await Promise.all([
     getAllDecks(),
     getNextEvent(),
     db
       .select()
       .from(jogadorDecklists)
-      .where(eq(jogadorDecklists.jogadorId, popId))
+      .where(eq(jogadorDecklists.jogadorId, cleanPopId))
       .orderBy(desc(jogadorDecklists.createdAt))
       .limit(1)
+      .catch(() => []),
+    getConfigMap(),
+    db
+      .select()
+      .from(solicitacoesDecks)
+      .where(eq(solicitacoesDecks.jogadorId, cleanPopId))
+      .orderBy(desc(solicitacoesDecks.createdAt))
       .catch(() => []),
   ]);
 
   const submittedDecklist = submittedDecklistRows[0] || null;
+  const exigirDecklist =
+    configMap.exigirDecklist === "true" ||
+    configMap.premierExigirDecklist === "true" ||
+    configMap.inscricoesAtivas === "true";
 
   return (
     <PlayerPortalDashboard
@@ -110,6 +160,8 @@ export default async function PlayerPortalPage() {
       allDecks={allDecks}
       nextEvent={nextEvent}
       submittedDecklist={submittedDecklist}
+      exigirDecklist={exigirDecklist}
+      deckRequests={userDeckRequests || []}
     />
   );
 }

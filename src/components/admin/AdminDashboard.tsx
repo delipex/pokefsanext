@@ -84,6 +84,11 @@ export function AdminDashboard({
   const [metaSaveMessage, setMetaSaveMessage] = useState<string>("");
   const [metaSaveSuccess, setMetaSaveSuccess] = useState<boolean>(false);
 
+  // Estado de Solicitações de Decks (Moderação)
+  const [deckRequests, setDeckRequests] = useState<any[]>([]);
+  const [isLoadingDeckRequests, setIsLoadingDeckRequests] = useState(false);
+  const [moderationMessage, setModerationMessage] = useState("");
+
   // Estado de Decklists Submetidas
   const [decklists, setDecklists] = useState<any[]>(initialDecklists);
   const [decklistSearch, setDecklistSearch] = useState("");
@@ -144,8 +149,14 @@ export function AdminDashboard({
   };
 
   useEffect(() => {
+    fetchDeckRequests();
+  }, []);
+
+  useEffect(() => {
     if (activeTab === "jogadores") {
       fetchPlayers();
+    } else if (activeTab === "metagame") {
+      fetchDeckRequests();
     }
   }, [activeTab]);
 
@@ -762,6 +773,43 @@ export function AdminDashboard({
     }
   };
 
+  // Buscar solicitações de decks submetidas por jogadores
+  const fetchDeckRequests = async () => {
+    setIsLoadingDeckRequests(true);
+    try {
+      const res = await fetch("/api/admin/deck-requests");
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.requests)) {
+        setDeckRequests(data.requests);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar solicitações de decks:", err);
+    } finally {
+      setIsLoadingDeckRequests(false);
+    }
+  };
+
+  // Moderação de decks (Aprovar ou Rejeitar)
+  const handleModerateDeckRequest = async (id: number, action: "approve" | "reject") => {
+    try {
+      const res = await fetch("/api/admin/deck-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setModerationMessage(data.message || (action === "approve" ? "Aprovado com sucesso!" : "Rejeitado com sucesso!"));
+        fetchDeckRequests();
+        router.refresh();
+      } else {
+        alert(data.error || "Erro ao processar moderação");
+      }
+    } catch (err: any) {
+      alert("Erro ao conectar com servidor: " + err.message);
+    }
+  };
+
   // Selecionar Evento para Edição
   const handleSelectCalToEdit = (ev: any) => {
     setEditingCalId(ev.id);
@@ -1039,6 +1087,11 @@ export function AdminDashboard({
           >
             <BarChart3 className="h-3.5 w-3.5" />
             <span>Metagame</span>
+            {deckRequests.filter((r) => r.status === "pendente").length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 animate-pulse">
+                {deckRequests.filter((r) => r.status === "pendente").length}
+              </span>
+            )}
           </button>
 
           <button
@@ -2034,6 +2087,118 @@ export function AdminDashboard({
       {/* 4. ABA METAGAME POR ETAPA & AUDITORIA */}
       {activeTab === "metagame" && (
         <div className="space-y-8">
+          {/* Card de Moderação de Decks Enviados pelos Atletas */}
+          <div className="rounded-3xl border border-amber-500/20 bg-slate-900/90 p-6 sm:p-8 backdrop-blur-2xl shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 h-32 w-32 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />
+            <div className="flex items-center justify-between gap-4 flex-wrap pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl">
+                  🛡️
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-black text-white">
+                      Moderação de Decks Sugeridos por Jogadores
+                    </h3>
+                    {deckRequests.filter((r) => r.status === "pendente").length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-400 text-slate-950 animate-pulse">
+                        {deckRequests.filter((r) => r.status === "pendente").length} pendente(s)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Jogadores que informaram pelo Portal do Atleta o deck utilizado em etapas sem registro prévio.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchDeckRequests}
+                disabled={isLoadingDeckRequests}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 transition-all cursor-pointer"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isLoadingDeckRequests ? "animate-spin" : ""}`} />
+                <span>Atualizar Pedidos</span>
+              </button>
+            </div>
+
+            {moderationMessage && (
+              <div className="mt-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-bold flex items-center justify-between">
+                <span>{moderationMessage}</span>
+                <button type="button" onClick={() => setModerationMessage("")} className="text-slate-400 hover:text-white cursor-pointer">✕</button>
+              </div>
+            )}
+
+            {deckRequests.filter((r) => r.status === "pendente").length === 0 ? (
+              <div className="mt-6 py-6 text-center border border-dashed border-white/10 rounded-2xl bg-slate-950/40">
+                <CheckCircle2 className="h-7 w-7 text-emerald-400/60 mx-auto mb-1.5" />
+                <p className="text-xs font-bold text-slate-400">Nenhuma solicitação de deck pendente no momento.</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Quando um jogador informar seu deck através do Portal do Atleta, você poderá aprovar aqui com 1 clique.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-6 overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-white/10 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                      <th className="pb-3 px-3">Jogador</th>
+                      <th className="pb-3 px-3">Etapa</th>
+                      <th className="pb-3 px-3">Deck Informado</th>
+                      <th className="pb-3 px-3">Solicitado em</th>
+                      <th className="pb-3 px-3 text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {deckRequests.filter((r) => r.status === "pendente").map((req) => (
+                      <tr key={req.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-3 font-bold text-white">
+                          <div>{req.jogadorNome}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">ID: {req.jogadorId}</div>
+                        </td>
+                        <td className="py-3 px-3 font-semibold text-slate-300">
+                          {req.etapaData}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 font-black text-amber-300">
+                            <Flame className="h-3 w-3" />
+                            {req.deckNome}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-slate-400 text-[11px]">
+                          {req.createdAt ? new Date(req.createdAt).toLocaleDateString("pt-BR") : "Recente"}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleModerateDeckRequest(req.id, "approve")}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+                              title="Aprovar deck e atualizar ranking"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                              <span>Aprovar</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleModerateDeckRequest(req.id, "reject")}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold text-xs transition-all cursor-pointer"
+                              title="Rejeitar solicitação"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                              <span>Rejeitar</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 sm:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
             {/* Topo / Header */}
             <div className="flex items-center justify-between gap-4 flex-wrap pb-4 border-b border-white/10">

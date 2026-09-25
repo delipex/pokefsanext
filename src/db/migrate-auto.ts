@@ -180,6 +180,15 @@ export async function ensureDatabaseSchema() {
       etapa_data TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );`,
+    `CREATE TABLE IF NOT EXISTS solicitacoes_decks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      jogador_id TEXT NOT NULL,
+      jogador_nome TEXT NOT NULL,
+      etapa_data TEXT NOT NULL,
+      deck_nome TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pendente',
+      created_at TEXT DEFAULT (datetime('now'))
+    );`,
   ];
 
   // Executa criação das tabelas
@@ -374,6 +383,102 @@ export async function ensureDatabaseSchema() {
                 s.deck || "",
               ],
             });
+          }
+        }
+      }
+
+      // 6. Ranking Consolidado
+      const countRanking = await client.execute("SELECT COUNT(*) as cnt FROM ranking_consolidado;");
+      const numRanking = Number(countRanking.rows[0]?.cnt || 0);
+      if (numRanking === 0) {
+        const rFile = path.join(dataDir, "ranking.tdf");
+        if (fs.existsSync(rFile)) {
+          const rLines = fs.readFileSync(rFile, "utf-8").split(/\r?\n/).filter(Boolean);
+          const rRows = rLines.slice(1);
+          for (const row of rRows) {
+            const cols = row.split("\t");
+            if (cols.length < 12) continue;
+            const [
+              _pos,
+              id,
+              jogador,
+              categoria,
+              pontos,
+              vitorias,
+              empates,
+              derrotas,
+              podios,
+              mediaColocacao,
+              participacoes,
+              historicoColocacoes,
+            ] = cols;
+
+            await client.execute({
+              sql: `INSERT INTO ranking_consolidado (temporada, jogador_id, jogador_nome, categoria, pontos, vitorias, empates, derrotas, podios, media_colocacao, participacoes, historico_colocacoes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+              args: [
+                5,
+                id ? id.trim() : "",
+                jogador ? jogador.trim() : "",
+                categoria ? categoria.trim() : "Master",
+                Number(pontos) || 0,
+                Number(vitorias) || 0,
+                Number(empates) || 0,
+                Number(derrotas) || 0,
+                Number(podios) || 0,
+                Number(mediaColocacao) || 0,
+                Number(participacoes) || 0,
+                historicoColocacoes ? historicoColocacoes.trim() : "",
+              ],
+            });
+          }
+        }
+      }
+
+      // 7. Etapas & Resultados
+      const countEtapas = await client.execute("SELECT COUNT(*) as cnt FROM etapas;");
+      const numEtapas = Number(countEtapas.rows[0]?.cnt || 0);
+      if (numEtapas === 0) {
+        const eFile = path.join(dataDir, "etapas.json");
+        const etapasDir = path.join(dataDir, "etapas");
+        if (fs.existsSync(eFile)) {
+          const eData = JSON.parse(fs.readFileSync(eFile, "utf-8"));
+          for (let eIdx = 0; eIdx < eData.length; eIdx++) {
+            const etapa = eData[eIdx];
+            if (!etapa.data) continue;
+            const mult = Number(etapa.multiplicador) || 1.0;
+            const etapaRes = await client.execute({
+              sql: `INSERT INTO etapas (data, tipo, multiplicador, temporada, status) VALUES (?, ?, ?, ?, 'concluida') RETURNING id;`,
+              args: [etapa.data, etapa.tipo || "Liga", mult, etapa.temporada || 5],
+            });
+            const etapaId = etapaRes.rows[0]?.id ? Number(etapaRes.rows[0].id) : eIdx + 1;
+
+            const tdfPath = path.join(etapasDir, `${etapa.data}.tdf`);
+            if (fs.existsSync(tdfPath)) {
+              const tdfLines = fs.readFileSync(tdfPath, "utf-8").split(/\r?\n/).filter(Boolean);
+              const tdfRows = tdfLines.slice(1);
+              for (let rIdx = 0; rIdx < tdfRows.length; rIdx++) {
+                const cols = tdfRows[rIdx].split("\t");
+                if (cols.length < 5) continue;
+                const [pos, id, jogador, categoria, pontos, vitorias, empates, derrotas] = cols;
+                await client.execute({
+                  sql: `INSERT INTO etapa_resultados (etapa_id, etapa_data, jogador_id, jogador_nome, categoria, colocacao, pontos, vitorias, empates, derrotas)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+                  args: [
+                    etapaId,
+                    etapa.data,
+                    id ? id.trim() : null,
+                    jogador ? jogador.trim() : "",
+                    categoria ? categoria.trim() : "Master",
+                    Number(pos) || rIdx + 1,
+                    Number(pontos) || 0,
+                    Number(vitorias) || 0,
+                    Number(empates) || 0,
+                    Number(derrotas) || 0,
+                  ],
+                });
+              }
+            }
           }
         }
       }

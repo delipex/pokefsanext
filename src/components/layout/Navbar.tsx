@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Flame, Calendar, BookOpen, Menu, X, Shield, User } from "lucide-react";
 import { PokeballIcon, HeaderLogoSvg } from "@/components/ui/BrandLogo";
@@ -17,6 +17,24 @@ interface NavbarProps {
 export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal = true }: NavbarProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loggedInAthlete, setLoggedInAthlete] = useState<{ popId: string; nome: string } | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch("/api/portal/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data?.loggedIn && data?.popId) {
+          setLoggedInAthlete({ popId: data.popId, nome: data.nome });
+        } else if (isMounted && !data?.loggedIn) {
+          setLoggedInAthlete(null);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname]);
 
   const navLinks = [
     { href: "/", label: "Início", icon: null },
@@ -71,15 +89,32 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal 
 
         {/* Controles da Direita: Botão de Login do Atleta & Alternador de Tema */}
         <div className="flex items-center gap-2.5 sm:gap-3.5">
-          {/* Botão de Login com Feedback iOS */}
+          {/* Botão de Login do Atleta / Perfil com Feedback iOS */}
           {exibirPortal && (
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
               <Link
                 href="/portal"
-                className="flex items-center gap-2 rounded-full border border-blue-500/40 bg-blue-600/20 hover:bg-blue-600 hover:border-blue-500 px-4 py-2 text-xs sm:text-sm font-bold text-blue-300 hover:text-white transition-all shadow-sm shadow-blue-600/20 cursor-pointer"
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs sm:text-sm font-bold transition-all shadow-sm cursor-pointer ${
+                  loggedInAthlete
+                    ? "border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 shadow-emerald-500/20"
+                    : "border border-blue-500/40 bg-blue-600/20 hover:bg-blue-600 hover:border-blue-500 text-blue-300 hover:text-white shadow-blue-600/20"
+                }`}
+                title={loggedInAthlete ? `Conectado como ${loggedInAthlete.nome}` : "Entrar no Portal do Treinador"}
               >
-                <User className="h-4 w-4" />
-                <span>Login</span>
+                {loggedInAthlete ? (
+                  <>
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span className="font-mono tracking-tight">ID: {loggedInAthlete.popId}</span>
+                  </>
+                ) : (
+                  <>
+                    <User className="h-4 w-4" />
+                    <span>Login</span>
+                  </>
+                )}
               </Link>
             </motion.div>
           )}
@@ -140,10 +175,26 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal 
                     <Link
                       href="/portal"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/30"
+                      className={`flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold shadow-lg ${
+                        loggedInAthlete
+                          ? "bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 shadow-emerald-600/20"
+                          : "bg-blue-600 text-white shadow-blue-600/30"
+                      }`}
                     >
-                      <User className="h-4 w-4" />
-                      <span>Login</span>
+                      {loggedInAthlete ? (
+                        <>
+                          <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                          </span>
+                          <span>Meu Perfil (ID: {loggedInAthlete.popId})</span>
+                        </>
+                      ) : (
+                        <>
+                          <User className="h-4 w-4" />
+                          <span>Login</span>
+                        </>
+                      )}
                     </Link>
                   </motion.div>
                 </div>

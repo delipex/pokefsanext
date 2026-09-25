@@ -159,3 +159,14 @@ export const jogadorDecklists = sqliteTable("jogador_decklists", {
   statusPix: text("status_pix").default("Pendente"),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });
+
+// 13. Tabela de Solicitações de Decks Informados pelos Jogadores
+export const solicitacoesDecks = sqliteTable("solicitacoes_decks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  jogadorId: text("jogador_id").notNull(),
+  jogadorNome: text("jogador_nome").notNull(),
+  etapaData: text("etapa_data").notNull(),
+  deckNome: text("deck_nome").notNull(),
+  status: text("status").default("pendente"), // 'pendente', 'aprovada', 'rejeitada'
+  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
+});
