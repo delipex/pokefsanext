@@ -47,50 +47,10 @@ export async function POST(req: Request) {
     }
     const cleanId = popCheck.cleanId!;
 
-    // 3. Validação de Nome Completo
-    const nameCheck = validatePlayerName(nome || "");
-    if (!nameCheck.isValid) {
-      return NextResponse.json(
-        { error: `Não foi possível se cadastrar devido a: ${nameCheck.error}` },
-        { status: 400 }
-      );
-    }
-    const cleanName = nameCheck.cleanName!;
-
-    // 4. Validação de WhatsApp
-    const phoneCheck = validateWhatsApp(whatsapp || "");
-    if (!phoneCheck.isValid) {
-      return NextResponse.json(
-        { error: `Não foi possível se cadastrar devido a: ${phoneCheck.error}` },
-        { status: 400 }
-      );
-    }
-    const cleanPhone = phoneCheck.cleanPhone!;
-
-    // 5. Validação de Data de Nascimento e Cálculo de Categoria Oficial
-    const catCheck = calculatePokemonCategory(dataNascimento || "");
-    if (!catCheck.isValid) {
-      return NextResponse.json(
-        { error: `Não foi possível se cadastrar devido a: ${catCheck.error}` },
-        { status: 400 }
-      );
-    }
-    const categoria = catCheck.categoria;
-
-    // 6. Validação de PIN de Acesso (Exatamente 4 dígitos numéricos)
-    const cleanPin = String(pin || "").trim().replace(/\D/g, "");
-    if (!cleanPin || cleanPin.length !== 4) {
-      return NextResponse.json(
-        { error: "Não foi possível se cadastrar devido a: crie um PIN de exatamente 4 dígitos numéricos (Ex: 1234)." },
-        { status: 400 }
-      );
-    }
-    const hashedPin = hashPin(cleanPin);
-
     // Auto-heal / garante schema do banco pronto
     await ensureDatabaseSchema();
 
-    // 7. Busca se atleta já existe no banco ou em jogadores.json
+    // 3. Busca se atleta já existe no banco ou em jogadores.json
     let existingAthlete: any = null;
 
     try {
@@ -109,14 +69,13 @@ export async function POST(req: Request) {
           const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
           const found = raw.find((j: any) => {
             const jId = String(j.id || j.ID || "").trim();
-            const jName = (j.jogador || j.Jogador || j.nome || "").toString().toLowerCase().trim();
-            return (jId && jId === cleanId) || (jName && jName === cleanName.toLowerCase().trim());
+            return jId && jId === cleanId;
           });
           if (found) {
             existingAthlete = {
               id: String(found.id || found.ID || cleanId).trim(),
-              nome: found.jogador || found.Jogador || found.nome || cleanName,
-              categoria: found.categoria || found.Categoria || categoria || "Master",
+              nome: found.jogador || found.Jogador || found.nome,
+              categoria: found.categoria || found.Categoria || "Master",
               pinHash: null,
             };
           }
@@ -134,8 +93,23 @@ export async function POST(req: Request) {
       );
     }
 
-    // Se existe com nome cadastrado, verifica correspondência razoável
-    if (existingAthlete && existingAthlete.nome) {
+    // 4. Validação de Nome Completo
+    let cleanName = "";
+    if (existingAthlete && existingAthlete.nome && !nome) {
+      cleanName = existingAthlete.nome;
+    } else {
+      const nameCheck = validatePlayerName(nome || (existingAthlete ? existingAthlete.nome : ""));
+      if (!nameCheck.isValid) {
+        return NextResponse.json(
+          { error: `Não foi possível se cadastrar devido a: ${nameCheck.error}` },
+          { status: 400 }
+        );
+      }
+      cleanName = nameCheck.cleanName!;
+    }
+
+    // Se existe atleta e informou nome diferente, valida compatibilidade
+    if (existingAthlete && existingAthlete.nome && cleanName) {
       const identityCheck = matchPlayerIdentity(cleanName, existingAthlete.nome);
       if (!identityCheck.isMatch) {
         return NextResponse.json(
@@ -146,6 +120,53 @@ export async function POST(req: Request) {
         );
       }
     }
+
+    // 5. Validação de WhatsApp (opcional para quem já é atleta da Liga)
+    let cleanPhone: string | null = null;
+    if (whatsapp && String(whatsapp).trim()) {
+      const phoneCheck = validateWhatsApp(whatsapp);
+      if (!phoneCheck.isValid) {
+        return NextResponse.json(
+          { error: `Não foi possível se cadastrar devido a: ${phoneCheck.error}` },
+          { status: 400 }
+        );
+      }
+      cleanPhone = phoneCheck.cleanPhone!;
+    } else if (!existingAthlete) {
+      return NextResponse.json(
+        { error: "Não foi possível se cadastrar devido a: WhatsApp com DDD é obrigatório para novos competidores." },
+        { status: 400 }
+      );
+    }
+
+    // 6. Categoria e Nascimento (se já é atleta oficial, preserva categoria cadastrada)
+    let categoria = existingAthlete?.categoria || "Master";
+    if (dataNascimento && String(dataNascimento).trim()) {
+      const catCheck = calculatePokemonCategory(dataNascimento);
+      if (catCheck.isValid) {
+        categoria = catCheck.categoria;
+      } else if (!existingAthlete) {
+        return NextResponse.json(
+          { error: `Não foi possível se cadastrar devido a: ${catCheck.error}` },
+          { status: 400 }
+        );
+      }
+    } else if (!existingAthlete) {
+      return NextResponse.json(
+        { error: "Não foi possível se cadastrar devido a: Data de nascimento é obrigatória para definir sua categoria oficial (Master, Senior ou Junior)." },
+        { status: 400 }
+      );
+    }
+
+    // 7. Validação de PIN de Acesso (Exatamente 4 dígitos numéricos)
+    const cleanPin = String(pin || "").trim().replace(/\D/g, "");
+    if (!cleanPin || cleanPin.length !== 4) {
+      return NextResponse.json(
+        { error: "Não foi possível se cadastrar devido a: crie um PIN de exatamente 4 dígitos numéricos (Ex: 1234)." },
+        { status: 400 }
+      );
+    }
+    const hashedPin = hashPin(cleanPin);
 
     // 8. Persistência Atômica no Banco de Dados
     await db
@@ -200,16 +221,7 @@ export async function POST(req: Request) {
     } catch {}
 
     // 9. Criação de Sessão Segura via Cookie HTTP-only
-    const cookieStore = await cookies();
-    cookieStore.set("player_session", cleanId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 dias
-    });
-
-    return NextResponse.json({
+    const resObj = NextResponse.json({
       success: true,
       message: "Cadastro realizado e ativado com sucesso!",
       player: {
@@ -218,6 +230,16 @@ export async function POST(req: Request) {
         categoria,
       },
     });
+
+    resObj.cookies.set("player_session", cleanId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 dias
+    });
+
+    return resObj;
   } catch (error: any) {
     console.error("Erro interno no cadastro:", error);
     return NextResponse.json(

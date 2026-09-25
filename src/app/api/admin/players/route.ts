@@ -4,6 +4,7 @@ import { jogadores } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
 import { getAllJogadores } from "@/lib/queries";
+import { hashPin } from "@/lib/security";
 import fs from "fs";
 import path from "path";
 
@@ -100,7 +101,7 @@ export async function PUT(req: Request) {
   try {
     await ensureDatabaseSchema();
     const body = await req.json();
-    const { id, nome, categoria, whatsapp, dataNascimento, cidade, resetPin, ativo } = body;
+    const { id, nome, categoria, whatsapp, dataNascimento, cidade, resetPin, newPin, ativo } = body;
 
     if (!id || !nome) {
       return NextResponse.json({ error: "ID e Nome são obrigatórios" }, { status: 400 });
@@ -122,8 +123,15 @@ export async function PUT(req: Request) {
       updateData.ativo = ativo;
     }
 
+    let definedPinHash: string | null = null;
     if (resetPin) {
       updateData.pinHash = null;
+    } else if (newPin) {
+      const cleanPin = String(newPin).trim().replace(/\D/g, "");
+      if (cleanPin.length === 4) {
+        definedPinHash = hashPin(cleanPin);
+        updateData.pinHash = definedPinHash;
+      }
     }
 
     await db.update(jogadores).set(updateData).where(eq(jogadores.id, cleanId));
@@ -141,16 +149,23 @@ export async function PUT(req: Request) {
         };
         if (resetPin) {
           list[idx].pinHash = null;
+        } else if (definedPinHash) {
+          list[idx].pinHash = definedPinHash;
         }
       }
       return list;
     });
 
+    let returnMessage = "Dados do jogador atualizados com sucesso!";
+    if (resetPin) {
+      returnMessage = "Jogador atualizado e PIN redefinido com sucesso! O jogador já pode cadastrar um novo PIN.";
+    } else if (definedPinHash) {
+      returnMessage = "PIN do jogador definido com sucesso!";
+    }
+
     return NextResponse.json({
       success: true,
-      message: resetPin
-        ? "Jogador atualizado e PIN redefinido com sucesso! O jogador já pode cadastrar um novo PIN."
-        : "Dados do jogador atualizados com sucesso!",
+      message: returnMessage,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

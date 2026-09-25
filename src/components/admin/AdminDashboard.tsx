@@ -128,6 +128,7 @@ export function AdminDashboard({
   const [newPlayerDataNasc, setNewPlayerDataNasc] = useState("");
   const [newPlayerCidade, setNewPlayerCidade] = useState("Feira de Santana - BA");
   const [newPlayerHasPin, setNewPlayerHasPin] = useState(false);
+  const [adminCustomPin, setAdminCustomPin] = useState("");
   const [playerSearch, setPlayerSearch] = useState("");
   const [playerMessage, setPlayerMessage] = useState("");
   const [isRefreshingPlayers, setIsRefreshingPlayers] = useState(false);
@@ -432,6 +433,7 @@ export function AdminDashboard({
     setNewPlayerDataNasc("");
     setNewPlayerCidade("Feira de Santana - BA");
     setNewPlayerHasPin(false);
+    setAdminCustomPin("");
     setPlayerMessage("");
   };
 
@@ -516,6 +518,41 @@ export function AdminDashboard({
         fetchPlayers();
       } else {
         setPlayerMessage(`❌ Erro ao redefinir PIN: ${data.error}`);
+      }
+    } catch (err: any) {
+      setPlayerMessage(`❌ Erro: ${err.message}`);
+    }
+  };
+
+  // Definir PIN manual para o Jogador pelo Painel Admin
+  const handleSetPlayerPin = async (id: string, nome: string, customPin: string) => {
+    const clean = customPin.replace(/\D/g, "");
+    if (clean.length !== 4) {
+      alert("O PIN deve conter exatamente 4 dígitos numéricos.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/players", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          nome: newPlayerName || nome,
+          categoria: newPlayerCategory,
+          newPin: clean,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNewPlayerHasPin(true);
+        setAdminCustomPin("");
+        setPlayers((prev) =>
+          prev.map((p) => (String(p.id || p.ID) === id ? { ...p, pinHash: "active" } : p))
+        );
+        setPlayerMessage(`🔑 PIN (${clean}) gravado com sucesso para ${nome}!`);
+        fetchPlayers();
+      } else {
+        setPlayerMessage(`❌ Erro ao definir PIN: ${data.error}`);
       }
     } catch (err: any) {
       setPlayerMessage(`❌ Erro: ${err.message}`);
@@ -1566,9 +1603,9 @@ export function AdminDashboard({
                   </div>
                 </div>
 
-                {/* Status de PIN e Ação de Redefinir */}
+                {/* Status de PIN e Gestão Soberana pelo Admin */}
                 {editingPlayerId && (
-                  <div className="p-3 rounded-xl border border-white/10 bg-slate-950/60 space-y-2">
+                  <div className="p-3 rounded-xl border border-white/10 bg-slate-950/60 space-y-3">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400">PIN do Portal do Treinador:</span>
                       {newPlayerHasPin ? (
@@ -1576,19 +1613,52 @@ export function AdminDashboard({
                           <CheckCircle2 className="h-3.5 w-3.5" /> Ativo
                         </span>
                       ) : (
-                        <span className="text-slate-500 font-semibold">Não definido</span>
+                        <span className="text-amber-400 font-semibold flex items-center gap-1">
+                          <AlertTriangle className="h-3.5 w-3.5" /> Não definido
+                        </span>
                       )}
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase">
+                        Definir Novo PIN de 4 Dígitos:
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="password"
+                          inputMode="numeric"
+                          maxLength={4}
+                          placeholder="Ex: 1234"
+                          value={adminCustomPin}
+                          onChange={(e) => setAdminCustomPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                          className="w-full rounded-xl border border-white/10 bg-slate-800 py-1.5 px-3 text-xs text-white focus:outline-none focus:border-blue-500 font-mono tracking-widest placeholder:tracking-normal placeholder:font-sans"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (adminCustomPin) {
+                              handleSetPlayerPin(newPlayerId, newPlayerName, adminCustomPin);
+                            }
+                          }}
+                          disabled={adminCustomPin.length !== 4}
+                          className="shrink-0 flex items-center gap-1 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 py-1.5 px-3 text-xs font-bold text-white transition-all cursor-pointer shadow-sm"
+                          title="Grava o PIN imediatamente para este atleta"
+                        >
+                          <KeyRound className="h-3.5 w-3.5" />
+                          <span>Salvar PIN</span>
+                        </button>
+                      </div>
                     </div>
 
                     {newPlayerHasPin && (
                       <button
                         type="button"
                         onClick={() => handleResetPlayerPin(newPlayerId, newPlayerName)}
-                        className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 py-2 px-3 text-xs font-bold text-amber-300 transition-all cursor-pointer"
+                        className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 py-1.5 px-3 text-xs font-bold text-amber-300 transition-all cursor-pointer"
                         title="Permite que o jogador defina um novo PIN"
                       >
-                        <KeyRound className="h-3.5 w-3.5" />
-                        <span>Redefinir / Limpar PIN</span>
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        <span>Redefinir / Limpar PIN Atual</span>
                       </button>
                     )}
                   </div>
