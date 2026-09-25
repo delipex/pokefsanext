@@ -54,10 +54,10 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
           exit={{ opacity: 0, scale: 0.94, y: 20 }}
           transition={{ type: "spring", stiffness: 350, damping: 28 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-lg rounded-3xl border border-white/[0.08] bg-slate-950/90 p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl text-slate-100 z-10"
+          className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl border border-white/[0.08] bg-slate-950/90 p-5 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl text-slate-100 z-10"
         >
           {/* iOS Handle Indicator */}
-          <div className="w-10 h-1.5 rounded-full bg-white/20 mx-auto -mt-2 mb-4" />
+          <div className="w-10 h-1.5 rounded-full bg-white/20 mx-auto -mt-1 mb-4 sm:hidden" />
 
           {/* Botão Fechar com Spring Tap */}
           <motion.button

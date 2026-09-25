@@ -213,7 +213,7 @@ export function AdminEtapasManager({ etapas, onEtapasUpdated }: AdminEtapasManag
       {/* Modal de Confirmação de Exclusão */}
       {stageToDelete && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-card max-w-md w-full p-6 rounded-2xl border border-red-500/30 bg-slate-950 space-y-4">
+          <div className="glass-card max-w-md w-full p-6 rounded-2xl border border-red-500/30 bg-slate-950 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center gap-3 text-red-400">
               <AlertTriangle className="h-6 w-6 shrink-0" />
               <h3 className="text-lg font-bold text-white">Excluir Etapa da Temporada</h3>

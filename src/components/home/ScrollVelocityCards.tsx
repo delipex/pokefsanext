@@ -393,129 +393,144 @@ export function ScrollVelocityCards({
               className="fixed inset-0 bg-black/85 backdrop-blur-xl"
             />
 
-            {/* Modal Box Estilo iOS Bottom Sheet no Celular e Bento Card no Desktop */}
+            {/* Modal Box: Bottom Sheet no Celular e Bento Card Horizontal no Desktop (Nunca Corta no PC) */}
             <motion.div
-              initial={{ opacity: 0, y: 120, scale: 0.95 }}
+              initial={{ opacity: 0, y: 80, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 100, scale: 0.95 }}
+              exit={{ opacity: 0, y: 60, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 380, damping: 28 }}
-              className="relative w-full sm:max-w-md bg-slate-950/95 border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] backdrop-blur-2xl text-slate-100 z-10 max-h-[90vh] overflow-y-auto space-y-4"
+              className="relative w-full sm:max-w-2xl md:max-w-3xl bg-slate-950/95 border border-white/10 rounded-t-3xl sm:rounded-3xl p-5 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] backdrop-blur-2xl text-slate-100 z-10 max-h-[88vh] overflow-y-auto custom-scrollbar"
               onClick={(e) => e.stopPropagation()}
             >
               {/* iOS Handle Indicator (Apenas Celular) */}
-              <div className="w-12 h-1.5 rounded-full bg-white/20 mx-auto -mt-1 mb-2 sm:hidden" />
+              <div className="w-12 h-1.5 rounded-full bg-white/20 mx-auto -mt-1 mb-3 sm:hidden" />
 
-              {/* Botão Fechar */}
+              {/* Botão Fechar no Canto Superior Direito */}
               <button
                 type="button"
                 onClick={() => setSelectedDeckForModal(null)}
-                className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer z-20"
                 aria-label="Fechar"
               >
                 <X className="h-5 w-5" />
               </button>
 
-              {/* Cabeçalho do Deck com Badge de Posição no Top 15 */}
-              <div className="pr-8 space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
-                    🔥 #{validDecks.findIndex((d) => d.nome.toLowerCase() === selectedDeckForModal.nome.toLowerCase()) + 1} no Ranking de Winrate
-                  </span>
-                  <EnergyBadge energyRaw={selectedDeckForModal.tipoEnergia} size="sm" />
-                </div>
-                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  {selectedDeckForModal.nome}
-                </h3>
-              </div>
-
-              {/* Carta em Destaque Visual */}
-              {selectedDeckForModal.imagem && (
-                <div className="relative aspect-[63/88] w-[170px] sm:w-[195px] mx-auto rounded-2xl overflow-hidden border border-white/15 shadow-2xl my-2">
-                  <img
-                    src={selectedDeckForModal.imagem}
-                    alt={selectedDeckForModal.nome}
-                    className="w-full h-full object-cover select-none"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent mix-blend-overlay pointer-events-none" />
-                </div>
-              )}
-
-              {/* Grid de Estatísticas Chave de Rendimento */}
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 text-center">
-                  <span className="text-[10px] uppercase font-bold text-emerald-400 block tracking-wider">
-                    Taxa de Vitória
-                  </span>
-                  <span className="text-2xl font-black text-emerald-400 tabular-nums">
-                    {selectedDeckForModal.winRate !== undefined ? `${selectedDeckForModal.winRate}%` : "—"}
-                  </span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">Aproveitamento</span>
+              {/* Grid Responsivo: Coluna Única no Celular / 2 Colunas Lado a Lado no PC */}
+              <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-7">
+                {/* Lado Esquerdo: Arte da Carta com Proporções Clássicas de TCG */}
+                <div className="shrink-0 flex flex-col items-center justify-center">
+                  {selectedDeckForModal.imagem ? (
+                    <div className="relative aspect-[63/88] w-[130px] sm:w-[185px] md:w-[210px] rounded-2xl overflow-hidden border border-white/15 shadow-2xl group">
+                      <img
+                        src={selectedDeckForModal.imagem}
+                        alt={selectedDeckForModal.nome}
+                        className="w-full h-full object-cover select-none"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent mix-blend-overlay pointer-events-none" />
+                    </div>
+                  ) : (
+                    <div className="aspect-[63/88] w-[130px] sm:w-[185px] md:w-[210px] rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/15 shadow-2xl flex flex-col items-center justify-center text-center p-4">
+                      <span className="text-3xl mb-2">⚡</span>
+                      <span className="text-xs font-bold text-white">{selectedDeckForModal.nome}</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 text-center">
-                  <span className="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">
-                    Recorde Oficial
-                  </span>
-                  <div className="text-2xl font-black text-white tabular-nums">
-                    <span className="text-emerald-400">{selectedDeckForModal.vitorias ?? 0}V</span>
-                    <span className="text-slate-500 font-normal"> - </span>
-                    <span className="text-rose-400">{selectedDeckForModal.derrotas ?? 0}D</span>
+                {/* Lado Direito: Informações Oficiais, Estatísticas e Ações */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between space-y-4 w-full pr-0 sm:pr-6">
+                  {/* Cabeçalho do Deck com Badge de Posição no Top 15 */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                        🔥 #{validDecks.findIndex((d) => d.nome.toLowerCase() === selectedDeckForModal.nome.toLowerCase()) + 1} no Ranking de Winrate
+                      </span>
+                      <EnergyBadge energyRaw={selectedDeckForModal.tipoEnergia} size="sm" />
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight break-words">
+                      {selectedDeckForModal.nome}
+                    </h3>
                   </div>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">
-                    {selectedDeckForModal.empates ? `${selectedDeckForModal.empates} empates • ` : ""}
-                    {selectedDeckForModal.totalPartidas ?? 0} jogos
-                  </span>
-                </div>
-              </div>
 
-              {/* Pódios e Títulos se houver */}
-              {(Number(selectedDeckForModal.podios) > 0 || Number(selectedDeckForModal.titulos) > 0) && (
-                <div className="flex items-center justify-around p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-bold">
-                  {Number(selectedDeckForModal.titulos) > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Trophy className="h-3.5 w-3.5 text-amber-400" />
-                      {selectedDeckForModal.titulos}x Campeão de Etapa
-                    </span>
+                  {/* Grid de Estatísticas Chave de Rendimento */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 text-center">
+                      <span className="text-[10px] uppercase font-bold text-emerald-400 block tracking-wider">
+                        Taxa de Vitória
+                      </span>
+                      <span className="text-2xl font-black text-emerald-400 tabular-nums">
+                        {selectedDeckForModal.winRate !== undefined ? `${selectedDeckForModal.winRate}%` : "—"}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">Aproveitamento</span>
+                    </div>
+
+                    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 text-center">
+                      <span className="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">
+                        Recorde Oficial
+                      </span>
+                      <div className="text-2xl font-black text-white tabular-nums">
+                        <span className="text-emerald-400">{selectedDeckForModal.vitorias ?? 0}V</span>
+                        <span className="text-slate-500 font-normal"> - </span>
+                        <span className="text-rose-400">{selectedDeckForModal.derrotas ?? 0}D</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
+                        {selectedDeckForModal.empates ? `${selectedDeckForModal.empates}E • ` : ""}
+                        {selectedDeckForModal.totalPartidas ?? 0} partidas
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Pódios e Títulos se houver */}
+                  {(Number(selectedDeckForModal.podios) > 0 || Number(selectedDeckForModal.titulos) > 0) && (
+                    <div className="flex items-center justify-around p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs font-bold">
+                      {Number(selectedDeckForModal.titulos) > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Trophy className="h-3.5 w-3.5 text-amber-400" />
+                          {selectedDeckForModal.titulos}x Campeão
+                        </span>
+                      )}
+                      {Number(selectedDeckForModal.podios) > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Swords className="h-3.5 w-3.5 text-amber-400" />
+                          {selectedDeckForModal.podios}x Top 4
+                        </span>
+                      )}
+                    </div>
                   )}
-                  {Number(selectedDeckForModal.podios) > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Swords className="h-3.5 w-3.5 text-amber-400" />
-                      {selectedDeckForModal.podios}x Top 4
-                    </span>
-                  )}
+
+                  {/* Botões de Ação para Celular e Desktop */}
+                  <div className="space-y-2 pt-1">
+                    {selectedDeckForModal.limitless && (
+                      <a
+                        href={selectedDeckForModal.limitless}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+                      >
+                        <span>Ver Lista de 60 Cartas (Limitless)</span>
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href="/metagame"
+                        onClick={() => setSelectedDeckForModal(null)}
+                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-200 hover:text-white font-bold text-xs transition-all cursor-pointer"
+                      >
+                        <Flame className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                        <span className="truncate">Metagame</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDeckForModal(null)}
+                        className="py-2.5 px-3 rounded-xl bg-slate-900 border border-white/10 text-slate-400 hover:text-white text-xs font-semibold cursor-pointer transition-colors"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              )}
-
-              {/* Botões de Ação para Celular e Desktop */}
-              <div className="space-y-2 pt-2">
-                {selectedDeckForModal.limitless && (
-                  <a
-                    href={selectedDeckForModal.limitless}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
-                  >
-                    <span>Ver Lista de 60 Cartas (Limitless)</span>
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                )}
-
-                <Link
-                  href="/metagame"
-                  onClick={() => setSelectedDeckForModal(null)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-200 hover:text-white font-bold text-xs transition-all cursor-pointer"
-                >
-                  <Flame className="h-4 w-4 text-amber-400" />
-                  <span>Explorar Metagame Completo</span>
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedDeckForModal(null)}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 border border-white/5 text-slate-400 hover:text-white text-xs font-semibold cursor-pointer transition-colors"
-                >
-                  Fechar
-                </button>
               </div>
             </motion.div>
           </div>

@@ -438,56 +438,82 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 20 }}
               transition={{ type: "spring", stiffness: 350, damping: 28 }}
-              className="relative w-full max-w-lg rounded-3xl border border-white/10 bg-[#0f172a]/95 p-6 shadow-2xl backdrop-blur-2xl text-slate-100 space-y-4 z-10"
+              className="relative w-full max-w-2xl max-h-[88vh] overflow-y-auto custom-scrollbar rounded-3xl border border-white/10 bg-[#0f172a]/95 p-5 sm:p-7 shadow-2xl backdrop-blur-2xl text-slate-100 z-10"
               onClick={(e) => e.stopPropagation()}
             >
               {/* iOS Handle */}
-              <div className="w-10 h-1.5 rounded-full bg-white/20 mx-auto -mt-2 mb-3" />
+              <div className="w-10 h-1.5 rounded-full bg-white/20 mx-auto -mt-1 mb-3 sm:hidden" />
 
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setDeckModalChampion(null)}
-                className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer z-20"
               >
                 <X className="h-5 w-5" />
               </motion.button>
 
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">🏆</span>
-                <div>
-                  <h3 className="text-lg font-black text-white">Decklist Campeã — {deckModalChampion.temporada}</h3>
-                  <p className="text-xs text-amber-400 font-bold">{deckModalChampion.campeao} &bull; {deckModalChampion.deckCampeao}</p>
+              <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-5 sm:gap-6">
+                {/* Lado Esquerdo: Imagem da Carta Campeã */}
+                {deckModalChampion.imagemDeck && (
+                  <div className="shrink-0 flex items-center justify-center">
+                    <div className="rounded-2xl overflow-hidden border border-white/10 bg-slate-950 w-[140px] sm:w-[200px] aspect-[63/88] flex items-center justify-center shadow-xl">
+                      <img
+                        src={deckModalChampion.imagemDeck}
+                        alt={`Deck de ${deckModalChampion.campeao}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Lado Direito: Informações e Botão de Ação */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between space-y-3.5 w-full pr-0 sm:pr-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🏆</span>
+                      <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-black uppercase text-amber-300 border border-amber-500/30">
+                        {deckModalChampion.temporada}
+                      </span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-white tracking-tight break-words">
+                      {deckModalChampion.deckCampeao}
+                    </h3>
+                    <p className="text-xs text-amber-400 font-bold">
+                      Campeão: <span className="text-white">{deckModalChampion.campeao}</span>
+                    </p>
+                  </div>
+
+                  {deckModalChampion.observacaoDeck && (
+                    <p className="text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-white/5 leading-relaxed">
+                      {deckModalChampion.observacaoDeck}
+                    </p>
+                  )}
+
+                  <div className="pt-2">
+                    {deckModalChampion.urlDeck ? (
+                      <motion.a
+                        whileTap={{ scale: 0.97 }}
+                        whileHover={{ scale: 1.01 }}
+                        href={deckModalChampion.urlDeck}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-amber-500 hover:bg-amber-400 py-2.5 text-xs font-black text-slate-950 transition-colors shadow-lg shadow-amber-500/20 cursor-pointer"
+                      >
+                        <span>Abrir Lista Oficial de 60 Cartas</span>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </motion.a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setDeckModalChampion(null)}
+                        className="w-full py-2.5 rounded-xl bg-slate-900 border border-white/10 text-slate-400 hover:text-white text-xs font-semibold cursor-pointer transition-colors"
+                      >
+                        Fechar
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {deckModalChampion.imagemDeck && (
-                <div className="rounded-2xl overflow-hidden border border-white/10 bg-slate-950 max-h-[380px] flex items-center justify-center">
-                  <img
-                    src={deckModalChampion.imagemDeck}
-                    alt={`Deck de ${deckModalChampion.campeao}`}
-                    className="max-h-[380px] w-full object-contain"
-                  />
-                </div>
-              )}
-
-              {deckModalChampion.observacaoDeck && (
-                <p className="text-xs text-slate-300 bg-slate-900/80 p-3 rounded-xl border border-white/5 leading-relaxed">
-                  {deckModalChampion.observacaoDeck}
-                </p>
-              )}
-
-              {deckModalChampion.urlDeck && (
-                <motion.a
-                  whileTap={{ scale: 0.97 }}
-                  whileHover={{ scale: 1.01 }}
-                  href={deckModalChampion.urlDeck}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-amber-500 py-2.5 text-xs font-black text-slate-950 hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20"
-                >
-                  Abrir Lista Oficial de 60 Cartas <ExternalLink className="h-3.5 w-3.5" />
-                </motion.a>
-              )}
             </motion.div>
           </div>
         )}

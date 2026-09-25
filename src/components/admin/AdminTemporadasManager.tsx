@@ -719,7 +719,7 @@ export function AdminTemporadasManager({
       {/* ========================================================== */}
       {isScoreModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-card max-w-md w-full p-6 rounded-2xl border border-white/20 bg-slate-950 space-y-4">
+          <div className="glass-card max-w-md w-full p-6 rounded-2xl border border-white/20 bg-slate-950 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Award className="h-5 w-5 text-blue-400" />
@@ -834,7 +834,7 @@ export function AdminTemporadasManager({
       {/* ========================================================== */}
       {isClosureModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-card max-w-lg w-full p-6 rounded-2xl border border-red-500/40 bg-slate-950 space-y-4">
+          <div className="glass-card max-w-lg w-full p-6 rounded-2xl border border-red-500/40 bg-slate-950 space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex items-center justify-between border-b border-red-500/20 pb-3 text-red-400">
               <div className="flex items-center gap-2">
                 <Lock className="h-5 w-5" />
