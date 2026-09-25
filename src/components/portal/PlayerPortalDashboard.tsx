@@ -20,7 +20,6 @@ import {
   X,
   Layers,
   HelpCircle,
-  TrendingUp,
   ExternalLink,
   Flame,
   Shield,
@@ -28,8 +27,6 @@ import {
   Target,
   BarChart3,
   History,
-  Medal,
-  ChevronRight,
   Zap,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
@@ -70,9 +67,9 @@ export function PlayerPortalDashboard({
 }: PlayerPortalDashboardProps) {
   const router = useRouter();
 
-  // Estado da Decklist
+  // Estado da Decklist (apenas quando exigido em Premier Challenge / Cup)
   const [selectedDeck, setSelectedDeck] = useState(
-    submittedDecklist?.deckNome || player.deckAtivoNome || allDecks[0]?.nome || "Dragapult Ex"
+    submittedDecklist?.deckNome || player.deckAtivoNome || (allDecks[0]?.nome || "")
   );
   const [decklistText, setDecklistText] = useState(
     submittedDecklist?.decklistRaw || player.decklistTexto || ""
@@ -87,11 +84,7 @@ export function PlayerPortalDashboard({
   );
   const [copiedRaw, setCopiedRaw] = useState(false);
 
-  // Estado de Escolha Rápida de Arquétipo
-  const [isSavingArchetype, setIsSavingArchetype] = useState(false);
-  const [archetypeMessage, setArchetypeMessage] = useState("");
-
-  // Estado de Solicitação de Deck em Partidas
+  // Estado de Solicitação de Deck em Partidas Realizadas (Envio Posterior)
   const [localRequests, setLocalRequests] = useState<any[]>(deckRequests || []);
   const [selectedStageForDeck, setSelectedStageForDeck] = useState<string | null>(null);
   const [requestDeckName, setRequestDeckName] = useState<string>(allDecks[0]?.nome || "");
@@ -109,38 +102,7 @@ export function PlayerPortalDashboard({
     }
   };
 
-  // Salvar Arquétipo Principal Rápido
-  const handleSaveQuickArchetype = async () => {
-    setIsSavingArchetype(true);
-    setArchetypeMessage("");
-
-    const foundDeck = allDecks.find((d) => d.nome.toLowerCase() === selectedDeck.toLowerCase());
-    const tipoEnergia = foundDeck?.tipoEnergia || "colorless";
-
-    try {
-      const res = await fetch("/api/portal/decklist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deckNome: selectedDeck,
-          decklistRaw: "",
-          tipoEnergia,
-        }),
-      });
-
-      if (res.ok) {
-        setArchetypeMessage(`✅ Arquétipo "${selectedDeck}" salvo como seu deck oficial!`);
-      } else {
-        setArchetypeMessage("❌ Não foi possível salvar o arquétipo.");
-      }
-    } catch {
-      setArchetypeMessage("❌ Erro de conexão.");
-    } finally {
-      setIsSavingArchetype(false);
-    }
-  };
-
-  // Envio de Decklist com Validação (Quando exigido)
+  // Envio de Decklist com Validação (Quando exigido em Cup / Challenge)
   const handleSubmitDecklist = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -185,7 +147,7 @@ export function PlayerPortalDashboard({
     }
   };
 
-  // Enviar solicitação de deck jogado na etapa
+  // Enviar solicitação de deck jogado na etapa (Envio Posterior)
   const handleSubmitDeckRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStageForDeck || !requestDeckName) return;
@@ -235,13 +197,7 @@ export function PlayerPortalDashboard({
     return found?.tipoEnergia || "colorless";
   };
 
-  // Helper para buscar dados de deck
-  const getDeckInfo = (deckName?: string | null) => {
-    if (!deckName) return null;
-    return allDecks.find((d) => d.nome.toLowerCase() === deckName.toLowerCase()) || null;
-  };
-
-  // --- ANÁLISE DE PERFORMANCE & DECKS ---
+  // --- ANÁLISE DE DECKS EFETIVAMENTE JOGADOS ---
 
   // 1. Agrupamento por Deck a partir das etapas jogadas
   const deckStatsList = useMemo(() => {
@@ -318,7 +274,7 @@ export function PlayerPortalDashboard({
       };
     });
 
-    // Ordenação de destaque: 1º Pontos Totais, 2º Melhor Colocação, 3º Win Rate
+    // Ordenação: 1º Pontos Totais, 2º Melhor Colocação, 3º Win Rate
     list.sort((a, b) => {
       if (b.pontosTotal !== a.pontosTotal) return b.pontosTotal - a.pontosTotal;
       if (a.melhorColocacao !== b.melhorColocacao) return a.melhorColocacao - b.melhorColocacao;
@@ -328,7 +284,25 @@ export function PlayerPortalDashboard({
     return list;
   }, [stageResults, allDecks]);
 
-  // Estatísticas Gerais de Partidas
+  // Identificação do Melhor Deck (Apenas se o jogador tiver deck registrado em alguma etapa)
+  const melhorDeck = useMemo(() => {
+    return deckStatsList.length > 0 ? deckStatsList[0] : null;
+  }, [deckStatsList]);
+
+  // Estilo temático da energia do Melhor Deck
+  const melhorDeckEnergyConfig = useMemo(() => {
+    return melhorDeck ? getMultiEnergyConfig(melhorDeck.tipoEnergia) : null;
+  }, [melhorDeck]);
+
+  // Percentual dos pontos gerados pelo melhor deck
+  const percentualPontosMelhorDeck = useMemo(() => {
+    if (!melhorDeck) return 0;
+    const totalPts = rankingItem ? Number(rankingItem.pontos) : 0;
+    if (totalPts <= 0 || melhorDeck.pontosTotal <= 0) return 0;
+    return Math.min(100, Math.round((melhorDeck.pontosTotal / totalPts) * 100));
+  }, [rankingItem, melhorDeck]);
+
+  // --- ESTATÍSTICAS ESTRITAMENTE DA TEMPORADA ATUAL (TEMPORADA 5) ---
   const totalMatches = (rankingItem?.vitorias || 0) + (rankingItem?.derrotas || 0) + (rankingItem?.empates || 0);
   const winRate = totalMatches > 0 ? (((rankingItem?.vitorias || 0) / totalMatches) * 100).toFixed(1) : "0.0";
   const lethalityRate = totalMatches > 0 ? (((rankingItem?.vitorias || 0) / totalMatches) * 100).toFixed(1) : "0.0";
@@ -338,59 +312,13 @@ export function PlayerPortalDashboard({
   const podiumConversion = participacoes > 0 ? (((rankingItem?.podios || 0) / participacoes) * 100).toFixed(0) : "0";
   const pointsPerStage = participacoes > 0 ? ((rankingItem?.pontos || 0) / participacoes).toFixed(1) : "0.0";
 
-  // Identificação do "Melhor Deck"
-  const melhorDeck = useMemo(() => {
-    if (deckStatsList.length > 0) {
-      return deckStatsList[0];
-    }
-    const activeDeckName = selectedDeck || player.deckAtivoNome || allDecks[0]?.nome || "Mewtwo Ex";
-    const foundDeck = allDecks.find(
-      (d) => d.nome.toLowerCase() === activeDeckName.toLowerCase()
-    );
-    return {
-      deckNome: activeDeckName,
-      tipoEnergia: foundDeck?.tipoEnergia || "colorless",
-      imagem: foundDeck?.imagem || null,
-      icone: foundDeck?.icone || null,
-      limitless: foundDeck?.limitless || null,
-      etapasCount: 0,
-      vitorias: rankingItem?.vitorias || 0,
-      derrotas: rankingItem?.derrotas || 0,
-      empates: rankingItem?.empates || 0,
-      totalPartidas: totalMatches,
-      winRate: Number(winRate),
-      pontosTotal: rankingItem ? Math.round(rankingItem.pontos) : 0,
-      melhorColocacao: rankingItem?.podios > 0 ? 1 : 4,
-      podiosCount: rankingItem?.podios || 0,
-    };
-  }, [deckStatsList, selectedDeck, player, allDecks, rankingItem, totalMatches, winRate]);
-
-  // Estilo temático da energia do Melhor Deck
-  const melhorDeckEnergyConfig = useMemo(() => {
-    return getMultiEnergyConfig(melhorDeck.tipoEnergia);
-  }, [melhorDeck.tipoEnergia]);
-
-  // Percentual dos pontos gerados pelo melhor deck
-  const percentualPontosMelhorDeck = useMemo(() => {
-    const totalPts = rankingItem ? Number(rankingItem.pontos) : 0;
-    if (totalPts <= 0 || melhorDeck.pontosTotal <= 0) return 0;
-    return Math.min(100, Math.round((melhorDeck.pontosTotal / totalPts) * 100));
-  }, [rankingItem, melhorDeck]);
-
-  // Trajetória de etapas em ordem cronológica para forma recente
-  const chronologicalStages = useMemo(() => {
-    return [...stageResults].sort((a, b) => a.etapaData.localeCompare(b.etapaData));
-  }, [stageResults]);
-
-  // Helper de badges de colocação
+  // Helper de badges de colocação na tabela
   const getPlacementBadge = (colocacao: number) => {
     if (colocacao === 1) {
       return {
         label: "🏆 1º Lugar",
         short: "1º",
         bg: "bg-amber-400 text-slate-950 shadow-md shadow-amber-400/30 font-black",
-        border: "border-amber-400/50",
-        text: "text-amber-400",
       };
     }
     if (colocacao === 2) {
@@ -398,8 +326,6 @@ export function PlayerPortalDashboard({
         label: "🥈 2º Lugar",
         short: "2º",
         bg: "bg-slate-200 text-slate-950 shadow-md shadow-white/20 font-black",
-        border: "border-slate-300/50",
-        text: "text-slate-200",
       };
     }
     if (colocacao === 3) {
@@ -407,29 +333,21 @@ export function PlayerPortalDashboard({
         label: "🥉 3º Lugar",
         short: "3º",
         bg: "bg-amber-700 text-white shadow-md shadow-amber-700/20 font-black",
-        border: "border-amber-600/50",
-        text: "text-amber-500",
       };
     }
     if (colocacao === 4) {
       return {
-        label: "⭐ 4º Lugar (Top 4)",
+        label: "⭐ 4º Lugar",
         short: "4º",
         bg: "bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold",
-        border: "border-purple-500/50",
-        text: "text-purple-400",
       };
     }
     return {
       label: `${colocacao}º Lugar`,
       short: `${colocacao}º`,
       bg: "bg-slate-800 text-slate-300 font-bold",
-      border: "border-white/10",
-      text: "text-slate-400",
     };
   };
-
-  const activeDeckObj = allDecks.find((d) => d.nome.toLowerCase() === selectedDeck.toLowerCase());
 
   return (
     <div className="max-w-5xl mx-auto py-6 px-3 space-y-6">
@@ -544,163 +462,163 @@ export function PlayerPortalDashboard({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. PANORAMA DO MELHOR DECK ("DECK ASSINATURA & CARRO-CHEFE") */}
+      {/* 2. PANORAMA DO MELHOR DECK (APENAS SE O ATLETA JÁ TEM DECK REGISTRADO) */}
       {/* ========================================================================= */}
-      <div
-        className="relative overflow-hidden rounded-3xl border p-6 sm:p-8 backdrop-blur-2xl shadow-2xl transition-all"
-        style={{
-          background: melhorDeckEnergyConfig.gradientBg,
-          borderColor: `${melhorDeckEnergyConfig.primaryColor}55`,
-          boxShadow: `0 15px 35px -10px ${melhorDeckEnergyConfig.glowColor}`,
-        }}
-      >
-        <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8">
-          {/* Visual da Carta / Foto do Deck */}
-          <div className="shrink-0 relative group">
-            {melhorDeck.imagem ? (
-              <div
-                className="relative w-36 h-48 sm:w-44 sm:h-60 rounded-2xl overflow-hidden border-2 bg-slate-950 shadow-2xl transition-transform duration-300 group-hover:scale-105"
-                style={{
-                  borderColor: `${melhorDeckEnergyConfig.primaryColor}88`,
-                  boxShadow: `0 0 25px ${melhorDeckEnergyConfig.glowColor}`,
-                }}
-              >
-                {/* Imagem oficial da carta Pokémon */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={melhorDeck.imagem}
-                  alt={melhorDeck.deckNome}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-40 pointer-events-none" />
-              </div>
-            ) : (
-              <div
-                className="w-36 h-48 sm:w-44 sm:h-60 rounded-2xl flex flex-col items-center justify-center p-4 text-center border-2 bg-slate-950/80 shadow-2xl"
-                style={{
-                  borderColor: `${melhorDeckEnergyConfig.primaryColor}66`,
-                }}
-              >
-                {melhorDeck.icone ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={melhorDeck.icone} alt="" className="w-20 h-20 object-contain drop-shadow" />
-                ) : (
-                  <Flame className="w-16 h-16 text-amber-400" />
-                )}
-                <span className="text-xs font-black text-white mt-2 leading-tight">{melhorDeck.deckNome}</span>
-              </div>
-            )}
+      {melhorDeck && melhorDeckEnergyConfig ? (
+        <div
+          className="relative overflow-hidden rounded-3xl border p-6 sm:p-8 backdrop-blur-2xl shadow-2xl transition-all"
+          style={{
+            background: melhorDeckEnergyConfig.gradientBg,
+            borderColor: `${melhorDeckEnergyConfig.primaryColor}55`,
+            boxShadow: `0 15px 35px -10px ${melhorDeckEnergyConfig.glowColor}`,
+          }}
+        >
+          <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8">
+            {/* Visual da Carta Oficial */}
+            <div className="shrink-0 relative group">
+              {melhorDeck.imagem ? (
+                <div
+                  className="relative w-36 h-48 sm:w-44 sm:h-60 rounded-2xl overflow-hidden border-2 bg-slate-950 shadow-2xl transition-transform duration-300 group-hover:scale-105"
+                  style={{
+                    borderColor: `${melhorDeckEnergyConfig.primaryColor}88`,
+                    boxShadow: `0 0 25px ${melhorDeckEnergyConfig.glowColor}`,
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={melhorDeck.imagem}
+                    alt={melhorDeck.deckNome}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-40 pointer-events-none" />
+                </div>
+              ) : (
+                <div
+                  className="w-36 h-48 sm:w-44 sm:h-60 rounded-2xl flex flex-col items-center justify-center p-4 text-center border-2 bg-slate-950/80 shadow-2xl"
+                  style={{
+                    borderColor: `${melhorDeckEnergyConfig.primaryColor}66`,
+                  }}
+                >
+                  {melhorDeck.icone ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={melhorDeck.icone} alt="" className="w-20 h-20 object-contain drop-shadow" />
+                  ) : (
+                    <Flame className="w-16 h-16 text-amber-400" />
+                  )}
+                  <span className="text-xs font-black text-white mt-2 leading-tight">{melhorDeck.deckNome}</span>
+                </div>
+              )}
 
-            {/* Selo no canto da carta */}
-            <div className="absolute -top-2.5 -left-2.5 bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-lg flex items-center gap-1">
-              <Zap className="h-3 w-3" />
-              <span>CARRO-CHEFE</span>
+              <div className="absolute -top-2.5 -left-2.5 bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full text-[10px] font-black shadow-lg flex items-center gap-1">
+                <Zap className="h-3 w-3" />
+                <span>CARRO-CHEFE</span>
+              </div>
             </div>
-          </div>
 
-          {/* Dados & Estatísticas de Desempenho do Melhor Deck */}
-          <div className="flex-1 w-full space-y-4">
-            <div>
-              <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
-                  ⚡ PANORAMA DO MELHOR DECK
-                </span>
-                <span className="text-[10px] font-bold text-slate-300 bg-white/5 px-2 py-0.5 rounded-full">
-                  Maior Eficiência na Temporada
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                    {melhorDeck.deckNome}
-                  </h2>
-                  <EnergyBadge energyRaw={melhorDeck.tipoEnergia} size="md" />
+            {/* Dados & Estatísticas de Desempenho do Melhor Deck */}
+            <div className="flex-1 w-full space-y-4">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                    ⚡ PANORAMA DO MELHOR DECK
+                  </span>
+                  <span className="text-[10px] font-bold text-slate-300 bg-white/5 px-2 py-0.5 rounded-full">
+                    Maior Rendimento na Temporada 5
+                  </span>
                 </div>
 
-                {melhorDeck.limitless && (
-                  <a
-                    href={melhorDeck.limitless}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-white bg-blue-600/15 hover:bg-blue-600 border border-blue-500/30 px-3 py-1.5 rounded-xl transition-all"
-                  >
-                    <span>Metagame Limitless</span>
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
-              </div>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                      {melhorDeck.deckNome}
+                    </h2>
+                    <EnergyBadge energyRaw={melhorDeck.tipoEnergia} size="md" />
+                  </div>
 
-              <p className="text-xs text-slate-300 mt-1">
-                Arquétipo de maior rendimento competitivo do atleta.
-                {percentualPontosMelhorDeck > 0 && (
-                  <span className="text-amber-300 font-bold ml-1">
-                    Gerou {percentualPontosMelhorDeck}% de todos os seus pontos oficiais nesta edição.
-                  </span>
-                )}
-              </p>
-            </div>
-
-            {/* Pilares Bento do Melhor Deck */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-              <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                  Melhor Resultado
-                </span>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-xl font-black text-white">
-                    {melhorDeck.melhorColocacao !== 999 ? `${melhorDeck.melhorColocacao}º` : "-"}
-                  </span>
-                  {melhorDeck.melhorColocacao <= 4 && (
-                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-400 text-slate-950">
-                      PÓDIO
-                    </span>
+                  {melhorDeck.limitless && (
+                    <a
+                      href={melhorDeck.limitless}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-white bg-blue-600/15 hover:bg-blue-600 border border-blue-500/30 px-3 py-1.5 rounded-xl transition-all"
+                    >
+                      <span>Metagame Limitless</span>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
                   )}
                 </div>
-                <span className="text-[10px] text-slate-400 block mt-0.5">Colocação Máxima</span>
+
+                <p className="text-xs text-slate-300 mt-1">
+                  Arquétipo de maior aproveitamento competitivo registrado pelo atleta.
+                  {percentualPontosMelhorDeck > 0 && (
+                    <span className="text-amber-300 font-bold ml-1">
+                      Gerou {percentualPontosMelhorDeck}% dos seus pontos oficiais nesta edição.
+                    </span>
+                  )}
+                </p>
               </div>
 
-              <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                  Aproveitamento
-                </span>
-                <span className="text-xl font-black text-emerald-400 mt-1 block">
-                  {melhorDeck.winRate}%
-                </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">Win Rate com o Deck</span>
-              </div>
-
-              <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                  Recorde Oficial
-                </span>
-                <div className="text-xl font-black text-white mt-1">
-                  <span className="text-emerald-400">{melhorDeck.vitorias}V</span>{" "}
-                  <span className="text-rose-400">{melhorDeck.derrotas}D</span>
-                  {melhorDeck.empates > 0 && <span className="text-slate-400 text-xs font-bold"> {melhorDeck.empates}E</span>}
+              {/* Pilares Bento do Melhor Deck */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                    Melhor Resultado
+                  </span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="text-xl font-black text-white">
+                      {melhorDeck.melhorColocacao !== 999 ? `${melhorDeck.melhorColocacao}º` : "-"}
+                    </span>
+                    {melhorDeck.melhorColocacao <= 4 && (
+                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-400 text-slate-950">
+                        PÓDIO
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Colocação Máxima</span>
                 </div>
-                <span className="text-[10px] text-slate-400 block mt-0.5">
-                  {melhorDeck.etapasCount} torneio(s) jogado(s)
-                </span>
-              </div>
 
-              <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                  Pontos Gerados
-                </span>
-                <span className="text-xl font-black text-amber-400 mt-1 block">
-                  {melhorDeck.pontosTotal} <span className="text-xs font-bold text-amber-300">PTS</span>
-                </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">Acumulado no Circuito</span>
+                <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                    Aproveitamento
+                  </span>
+                  <span className="text-xl font-black text-emerald-400 mt-1 block">
+                    {melhorDeck.winRate}%
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Win Rate com o Deck</span>
+                </div>
+
+                <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                    Recorde Oficial
+                  </span>
+                  <div className="text-xl font-black text-white mt-1">
+                    <span className="text-emerald-400">{melhorDeck.vitorias}V</span>{" "}
+                    <span className="text-rose-400">{melhorDeck.derrotas}D</span>
+                    {melhorDeck.empates > 0 && <span className="text-slate-400 text-xs font-bold"> {melhorDeck.empates}E</span>}
+                  </div>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">
+                    {melhorDeck.etapasCount} etapa(s) jogada(s)
+                  </span>
+                </div>
+
+                <div className="rounded-2xl bg-slate-950/70 border border-white/10 p-3.5 shadow-inner">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                    Pontos Gerados
+                  </span>
+                  <span className="text-xl font-black text-amber-400 mt-1 block">
+                    {melhorDeck.pontosTotal} <span className="text-xs font-bold text-amber-300">PTS</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Acumulado no Circuito</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       {/* ========================================================================= */}
-      {/* 3. ARSENAL DE DECKS NA TEMPORADA (Se pilotou mais de um arquétipo) */}
+      {/* 3. ARSENAL DE DECKS DISPUTADOS NA TEMPORADA */}
       {/* ========================================================================= */}
       {deckStatsList.length > 1 && (
         <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl space-y-4">
@@ -711,7 +629,7 @@ export function PlayerPortalDashboard({
                 Arsenal de Arquétipos Disputados ({deckStatsList.length})
               </h3>
             </div>
-            <span className="text-xs text-slate-400">Distribuição ao longo das etapas</span>
+            <span className="text-xs text-slate-400">Distribuição na Temporada 5</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -763,7 +681,6 @@ export function PlayerPortalDashboard({
                     </div>
                   </div>
 
-                  {/* Barra de Win Rate */}
                   <div>
                     <div className="flex justify-between text-[11px] mb-1">
                       <span className="text-slate-400">Win Rate:</span>
@@ -784,7 +701,7 @@ export function PlayerPortalDashboard({
       )}
 
       {/* ========================================================================= */}
-      {/* 4. RAIO-X DE DESEMPENHO & PILARES DE EFICIÊNCIA */}
+      {/* 4. RAIO-X DE DESEMPENHO DA TEMPORADA ATUAL (TEMPORADA 5) */}
       {/* ========================================================================= */}
       <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 sm:p-7 shadow-xl space-y-6">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
@@ -794,54 +711,16 @@ export function PlayerPortalDashboard({
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black text-white">
-                Raio-X de Desempenho & Pilares de Eficiência
+                Raio-X de Desempenho & Pilares de Eficiência (Temporada 5)
               </h3>
               <p className="text-xs text-slate-400">
-                Diagnóstico estatístico da performance do competidor no circuito
+                Estatísticas calculadas estritamente a partir das partidas da temporada corrente
               </p>
             </div>
           </div>
         </div>
 
-        {/* 4A. Forma Recente (Linha do Tempo de Colocações Etapa a Etapa) */}
-        {chronologicalStages.length > 0 && (
-          <div className="rounded-2xl bg-slate-950 p-4 sm:p-5 border border-white/5 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <TrendingUp className="h-3.5 w-3.5 text-amber-400" />
-                <span>Forma Recente (Trajetória Etapa a Etapa)</span>
-              </span>
-              <span className="text-[11px] text-slate-400">Cronológico</span>
-            </div>
-
-            <div className="flex items-center gap-3 overflow-x-auto py-2">
-              {chronologicalStages.map((stg, i) => {
-                const badge = getPlacementBadge(Number(stg.colocacao) || 999);
-                return (
-                  <div
-                    key={i}
-                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-900/90 border border-white/10 shrink-0 min-w-[110px] space-y-1.5"
-                  >
-                    <span className="text-[10px] font-bold text-slate-400">{stg.etapaData}</span>
-                    <span className={`px-2.5 py-1 rounded-xl text-xs ${badge.bg}`}>
-                      {badge.label}
-                    </span>
-                    <div className="text-[11px] text-slate-300 font-semibold">
-                      <span>{stg.pontosFinal ?? stg.pontos} PTS</span>
-                    </div>
-                    {stg.deckNome && (
-                      <span className="text-[10px] text-slate-400 truncate max-w-[100px]" title={stg.deckNome}>
-                        {stg.deckNome}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* 4B. Os 4 Pilares de Eficiência Competitiva */}
+        {/* Pilares de Eficiência Competitiva */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="rounded-2xl bg-slate-950 p-4 border border-white/5 space-y-1">
             <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
@@ -849,7 +728,7 @@ export function PlayerPortalDashboard({
               <span>Taxa de Letalidade</span>
             </div>
             <div className="text-2xl font-black text-white">{lethalityRate}%</div>
-            <p className="text-[10px] text-slate-400">Vitórias puras em partidas oficiais</p>
+            <p className="text-[10px] text-slate-400">Vitórias puras em partidas jogadas</p>
           </div>
 
           <div className="rounded-2xl bg-slate-950 p-4 border border-white/5 space-y-1">
@@ -880,11 +759,11 @@ export function PlayerPortalDashboard({
           </div>
         </div>
 
-        {/* 4C. Balanço de Partidas (Distribuição Visual) */}
+        {/* Balanço Global de Partidas da Temporada */}
         {totalMatches > 0 && (
-          <div className="space-y-2 pt-2">
+          <div className="space-y-2 pt-2 border-t border-white/5">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-300">Balanço Global de Partidas ({totalMatches} disputadas)</span>
+              <span className="font-bold text-slate-300">Balanço Oficial de Partidas na Temporada ({totalMatches} disputadas)</span>
               <span className="text-slate-400">
                 <span className="text-emerald-400 font-bold">{rankingItem?.vitorias || 0}V</span> •{" "}
                 <span className="text-amber-400 font-bold">{rankingItem?.empates || 0}E</span> •{" "}
@@ -914,7 +793,7 @@ export function PlayerPortalDashboard({
       </div>
 
       {/* ========================================================================= */}
-      {/* 5. LEGADO HISTÓRICO MULTI-TEMPORADAS (QUANDO HOUVER REGISTROS ANTERIORES) */}
+      {/* 5. TRAJETÓRIA HISTÓRICA NO HALL DA FAMA (APENAS PONTUAÇÃO CONSOLIDADA) */}
       {/* ========================================================================= */}
       {historicoTemporadas.length > 0 && (
         <div className="rounded-3xl border border-amber-500/20 bg-slate-900/80 p-6 shadow-xl space-y-4">
@@ -925,39 +804,25 @@ export function PlayerPortalDashboard({
                 Trajetória Histórica na Liga Atlântica ({historicoTemporadas.length} Edições Anteriores)
               </h3>
             </div>
-            <span className="text-xs text-slate-400">Hall da Fama & Eras Passadas</span>
+            <span className="text-xs text-slate-400">Pontuação final consolidada</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {historicoTemporadas.map((hist, idx) => (
               <div
                 key={idx}
-                className="rounded-2xl border border-white/10 bg-slate-950/80 p-4 space-y-2 hover:border-amber-400/30 transition-all"
+                className="rounded-2xl border border-white/10 bg-slate-950/80 p-4 space-y-1.5 hover:border-amber-400/30 transition-all text-center"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                    {hist.temporada}
-                  </span>
-                  <span className="text-xs font-bold text-slate-400">
-                    {hist.pos ? `${hist.pos}º Lugar` : ""}
-                  </span>
-                </div>
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20 inline-block">
+                  {hist.temporada}
+                </span>
 
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs text-slate-300">Pontuação Final:</span>
-                  <span className="text-sm font-black text-white">
-                    {hist.pontos ? `${hist.pontos} PTS` : "-"}
+                <div className="pt-1">
+                  <span className="text-2xl font-black text-white">
+                    {hist.pontos ? `${hist.pontos} PTS` : "0 PTS"}
                   </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Pontuação Final</span>
                 </div>
-
-                {hist.deck && (
-                  <div className="flex items-center justify-between pt-1 border-t border-white/5">
-                    <span className="text-[11px] text-slate-400">Deck Utilizado:</span>
-                    <span className="text-xs font-bold text-amber-300 truncate max-w-[140px]">
-                      {hist.deck}
-                    </span>
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -965,211 +830,139 @@ export function PlayerPortalDashboard({
       )}
 
       {/* ========================================================================= */}
-      {/* 6. PRÓXIMO TORNEIO & CONTROLE DE DECK */}
+      {/* 6. PRÓXIMO TORNEIO OFICIAL (MENU FECHADO PARA SESSÃO REGULAR) */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Coluna Esquerda: Próxima Etapa Oficial */}
-        <div className="lg:col-span-4 rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl space-y-5">
-          <div className="flex items-center gap-2 text-amber-400 text-xs font-black uppercase tracking-wider">
-            <Sparkles className="h-4 w-4" />
-            <span>Próximo Evento Oficial</span>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-black text-white">
-              {nextEvent ? nextEvent.evento : "Etapa Oficial da Liga Atlântica"}
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              {exigirDecklist
-                ? "Submeta sua lista de 60 cartas com antecedência para agilizar a conferência de mesa no TOM."
-                : "Etapa presencial no formato Standard oficial. Traga seu deck físico para as rodadas."}
-            </p>
-          </div>
-
-          <div className="space-y-2.5 rounded-2xl bg-slate-950 p-4 border border-white/5 text-xs text-slate-300">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-              <span>{nextEvent?.data || "A definir"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-              <span>{nextEvent?.horario || "14:00 (Início das Rodadas)"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-              <span>{nextEvent?.local || "Livraria Atlântica +"}</span>
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-              Deck Ativo Selecionado:
-            </span>
-            <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-950 border border-white/10">
-              <EnergyBadge energyRaw={activeDeckObj?.tipoEnergia || "colorless"} size="sm" />
-              <span className="font-bold text-white text-sm">{selectedDeck}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Coluna Direita: Registro de Decklist de 60 Cartas (Condicional) OU Seleção de Arquétipo Regular */}
-        <div className="lg:col-span-8 rounded-3xl border border-white/10 bg-slate-900/80 p-6 sm:p-7 shadow-xl space-y-5">
-          {exigirDecklist ? (
-            /* A. QUANDO O EVENTO EXIGE DECKLIST (Ex: Premier Challenge ou Cup) */
-            <>
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-lg bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-500/30">
-                      Decklist Obrigatória
-                    </span>
-                    <h3 className="text-base font-black text-white">Registro de Decklist (60 Cartas)</h3>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-0.5">Cole a lista exportada do Pokémon TCG Live ou Limitless</p>
-                </div>
+      <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 sm:p-7 shadow-xl">
+        {exigirDecklist ? (
+          /* A. QUANDO O EVENTO EXIGE DECKLIST (League Cup / League Challenge) */
+          <div className="space-y-5">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div>
                 <div className="flex items-center gap-2">
-                  {decklistText && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(decklistText);
-                        setCopiedRaw(true);
-                        setTimeout(() => setCopiedRaw(false), 2000);
-                      }}
-                      className="rounded-lg border border-white/10 bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer"
-                    >
-                      {copiedRaw ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                      <span>{copiedRaw ? "Copiado!" : "Copiar"}</span>
-                    </button>
-                  )}
-                  {cardStats && (
-                    <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 text-xs font-bold text-emerald-300">
-                      {cardStats.total}/60 Cartas
-                    </span>
-                  )}
+                  <span className="inline-flex items-center rounded-lg bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-500/30">
+                    Decklist Obrigatória
+                  </span>
+                  <h3 className="text-base font-black text-white">Registro de Decklist (60 Cartas)</h3>
                 </div>
+                <p className="text-xs text-slate-400 mt-0.5">Cole a lista exportada do Pokémon TCG Live ou Limitless</p>
               </div>
-
-              <form onSubmit={handleSubmitDecklist} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold uppercase text-slate-300">Arquétipo do Deck:</label>
-                  <select
-                    value={selectedDeck}
-                    onChange={(e) => setSelectedDeck(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
+              <div className="flex items-center gap-2">
+                {decklistText && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(decklistText);
+                      setCopiedRaw(true);
+                      setTimeout(() => setCopiedRaw(false), 2000);
+                    }}
+                    className="rounded-lg border border-white/10 bg-slate-800 px-2.5 py-1 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer"
                   >
-                    {allDecks.map((d) => (
-                      <option key={d.id} value={d.nome}>
-                        {d.nome} ({d.tipoEnergia})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <textarea
-                    rows={7}
-                    placeholder={`Pokémon: 14\n4 Dragapult Ex TWM 130\n...\n\nTreinador: 34\n4 Arven OBF 186\n...\n\nEnergia: 12\n...`}
-                    value={decklistText}
-                    onChange={(e) => setDecklistText(e.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-slate-950 p-3.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 leading-relaxed font-sans"
-                    required
-                  />
-                </div>
-
-                {submitMessage && (
-                  <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-bold flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
-                    <span>{submitMessage}</span>
-                  </div>
+                    {copiedRaw ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                    <span>{copiedRaw ? "Copiado!" : "Copiar"}</span>
+                  </button>
                 )}
-
-                {submitErrors.length > 0 && (
-                  <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-semibold space-y-1">
-                    {submitErrors.map((err, idx) => (
-                      <p key={idx} className="flex items-center gap-1.5">
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                        <span>{err}</span>
-                      </p>
-                    ))}
-                  </div>
+                {cardStats && (
+                  <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 text-xs font-bold text-emerald-300">
+                    {cardStats.total}/60 Cartas
+                  </span>
                 )}
+              </div>
+            </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 py-3 text-xs font-black uppercase tracking-wider text-slate-950 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
+            <form onSubmit={handleSubmitDecklist} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold uppercase text-slate-300">Arquétipo do Deck:</label>
+                <select
+                  value={selectedDeck}
+                  onChange={(e) => setSelectedDeck(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
                 >
-                  {isSubmitting ? (
-                    <div className="h-4 w-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      <span>Validar & Confirmar Inscrição</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            </>
-          ) : (
-            /* B. QUANDO O EVENTO NÃO EXIGE DECKLIST (Sessão Regular de Liga) */
-            <>
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-lg bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
-                      Sessão Regular de Liga
-                    </span>
-                    <h3 className="text-base font-black text-white">Arquétipo do Deck da Sessão</h3>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Não é necessário o envio de lista detalhada de 60 cartas para este evento.
-                  </p>
-                </div>
+                  {allDecks.map((d) => (
+                    <option key={d.id} value={d.nome}>
+                      {d.nome} ({d.tipoEnergia})
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="rounded-2xl bg-slate-950 p-5 border border-white/5 space-y-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-300 mb-1.5">
-                    Selecione o Deck que você planeja jogar:
-                  </label>
-                  <p className="text-xs text-slate-400 mb-3">
-                    Ao definir seu arquétipo, você agiliza o registro de metagame da organização após o término das rodadas.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="sm:col-span-2">
-                      <select
-                        value={selectedDeck}
-                        onChange={(e) => setSelectedDeck(e.target.value)}
-                        className="w-full rounded-xl border border-white/10 bg-slate-900 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500 cursor-pointer"
-                      >
-                        {allDecks.map((d) => (
-                          <option key={d.id} value={d.nome}>
-                            {d.nome} ({d.tipoEnergia})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleSaveQuickArchetype}
-                      disabled={isSavingArchetype}
-                      className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2.5 text-xs font-bold text-white transition-all shadow-md shadow-blue-600/30 cursor-pointer disabled:opacity-50"
-                    >
-                      {isSavingArchetype ? "Salvando..." : "Salvar Deck Ativo"}
-                    </button>
-                  </div>
+              <div className="space-y-1.5">
+                <textarea
+                  rows={7}
+                  placeholder={`Pokémon: 14\n4 Dragapult Ex TWM 130\n...\n\nTreinador: 34\n4 Arven OBF 186\n...\n\nEnergia: 12\n...`}
+                  value={decklistText}
+                  onChange={(e) => setDecklistText(e.target.value)}
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950 p-3.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 leading-relaxed font-sans"
+                  required
+                />
+              </div>
 
-                  {archetypeMessage && (
-                    <p className={`text-xs font-bold mt-2.5 ${archetypeMessage.startsWith("✅") ? "text-emerald-400" : "text-rose-400"}`}>
-                      {archetypeMessage}
+              {submitMessage && (
+                <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <span>{submitMessage}</span>
+                </div>
+              )}
+
+              {submitErrors.length > 0 && (
+                <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-semibold space-y-1">
+                  {submitErrors.map((err, idx) => (
+                    <p key={idx} className="flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      <span>{err}</span>
                     </p>
-                  )}
+                  ))}
                 </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 py-3 text-xs font-black uppercase tracking-wider text-slate-950 transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <div className="h-4 w-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    <span>Validar & Confirmar Inscrição</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        ) : (
+          /* B. SESSÃO REGULAR DE LIGA: MENU FECHADO, APENAS INFORMAÇÕES DO PRÓXIMO TORNEIO */
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-amber-400 text-xs font-black uppercase tracking-wider">
+                <Sparkles className="h-4 w-4" />
+                <span>Próximo Evento Oficial</span>
               </div>
-            </>
-          )}
-        </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white">
+                {nextEvent ? nextEvent.evento : "Etapa Oficial da Liga Atlântica"}
+              </h3>
+              <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
+                Sessão presencial regular da Liga no formato Standard oficial. Não é necessário envio prévio de decklist.
+                O registro do deck jogado nesta etapa será feito no histórico abaixo após a realização das partidas.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-slate-950 border border-white/10 text-xs text-slate-300">
+                <Calendar className="h-4 w-4 text-amber-400 shrink-0" />
+                <span className="font-bold text-white">{nextEvent?.data || "A definir"}</span>
+              </div>
+              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-slate-950 border border-white/10 text-xs text-slate-300">
+                <Clock className="h-4 w-4 text-amber-400 shrink-0" />
+                <span>{nextEvent?.horario || "14:00 (Início)"}</span>
+              </div>
+              <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-slate-950 border border-white/10 text-xs text-slate-300">
+                <MapPin className="h-4 w-4 text-amber-400 shrink-0" />
+                <span>{nextEvent?.local || "Livraria Atlântica +"}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ========================================================================= */}
@@ -1284,7 +1077,7 @@ export function PlayerPortalDashboard({
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL: INFORMAR DECK UTILIZADO NA ETAPA */}
+      {/* MODAL: INFORMAR DECK UTILIZADO NA ETAPA (ENVIO POSTERIOR) */}
       {/* ========================================================================= */}
       {selectedStageForDeck && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">

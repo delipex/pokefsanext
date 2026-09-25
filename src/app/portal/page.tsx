@@ -77,54 +77,55 @@ export default async function PlayerPortalPage() {
     } catch {}
   }
 
-  // Fetch stage match history (por ID ou por Nome) com multiplicador oficial
-  let stageResults: any[] = [];
-  try {
-    const [allEtapasRows, rawResults] = await Promise.all([
-      db.select().from(etapas),
-      db
-        .select()
-        .from(etapaResultados)
-        .where(or(eq(etapaResultados.jogadorId, cleanPopId), eq(etapaResultados.jogadorNome, player.nome)))
-        .orderBy(desc(etapaResultados.etapaData)),
-    ]);
-    const etapaMap = new Map(allEtapasRows.map((e) => [e.data, e]));
-    stageResults = rawResults.map((r) => {
-      const eInfo = etapaMap.get(r.etapaData);
-      const mult = eInfo?.multiplicador ? Number(eInfo.multiplicador) : 1.0;
-      return {
-        ...r,
-        tipo: eInfo?.tipo || "Liga",
+  // Fetch stage match history (lendo sempre os dados oficiais do TDF + metagame.json e mesclando com banco)
+  const officialEtapas = await getEtapasWithSummary().catch(() => []);
+  const officialMatchesMap = new Map<string, any>();
+
+  for (const etapa of officialEtapas) {
+    const mult = etapa.multiplicador ? Number(etapa.multiplicador) : 1.0;
+    const found = (etapa.resultados || []).find(
+      (r: any) =>
+        (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
+        (r.jogadorNome && String(r.jogadorNome).toLowerCase().trim() === cleanPlayerName)
+    );
+    if (found) {
+      officialMatchesMap.set(etapa.data, {
+        ...found,
+        tipo: etapa.tipo || "Liga",
         multiplicador: mult,
-        pontosFinal: Number((r.pontos * mult).toFixed(1)),
-      };
-    });
+        pontosFinal: Number((Number(found.pontos) * mult).toFixed(1)),
+      });
+    }
+  }
+
+  // Mesclar com atualizações do banco de dados (se houver decks moderados/aprovados no banco)
+  try {
+    const rawResults = await db
+      .select()
+      .from(etapaResultados)
+      .where(or(eq(etapaResultados.jogadorId, cleanPopId), eq(etapaResultados.jogadorNome, player.nome)));
+
+    for (const r of rawResults) {
+      const existing = officialMatchesMap.get(r.etapaData);
+      const mult = existing?.multiplicador ? Number(existing.multiplicador) : 1.0;
+      if (existing) {
+        if (r.deckNome && r.deckNome.trim() && r.deckNome !== "Sem deck registrado" && r.deckNome !== "Sem deck") {
+          existing.deckNome = r.deckNome.trim();
+        }
+      } else {
+        officialMatchesMap.set(r.etapaData, {
+          ...r,
+          tipo: "Liga",
+          multiplicador: mult,
+          pontosFinal: Number((Number(r.pontos) * mult).toFixed(1)),
+        });
+      }
+    }
   } catch {}
 
-  // Fallback resiliente para getEtapasWithSummary() se stageResults estiver vazio
-  if (stageResults.length === 0) {
-    try {
-      const fallbackEtapas = await getEtapasWithSummary();
-      const matches: any[] = [];
-      for (const etapa of fallbackEtapas) {
-        const mult = etapa.multiplicador ? Number(etapa.multiplicador) : 1.0;
-        const found = (etapa.resultados || []).find(
-          (r: any) =>
-            (r.jogadorId && String(r.jogadorId).trim() === cleanPopId) ||
-            (r.jogadorNome && String(r.jogadorNome).toLowerCase().trim() === cleanPlayerName)
-        );
-        if (found) {
-          matches.push({
-            ...found,
-            tipo: etapa.tipo || "Liga",
-            multiplicador: mult,
-            pontosFinal: Number((found.pontos * mult).toFixed(1)),
-          });
-        }
-      }
-      stageResults = matches.sort((a, b) => b.etapaData.localeCompare(a.etapaData));
-    } catch {}
-  }
+  const stageResults = Array.from(officialMatchesMap.values()).sort((a, b) =>
+    b.etapaData.localeCompare(a.etapaData)
+  );
 
   // Fetch decks, next event, deck requests, submitted decklist, ranking geral e scores antigos
   const [
