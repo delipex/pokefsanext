@@ -614,7 +614,25 @@ export async function getCalendario() {
     }));
   }
 
-  return list.sort((a, b) => {
+  // Deduplicação estrita para impedir eventos clonados na interface
+  const uniqueMap = new Map<string, any>();
+  for (const ev of list) {
+    const cleanDate = (ev.data || "").replace(/\//g, "-").trim();
+    const cleanName = (ev.evento || "").trim().toLowerCase();
+    const key = `${cleanDate}_${cleanName}`;
+    if (!uniqueMap.has(key)) {
+      uniqueMap.set(key, ev);
+    } else {
+      const isConcluded = String(ev.status || "").toLowerCase().includes("conclui");
+      if (isConcluded) {
+        uniqueMap.set(key, ev);
+      }
+    }
+  }
+
+  const deduplicated = Array.from(uniqueMap.values());
+
+  return deduplicated.sort((a, b) => {
     return parseEventDateTime(a.data, a.horario).getTime() - parseEventDateTime(b.data, b.horario).getTime();
   });
 }

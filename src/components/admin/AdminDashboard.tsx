@@ -204,8 +204,24 @@ export function AdminDashboard({
   const [deckSearch, setDeckSearch] = useState("");
   const [deckMessage, setDeckMessage] = useState("");
 
-  // Estado de Calendário
-  const [calendarEvents, setCalendarEvents] = useState(initialCalendar);
+  // Estado de Calendário com deduplicação defensiva
+  const deduplicatedInitialCal = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const ev of initialCalendar || []) {
+      const cleanDate = String(ev.data || "").replace(/\//g, "-").trim();
+      const cleanName = String(ev.evento || "").trim().toLowerCase();
+      const key = `${cleanDate}_${cleanName}`;
+      if (!map.has(key)) {
+        map.set(key, ev);
+      } else {
+        const isConcluded = String(ev.status || "").toLowerCase().includes("conclui");
+        if (isConcluded) map.set(key, ev);
+      }
+    }
+    return Array.from(map.values());
+  }, [initialCalendar]);
+
+  const [calendarEvents, setCalendarEvents] = useState(deduplicatedInitialCal);
   const [editingCalId, setEditingCalId] = useState<number | null>(null);
   const [newCalDate, setNewCalDate] = useState(new Date().toISOString().split("T")[0]);
   const [newCalEvento, setNewCalEvento] = useState("");

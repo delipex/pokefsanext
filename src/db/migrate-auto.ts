@@ -264,6 +264,20 @@ export async function ensureDatabaseSchema() {
 
   hasMigrated = true;
 
+  // Limpeza preventiva de duplicatas no Calendário
+  try {
+    await client.execute(`
+      DELETE FROM calendario
+      WHERE id NOT IN (
+        SELECT MIN(id)
+        FROM calendario
+        GROUP BY data, LOWER(TRIM(evento))
+      );
+    `);
+  } catch {
+    // Ignora erro
+  }
+
   // Auto-hidratação de dados iniciais caso as tabelas estejam vazias
   try {
     const fs = await import("fs");

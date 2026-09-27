@@ -50,8 +50,22 @@ function toBRDate(dateStr: string): string {
 async function syncCalendarioJson() {
   try {
     const events = await db.select().from(calendario);
-    events.sort((a, b) => parseEventSortKey(a.data, a.horario) - parseEventSortKey(b.data, b.horario));
-    const mapped = events.map((e) => ({
+    // Deduplicação estrita antes de sincronizar JSON
+    const uniqueMap = new Map<string, any>();
+    for (const ev of events) {
+      const cleanDate = toBRDate(ev.data);
+      const cleanName = (ev.evento || "").trim().toLowerCase();
+      const key = `${cleanDate}_${cleanName}`;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, ev);
+      } else {
+        const isConcluded = String(ev.status || "").toLowerCase().includes("conclui");
+        if (isConcluded) uniqueMap.set(key, ev);
+      }
+    }
+    const list = Array.from(uniqueMap.values());
+    list.sort((a, b) => parseEventSortKey(a.data, a.horario) - parseEventSortKey(b.data, b.horario));
+    const mapped = list.map((e) => ({
       data: toBRDate(e.data),
       evento: e.evento,
       local: e.local || "Livraria Atlântica +",
@@ -80,8 +94,21 @@ async function syncCalendarioJson() {
 export async function GET() {
   try {
     const events = await db.select().from(calendario);
-    events.sort((a, b) => parseEventSortKey(a.data, a.horario) - parseEventSortKey(b.data, b.horario));
-    return NextResponse.json({ success: true, events });
+    const uniqueMap = new Map<string, any>();
+    for (const ev of events) {
+      const cleanDate = toBRDate(ev.data);
+      const cleanName = (ev.evento || "").trim().toLowerCase();
+      const key = `${cleanDate}_${cleanName}`;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, ev);
+      } else {
+        const isConcluded = String(ev.status || "").toLowerCase().includes("conclui");
+        if (isConcluded) uniqueMap.set(key, ev);
+      }
+    }
+    const list = Array.from(uniqueMap.values());
+    list.sort((a, b) => parseEventSortKey(a.data, a.horario) - parseEventSortKey(b.data, b.horario));
+    return NextResponse.json({ success: true, events: list });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -97,21 +124,50 @@ export async function POST(req: Request) {
     }
 
     const normalizedDate = toBRDate(data);
+    const trimmedEvento = String(evento).trim();
 
-    const inserted = await db
-      .insert(calendario)
-      .values({
-        data: normalizedDate,
-        evento: String(evento).trim(),
-        local: local ? String(local).trim() : "Livraria Atlântica +",
-        horario: horario ? String(horario).trim() : "14:00",
-        status: status ? String(status).trim() : "confirmado",
-        descricao: descricao ? String(descricao).trim() : "",
-        linkMaps: linkMaps ? String(linkMaps).trim() : "",
-        linkInscricao: linkInscricao ? String(linkInscricao).trim() : "",
-        foto: foto ? String(foto).trim() : "",
-      })
-      .returning();
+    // Checar se já existe evento na mesma data para evitar duplicatas acidentais
+    const existing = await db
+      .select()
+      .from(calendario)
+      .where(eq(calendario.data, normalizedDate));
+
+    let finalEvent: any;
+
+    if (existing && existing.length > 0) {
+      // Atualiza o existente ao invés de duplicar
+      const [updated] = await db
+        .update(calendario)
+        .set({
+          evento: trimmedEvento,
+          local: local ? String(local).trim() : "Livraria Atlântica +",
+          horario: horario ? String(horario).trim() : "14:00",
+          status: status ? String(status).trim() : "confirmado",
+          descricao: descricao ? String(descricao).trim() : "",
+          linkMaps: linkMaps ? String(linkMaps).trim() : "",
+          linkInscricao: linkInscricao ? String(linkInscricao).trim() : "",
+          foto: foto ? String(foto).trim() : "",
+        })
+        .where(eq(calendario.id, existing[0].id))
+        .returning();
+      finalEvent = updated;
+    } else {
+      const inserted = await db
+        .insert(calendario)
+        .values({
+          data: normalizedDate,
+          evento: trimmedEvento,
+          local: local ? String(local).trim() : "Livraria Atlântica +",
+          horario: horario ? String(horario).trim() : "14:00",
+          status: status ? String(status).trim() : "confirmado",
+          descricao: descricao ? String(descricao).trim() : "",
+          linkMaps: linkMaps ? String(linkMaps).trim() : "",
+          linkInscricao: linkInscricao ? String(linkInscricao).trim() : "",
+          foto: foto ? String(foto).trim() : "",
+        })
+        .returning();
+      finalEvent = inserted[0];
+    }
 
     await syncCalendarioJson();
     clearFileCache();
@@ -121,7 +177,7 @@ export async function POST(req: Request) {
       revalidatePath("/admin");
     } catch (e) {}
 
-    return NextResponse.json({ success: true, event: inserted[0] });
+    return NextResponse.json({ success: true, event: finalEvent });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

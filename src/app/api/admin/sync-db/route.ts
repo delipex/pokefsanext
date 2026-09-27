@@ -108,6 +108,7 @@ export async function POST() {
     }
 
     // 5. Calendário
+    await db.delete(calendario);
     const rawCal = readDataFile<any[]>("calendario.json", []);
     for (const cal of rawCal) {
       await db
@@ -121,8 +122,7 @@ export async function POST() {
           descricao: cal.descricao || null,
           linkMaps: cal.linkMaps || cal.linkMapa || null,
           linkInscricao: cal.linkInscricao || null,
-        })
-        .onConflictDoNothing();
+        });
     }
 
     // 6. Scores Antigos
