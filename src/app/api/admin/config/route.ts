@@ -3,7 +3,30 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { configuracoes } from "@/db/schema";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
-import { getConfigMap } from "@/lib/queries";
+import { getConfigMap, clearFileCache } from "@/lib/queries";
+import fs from "fs";
+import path from "path";
+
+async function syncConfigJson() {
+  try {
+    const configMap = await getConfigMap();
+
+    const p1 = path.join(process.cwd(), "src", "data", "config.json");
+    if (fs.existsSync(p1)) {
+      fs.writeFileSync(p1, JSON.stringify(configMap, null, 4), "utf-8");
+    }
+
+    const p2 = path.resolve(process.cwd(), "..", "LigaAtlântica", "config.json");
+    if (fs.existsSync(p2)) {
+      try {
+        fs.writeFileSync(p2, JSON.stringify(configMap, null, 4), "utf-8");
+      } catch {}
+    }
+  } catch (err) {
+    console.warn("Aviso ao sincronizar config.json:", err);
+  }
+  clearFileCache();
+}
 
 export async function GET() {
   try {
@@ -37,12 +60,18 @@ export async function POST(req: Request) {
             },
           });
       }
+
+      await syncConfigJson();
+
       revalidatePath("/");
       revalidatePath("/ranking");
       revalidatePath("/metagame");
       revalidatePath("/calendario");
       revalidatePath("/campeoes");
       revalidatePath("/regras");
+      revalidatePath("/admin");
+      revalidatePath("/portal");
+
       return NextResponse.json({ success: true, message: "Todas as configurações foram salvas com sucesso!" });
     }
 
@@ -65,12 +94,16 @@ export async function POST(req: Request) {
         },
       });
 
+    await syncConfigJson();
+
     revalidatePath("/");
     revalidatePath("/ranking");
     revalidatePath("/metagame");
     revalidatePath("/calendario");
     revalidatePath("/campeoes");
     revalidatePath("/regras");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
 
     return NextResponse.json({ success: true, message: "Configuração atualizada com sucesso!" });
   } catch (error: any) {

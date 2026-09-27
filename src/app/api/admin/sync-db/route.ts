@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db, client } from "@/db";
 import {
   jogadores,
@@ -11,6 +12,8 @@ import {
   calendario,
 } from "@/db/schema";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
+import { clearFileCache } from "@/lib/queries";
 import fs from "fs";
 import path from "path";
 
@@ -179,6 +182,24 @@ export async function POST() {
         });
       }
     }
+
+    try {
+      await recalculateRankingConsolidado(5);
+    } catch (e) {
+      console.warn("Aviso ao recalcular ranking em sync-db:", e);
+    }
+
+    clearFileCache();
+
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/metagame");
+    revalidatePath("/etapas");
+    revalidatePath("/campeoes");
+    revalidatePath("/calendario");
+    revalidatePath("/regras");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
 
     return NextResponse.json({
       success: true,

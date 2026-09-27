@@ -1,7 +1,38 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { scoresAntigos } from "@/db/schema";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
+import { clearFileCache } from "@/lib/queries";
+import fs from "fs";
+import path from "path";
+
+async function syncScoresAntigosJson() {
+  try {
+    const list = await db.select().from(scoresAntigos).orderBy(asc(scoresAntigos.pos));
+    const mapped = list.map((s) => ({
+      temporada: s.temporada,
+      dataFechamento: s.dataFechamento || "",
+      pos: s.pos,
+      jogador: s.jogador,
+      categoria: s.categoria || "ME",
+      pontos: s.pontos || "0",
+      deck: s.deck || "",
+    }));
+
+    const p1 = path.join(process.cwd(), "src", "data", "scores_antigos.json");
+    fs.writeFileSync(p1, JSON.stringify(mapped, null, 4), "utf-8");
+
+    const p2 = path.resolve(process.cwd(), "..", "LigaAtlântica", "scores_antigos.json");
+    if (fs.existsSync(p2)) {
+      try {
+        fs.writeFileSync(p2, JSON.stringify(mapped, null, 4), "utf-8");
+      } catch (e) {}
+    }
+  } catch (err) {
+    console.warn("Aviso ao sincronizar scores_antigos.json:", err);
+  }
+}
 
 // GET: Listar todos os scores antigos
 export async function GET() {
@@ -36,6 +67,14 @@ export async function POST(req: Request) {
       })
       .returning();
 
+    await syncScoresAntigosJson();
+    clearFileCache();
+    try {
+      revalidatePath("/campeoes");
+      revalidatePath("/portal");
+      revalidatePath("/admin");
+    } catch (e) {}
+
     return NextResponse.json({ success: true, message: "Score histórico cadastrado com sucesso!", item: inserted });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -66,6 +105,14 @@ export async function PUT(req: Request) {
       .where(eq(scoresAntigos.id, Number(id)))
       .returning();
 
+    await syncScoresAntigosJson();
+    clearFileCache();
+    try {
+      revalidatePath("/campeoes");
+      revalidatePath("/portal");
+      revalidatePath("/admin");
+    } catch (e) {}
+
     return NextResponse.json({ success: true, message: "Score histórico atualizado com sucesso!", item: updated });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -83,6 +130,14 @@ export async function DELETE(req: Request) {
     }
 
     await db.delete(scoresAntigos).where(eq(scoresAntigos.id, Number(id)));
+
+    await syncScoresAntigosJson();
+    clearFileCache();
+    try {
+      revalidatePath("/campeoes");
+      revalidatePath("/portal");
+      revalidatePath("/admin");
+    } catch (e) {}
 
     return NextResponse.json({ success: true, message: "Score histórico excluído com sucesso!" });
   } catch (error: any) {

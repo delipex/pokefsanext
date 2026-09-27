@@ -58,6 +58,34 @@ interface AdminDashboardProps {
   initialScoresAntigos?: any[];
 }
 
+function calToIsoDate(dateStr: string): string {
+  if (!dateStr) return new Date().toISOString().split("T")[0];
+  const clean = dateStr.replace(/\//g, "-").trim();
+  const parts = clean.split("-");
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`;
+    } else {
+      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+    }
+  }
+  return dateStr;
+}
+
+function calToBRDate(dateStr: string): string {
+  if (!dateStr) return "";
+  const clean = dateStr.replace(/\//g, "-").trim();
+  const parts = clean.split("-");
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      return `${parts[2].padStart(2, "0")}-${parts[1].padStart(2, "0")}-${parts[0]}`;
+    } else {
+      return `${parts[0].padStart(2, "0")}-${parts[1].padStart(2, "0")}-${parts[2]}`;
+    }
+  }
+  return dateStr;
+}
+
 export function AdminDashboard({
   initialPlayers,
   initialDecks,
@@ -113,6 +141,7 @@ export function AdminDashboard({
   const [stageType, setStageType] = useState("Liga");
   const [customStageTitle, setCustomStageTitle] = useState("");
   const [multiplier, setMultiplier] = useState(1.0);
+  const [isMultiplierUnlocked, setIsMultiplierUnlocked] = useState(false);
   const [parsedRows, setParsedRows] = useState<(ParsedPlayerRow & { deckNome?: string })[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState("");
@@ -183,6 +212,7 @@ export function AdminDashboard({
   const [newCalLocal, setNewCalLocal] = useState("Livraria Atlântica +");
   const [newCalHorario, setNewCalHorario] = useState("14:00");
   const [newCalStatus, setNewCalStatus] = useState("confirmado");
+  const [newCalDescricao, setNewCalDescricao] = useState("");
   const [newCalLinkMaps, setNewCalLinkMaps] = useState("https://maps.google.com");
   const [newCalLinkInscricao, setNewCalLinkInscricao] = useState("");
   const [calendarMessage, setCalendarMessage] = useState("");
@@ -252,12 +282,19 @@ export function AdminDashboard({
     setStageType(type);
     if (type === "Liga") {
       setMultiplier(1.0);
+      setIsMultiplierUnlocked(false);
     } else if (type === "Challenge") {
       setMultiplier(1.5);
+      setIsMultiplierUnlocked(false);
     } else if (type === "Cup") {
       setMultiplier(1.5);
+      setIsMultiplierUnlocked(false);
     } else if (type === "Especial") {
-      setMultiplier(1.0);
+      setIsMultiplierUnlocked(true);
+      // Se estava travado em 1.5x de Cup/Challenge, reinicia em 1.0x para o organizador customizar
+      if (multiplier === 1.5) {
+        setMultiplier(1.0);
+      }
     }
   };
 
@@ -378,7 +415,12 @@ export function AdminDashboard({
     setPublishMessage("");
 
     try {
-      const finalEventName = stageType === "Personalizado" && customStageTitle ? customStageTitle : stageType;
+      let finalEventName = stageType;
+      if (stageType === "Especial") {
+        finalEventName = customStageTitle.trim() ? `Especial (${customStageTitle.trim()})` : "Sessão Especial";
+      } else if (stageType === "Personalizado") {
+        finalEventName = customStageTitle.trim() || "Personalizado";
+      }
 
       const res = await fetch("/api/admin/stage", {
         method: "POST",
@@ -850,11 +892,12 @@ export function AdminDashboard({
   // Selecionar Evento para Edição
   const handleSelectCalToEdit = (ev: any) => {
     setEditingCalId(ev.id);
-    setNewCalDate(ev.data);
+    setNewCalDate(calToIsoDate(ev.data));
     setNewCalEvento(ev.evento);
     setNewCalLocal(ev.local || "Livraria Atlântica +");
     setNewCalHorario(ev.horario || "14:00");
     setNewCalStatus(ev.status || "confirmado");
+    setNewCalDescricao(ev.descricao || "");
     setNewCalLinkMaps(ev.linkMaps || "https://maps.google.com");
     setNewCalLinkInscricao(ev.linkInscricao || "");
     setCalendarMessage("");
@@ -864,6 +907,11 @@ export function AdminDashboard({
     setEditingCalId(null);
     setNewCalDate(new Date().toISOString().split("T")[0]);
     setNewCalEvento("");
+    setNewCalLocal("Livraria Atlântica +");
+    setNewCalHorario("14:00");
+    setNewCalStatus("confirmado");
+    setNewCalDescricao("");
+    setNewCalLinkMaps("https://maps.google.com");
     setNewCalLinkInscricao("");
     setCalendarMessage("");
   };
@@ -874,6 +922,8 @@ export function AdminDashboard({
     if (!newCalDate || !newCalEvento) return;
     setCalendarMessage("");
 
+    const dateBR = calToBRDate(newCalDate);
+
     try {
       const isEditing = Boolean(editingCalId);
       const res = await fetch("/api/admin/calendar", {
@@ -881,23 +931,31 @@ export function AdminDashboard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editingCalId,
-          data: newCalDate,
-          evento: newCalEvento,
-          local: newCalLocal,
-          horario: newCalHorario,
+          data: dateBR,
+          evento: newCalEvento.trim(),
+          local: newCalLocal.trim() || "Livraria Atlântica +",
+          horario: newCalHorario.trim() || "14:00",
           status: newCalStatus,
-          linkMaps: newCalLinkMaps,
-          linkInscricao: newCalLinkInscricao,
+          descricao: newCalDescricao.trim(),
+          linkMaps: newCalLinkMaps.trim(),
+          linkInscricao: newCalLinkInscricao.trim(),
         }),
       });
 
       const data = await res.json();
       if (res.ok && data.event) {
-        setCalendarEvents((prev) => [
-          ...prev.filter((ev) => ev.id !== (editingCalId || data.event.id)),
-          data.event,
-        ]);
-        setCalendarMessage(isEditing ? "✅ Evento atualizado!" : "✅ Evento adicionado!");
+        setCalendarEvents((prev) => {
+          const list = [
+            ...prev.filter((ev) => ev.id !== (editingCalId || data.event.id)),
+            data.event,
+          ];
+          return list.sort((a, b) => {
+            const da = calToIsoDate(a.data);
+            const db = calToIsoDate(b.data);
+            return da.localeCompare(db);
+          });
+        });
+        setCalendarMessage(isEditing ? "✅ Evento atualizado com sucesso!" : "✅ Evento adicionado com sucesso!");
         handleCancelEditCal();
       } else {
         setCalendarMessage(`❌ Erro: ${data.error}`);
@@ -1277,36 +1335,157 @@ export function AdminDashboard({
                 >
                   <Sparkles className="h-5 w-5 mb-1 text-purple-400" />
                   <span className="text-xs font-black text-white">Sessão Especial</span>
-                  <span className="text-[10px] text-purple-300 font-semibold">1.0x (Ajustável)</span>
+                  <span className="text-[10px] text-purple-300 font-semibold">
+                    {stageType === "Especial" ? `${multiplier}x (Ajustável)` : "Livre / Ajustável"}
+                  </span>
                 </button>
               </div>
             </div>
 
-            {/* Configurações da Etapa */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Data da Etapa:
-                </label>
-                <input
-                  type="date"
-                  value={stageDate}
-                  onChange={(e) => setStageDate(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
+            {/* Configurações da Etapa & Modificador de Multiplicador */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Data da Etapa:
+                  </label>
+                  <input
+                    type="date"
+                    value={stageDate}
+                    onChange={(e) => setStageDate(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                  Multiplicador Aplicado:
-                </label>
-                <div className="flex h-10 items-center justify-between rounded-xl border border-white/10 bg-slate-800/80 px-3 text-xs font-black text-amber-400">
-                  <span>{stageType}</span>
-                  <span className="rounded bg-amber-500/20 px-2 py-0.5 border border-amber-500/30">
-                    {multiplier}x
-                  </span>
+                {/* Subtítulo / Nome Especial se for Especial ou Personalizado */}
+                {(stageType === "Especial" || stageType === "Personalizado") && (
+                  <div>
+                    <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+                      <span>Nome/Subtítulo Especial (Opcional):</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={customStageTitle}
+                      onChange={(e) => setCustomStageTitle(e.target.value)}
+                      placeholder="Ex: Formato Retrô, Torneio Comemorativo..."
+                      className="w-full rounded-xl border border-purple-500/30 bg-purple-950/20 py-2.5 px-3 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                    />
+                  </div>
+                )}
+
+                {/* Bloco do Multiplicador */}
+                <div className={stageType !== "Especial" && stageType !== "Personalizado" ? "sm:col-span-1" : ""}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      Multiplicador de Pontos:
+                    </label>
+                    {(stageType === "Especial" || isMultiplierUnlocked) && (
+                      <span className="text-[10px] font-bold text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-full border border-purple-500/30">
+                        ✨ Modificador Livre
+                      </span>
+                    )}
+                  </div>
+
+                  {stageType === "Especial" || isMultiplierUnlocked ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = Math.max(0.1, Number((multiplier - 0.25).toFixed(2)));
+                            setMultiplier(next);
+                          }}
+                          className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black border border-white/10 active:scale-95 transition-all text-base cursor-pointer"
+                          title="Diminuir 0.25x"
+                        >
+                          -
+                        </button>
+                        <div className="relative flex-1">
+                          <input
+                            type="number"
+                            step="0.05"
+                            min="0.1"
+                            max="10.0"
+                            value={multiplier}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              setMultiplier(isNaN(val) ? 1.0 : Math.max(0.1, Math.min(10.0, val)));
+                            }}
+                            className="w-full h-10 rounded-xl border border-purple-500/50 bg-slate-800/90 py-2 px-3 text-center text-sm font-black text-amber-300 focus:outline-none focus:border-purple-400"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                            x
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = Math.min(10.0, Number((multiplier + 0.25).toFixed(2)));
+                            setMultiplier(next);
+                          }}
+                          className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black border border-white/10 active:scale-95 transition-all text-base cursor-pointer"
+                          title="Aumentar 0.25x"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      {/* Presets Rápidos */}
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {[1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setMultiplier(preset)}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                              Math.abs(multiplier - preset) < 0.01
+                                ? "bg-purple-600 text-white shadow-md shadow-purple-500/30 border border-purple-400"
+                                : "bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-white/10"
+                            }`}
+                          >
+                            {preset.toFixed(2).replace(/\.00$/, "").replace(/(\.[1-9])0$/, "$1")}x
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-10 items-center justify-between rounded-xl border border-white/10 bg-slate-800/80 px-3 text-xs font-black text-amber-400">
+                      <span>{stageType}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded bg-amber-500/20 px-2 py-0.5 border border-amber-500/30">
+                          {multiplier}x (Fixo)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsMultiplierUnlocked(true)}
+                          className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer"
+                          title="Desbloquear para definir valor personalizado"
+                        >
+                          Ajustar
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Simulador dinâmico de pontuação */}
+              {multiplier !== 1.0 && (
+                <div className="rounded-2xl border border-purple-500/25 bg-purple-950/20 p-3 text-xs text-purple-200 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-400 shrink-0" />
+                    <span>
+                      <strong>Simulador de Pontos ({multiplier}x):</strong> Vitória:{" "}
+                      <span className="text-amber-300 font-bold">{(3 * multiplier).toFixed(1)} pts</span> (3 × {multiplier}) • Empate:{" "}
+                      <span className="text-amber-300 font-bold">{(1 * multiplier).toFixed(1)} pts</span> (1 × {multiplier})
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-purple-300/80">
+                    ⚡ A pontuação de todos os jogadores desta etapa será multiplicada por <strong>{multiplier}x</strong> no ranking consolidado.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2528,9 +2707,29 @@ export function AdminDashboard({
                 <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
                   Nome do Torneio:
                 </label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {[
+                    { label: "Liga", prefix: "Sessão de Liga" },
+                    { label: "Challenge", prefix: "League Challenge" },
+                    { label: "Cup", prefix: "League Cup" },
+                    { label: "Especial", prefix: "Sessão Especial" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => {
+                        const season = temporadaAtual || "5";
+                        setNewCalEvento(`${preset.prefix} [${season}ª Temporada]`);
+                      }}
+                      className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10 text-[10px] font-bold cursor-pointer transition-colors"
+                    >
+                      + {preset.label}
+                    </button>
+                  ))}
+                </div>
                 <input
                   type="text"
-                  placeholder="Ex: Etapa #4 - Liga Regular"
+                  placeholder="Ex: Sessão #25 de Liga [5ª Temporada]"
                   value={newCalEvento}
                   onChange={(e) => setNewCalEvento(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
@@ -2582,11 +2781,24 @@ export function AdminDashboard({
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
+                  Descrição / Detalhes (Opcional):
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Informações adicionais do formato, premiação ou avisos..."
+                  value={newCalDescricao}
+                  onChange={(e) => setNewCalDescricao(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500 custom-scrollbar"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 uppercase mb-1">
                   Link Google Maps:
                 </label>
                 <input
-                  type="url"
-                  placeholder="https://maps.google.com/..."
+                  type="text"
+                  placeholder="https://maps.app.goo.gl/..."
                   value={newCalLinkMaps}
                   onChange={(e) => setNewCalLinkMaps(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"
@@ -2598,8 +2810,8 @@ export function AdminDashboard({
                   Link de Inscrição / WhatsApp:
                 </label>
                 <input
-                  type="url"
-                  placeholder="https://chat.whatsapp.com/..."
+                  type="text"
+                  placeholder="https://chat.whatsapp.com/... ou link de formulário"
                   value={newCalLinkInscricao}
                   onChange={(e) => setNewCalLinkInscricao(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-slate-800 py-2 px-3 text-xs text-white focus:outline-none focus:border-blue-500"

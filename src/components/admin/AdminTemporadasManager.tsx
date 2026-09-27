@@ -625,13 +625,14 @@ export function AdminTemporadasManager({
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Data do Título</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Data / Mês do Título</label>
                   <input
-                    type="date"
+                    type="text"
                     required
+                    placeholder="Ex: Junho/2026 ou 2026-06-20"
                     value={championForm.data}
                     onChange={(e) => setChampionForm({ ...championForm, data: e.target.value })}
-                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white text-xs"
                   />
                 </div>
               </div>

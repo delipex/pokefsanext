@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { jogadores } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
-import { getAllJogadores } from "@/lib/queries";
+import { getAllJogadores, clearFileCache } from "@/lib/queries";
 import { hashPin } from "@/lib/security";
 import fs from "fs";
 import path from "path";
 
-// Helper para salvar em jogadores.json quando em ambiente com permissão de escrita
+// Helper para salvar em jogadores.json e invalidar caches
 function syncJogadoresJson(fn: (list: any[]) => any[]) {
   try {
     const filePath = path.join(process.cwd(), "src", "data", "jogadores.json");
@@ -16,8 +17,16 @@ function syncJogadoresJson(fn: (list: any[]) => any[]) {
       const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
       const updated = fn(raw);
       fs.writeFileSync(filePath, JSON.stringify(updated, null, 4), "utf-8");
+
+      const legacyPath = path.resolve(process.cwd(), "..", "LigaAtlântica", "jogadores.json");
+      if (fs.existsSync(legacyPath)) {
+        try {
+          fs.writeFileSync(legacyPath, JSON.stringify(updated, null, 4), "utf-8");
+        } catch {}
+      }
     }
   } catch {}
+  clearFileCache();
 }
 
 export async function GET() {
@@ -91,6 +100,11 @@ export async function POST(req: Request) {
       return list;
     });
 
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
+
     return NextResponse.json({ success: true, message: "Jogador salvo com sucesso no banco de dados!" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -156,6 +170,11 @@ export async function PUT(req: Request) {
       return list;
     });
 
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
+
     let returnMessage = "Dados do jogador atualizados com sucesso!";
     if (resetPin) {
       returnMessage = "Jogador atualizado e PIN redefinido com sucesso! O jogador já pode cadastrar um novo PIN.";
@@ -185,6 +204,11 @@ export async function DELETE(req: Request) {
     await db.delete(jogadores).where(eq(jogadores.id, id));
 
     syncJogadoresJson((list) => list.filter((j: any) => String(j.id || j.ID || "").trim() !== id));
+
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
 
     return NextResponse.json({ success: true, message: "Jogador excluído com sucesso do banco de dados!" });
   } catch (error: any) {

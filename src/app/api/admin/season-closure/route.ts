@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
   rankingConsolidado,
@@ -11,6 +12,7 @@ import {
 } from "@/db/schema";
 import { desc, asc, eq } from "drizzle-orm";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { clearFileCache } from "@/lib/queries";
 
 export async function POST(req: Request) {
   try {
@@ -47,10 +49,13 @@ export async function POST(req: Request) {
     const detectedCampeao = campeaoNome || rankingFinal[0]?.jogadorNome || "A Definir";
     const detectedVice = viceNome || rankingFinal[1]?.jogadorNome || "A Definir";
     const detectedDeckCampeao = deckCampeao || rankingFinal[0]?.ultimoDeck || "Desconhecido";
+    const seasonLabel = String(currentSeason).startsWith("Temporada #")
+      ? String(currentSeason)
+      : `Temporada #${currentSeason}`;
 
     // 2. Transpor ranking final para a tabela `scores_antigos`
     const scoresToInsert = rankingFinal.map((r, idx) => ({
-      temporada: String(currentSeason),
+      temporada: seasonLabel,
       dataFechamento,
       pos: idx + 1,
       jogador: r.jogadorNome,
@@ -63,7 +68,7 @@ export async function POST(req: Request) {
 
     // 3. Coroar campeão no Hall da Fama (`campeoes`)
     await db.insert(campeoes).values({
-      temporada: String(currentSeason),
+      temporada: seasonLabel,
       campeao: detectedCampeao,
       vice: detectedVice,
       deckCampeao: detectedDeckCampeao,
@@ -87,6 +92,19 @@ export async function POST(req: Request) {
       await db.delete(rankingConsolidado);
       // Opcional: resetar metagame da temporada anterior
       await db.delete(metagame);
+    }
+
+    try {
+      clearFileCache();
+      revalidatePath("/");
+      revalidatePath("/ranking");
+      revalidatePath("/metagame");
+      revalidatePath("/etapas");
+      revalidatePath("/campeoes");
+      revalidatePath("/portal");
+      revalidatePath("/admin");
+    } catch (e) {
+      // Ignora erro em build ou ambiente isolado
     }
 
     return NextResponse.json({

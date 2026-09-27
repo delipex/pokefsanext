@@ -42,6 +42,9 @@ export function AdminInscricoesPremier({
     initialConfig.premierAbertas === "true" || initialConfig.premierAbertas === true
   );
   const [premierTipo, setPremierTipo] = useState(initialConfig.premierTipo || "Challenge");
+  const [premierMultiplicador, setPremierMultiplicador] = useState(
+    initialConfig.premierMultiplicador || (initialConfig.premierTipo === "Liga" ? "1.0" : initialConfig.premierTipo === "Especial" ? "1.0" : "1.5")
+  );
   const [premierNome, setPremierNome] = useState(
     initialConfig.premierNome || "League Challenge #2 — Temporada 5"
   );
@@ -139,6 +142,7 @@ export function AdminInscricoesPremier({
     const payload = {
       premierAbertas: String(premierAbertas),
       premierTipo,
+      premierMultiplicador: String(premierMultiplicador),
       premierNome,
       premierSubtitulo,
       premierData,
@@ -408,8 +412,8 @@ export function AdminInscricoesPremier({
           </div>
 
           <form onSubmit={handleSavePremierConfig} className="space-y-4 text-xs">
-            {/* Linha 1: Status e Tipo */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Linha 1: Status, Tipo e Multiplicador */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-slate-300 font-semibold mb-1">Status das Inscrições</label>
                 <select
@@ -426,14 +430,70 @@ export function AdminInscricoesPremier({
                 <label className="block text-slate-300 font-semibold mb-1">Tipo de Torneio</label>
                 <select
                   value={premierTipo}
-                  onChange={(e) => setPremierTipo(e.target.value)}
+                  onChange={(e) => {
+                    const nextTipo = e.target.value;
+                    setPremierTipo(nextTipo);
+                    if (nextTipo === "Liga") setPremierMultiplicador("1.0");
+                    else if (nextTipo === "Challenge" || nextTipo === "Cup") setPremierMultiplicador("1.5");
+                    else if (nextTipo === "Especial" && premierMultiplicador === "1.5") setPremierMultiplicador("1.0");
+                  }}
                   className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
                 >
                   <option value="Challenge">League Challenge (1.5x)</option>
                   <option value="Cup">League Cup (1.5x)</option>
-                  <option value="Especial">Torneio Especial / Comemorativo</option>
-                  <option value="Liga">Sessão Regular de Liga</option>
+                  <option value="Especial">Torneio Especial / Comemorativo (Livre)</option>
+                  <option value="Liga">Sessão Regular de Liga (1.0x)</option>
                 </select>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-300 font-semibold">Multiplicador de Pontos</label>
+                  {premierTipo === "Especial" && (
+                    <span className="text-[10px] text-purple-300 font-bold bg-purple-500/15 px-2 py-0.5 rounded-full border border-purple-500/30">
+                      Livre
+                    </span>
+                  )}
+                </div>
+                {premierTipo === "Especial" ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        step="0.05"
+                        min="0.1"
+                        max="10.0"
+                        value={premierMultiplicador}
+                        onChange={(e) => setPremierMultiplicador(e.target.value)}
+                        className="w-full bg-slate-900 border border-purple-500/50 rounded-xl px-3 py-2 text-amber-300 font-bold text-center"
+                      />
+                      <span className="text-xs font-bold text-slate-400">x</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {["1.0", "1.25", "1.5", "1.75", "2.0"].map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setPremierMultiplicador(p)}
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${
+                            premierMultiplicador === p
+                              ? "bg-purple-600 text-white border border-purple-400"
+                              : "bg-slate-800 text-slate-300 border border-white/10 hover:bg-slate-700"
+                          }`}
+                        >
+                          {p}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full bg-slate-900/60 border border-white/10 rounded-xl px-3 py-2 text-amber-400 font-bold text-sm flex items-center justify-between h-[42px]">
+                    <span>{premierTipo}</span>
+                    <span className="text-xs bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded text-amber-300">
+                      {premierMultiplicador}x
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

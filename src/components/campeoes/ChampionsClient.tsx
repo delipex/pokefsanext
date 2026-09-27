@@ -60,7 +60,25 @@ interface ChampionsClientProps {
 export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsClientProps) {
   const [activeTab, setActiveTab] = useState<"campeoes" | "galeria" | "historico">("campeoes");
   const [expandedIndex, setExpandedIndex] = useState<number>(0);
-  const [selectedSeason, setSelectedSeason] = useState<string>("Temporada #4");
+
+  // Deduplicação estrita de campeões por temporada e ordenação decrescente
+  const uniqueChampionsMap = new Map<string, ChampionItem>();
+  champions.forEach((c) => {
+    const key = (c.temporada || "").trim().toLowerCase();
+    if (key && !uniqueChampionsMap.has(key)) {
+      uniqueChampionsMap.set(key, c);
+    }
+  });
+  const uniqueChampions = Array.from(uniqueChampionsMap.values()).sort((a, b) =>
+    (b.temporada || "").localeCompare(a.temporada || "", undefined, { numeric: true })
+  );
+
+  // Temporadas disponíveis nos scores antigos (deduplicadas e ordenadas)
+  const legacySeasons = Array.from(
+    new Set(legacyScores.map((s) => (s.temporada || "").trim()))
+  ).filter(Boolean).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+
+  const [selectedSeason, setSelectedSeason] = useState<string>(legacySeasons[0] || "Temporada #4");
   const [deckModalChampion, setDeckModalChampion] = useState<ChampionItem | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
@@ -69,7 +87,7 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
   const deckWins: Record<string, number> = {};
   const viceCounts: Record<string, number> = {};
 
-  champions.forEach((c) => {
+  uniqueChampions.forEach((c) => {
     const champ = (c.campeao || "").trim();
     const deck = (c.deckCampeao || "").trim();
     const vice = (c.vice || "").trim();
@@ -82,11 +100,9 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
   const topChampion = Object.entries(champWins).sort((a, b) => b[1] - a[1])[0] || ["Nenhum", 0];
   const topDeck = Object.entries(deckWins).sort((a, b) => b[1] - a[1])[0] || ["Nenhum", 0];
   const topVice = Object.entries(viceCounts).sort((a, b) => b[1] - a[1])[0] || ["-", 0];
-  const totalSeasons = champions.length;
+  const totalSeasons = uniqueChampions.length;
 
-  // Temporadas disponíveis nos scores antigos
-  const legacySeasons = Array.from(new Set(legacyScores.map((s) => s.temporada)));
-  const filteredScores = legacyScores.filter((s) => s.temporada === selectedSeason);
+  const filteredScores = legacyScores.filter((s) => (s.temporada || "").trim() === selectedSeason);
 
   return (
     <div className="space-y-8">
@@ -248,7 +264,7 @@ export function ChampionsClient({ champions, gallery, legacyScores }: ChampionsC
               ACORDEÃO INTERATIVO HORIZONTAL DOS CAMPEÕES
              ========================================================= */}
           <div className="flex flex-col lg:flex-row gap-3.5 min-h-[460px] w-full">
-            {champions.map((champ, index) => {
+            {uniqueChampions.map((champ, index) => {
               const isExpanded = expandedIndex === index;
               const championInitial = champ.campeao ? champ.campeao.charAt(0).toUpperCase() : "🏆";
 

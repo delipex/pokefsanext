@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { etapaResultados, metagame, rankingConsolidado, etapas } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { etapaResultados, metagame, rankingConsolidado } from "@/db/schema";
+import { eq, and, or, sql } from "drizzle-orm";
+import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
+import { clearFileCache } from "@/lib/queries";
+import fs from "fs";
+import path from "path";
 
 export async function PUT(req: Request) {
   try {
@@ -12,9 +17,13 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Dados inválidos para atualização do metagame" }, { status: 400 });
     }
 
-    // 1. Atualizar etapa_resultados para cada jogador dessa etapa
+    // 1. Atualizar etapa_resultados com match case-insensitive
     for (const [jogadorNome, deckNome] of Object.entries<any>(decksMap)) {
-      const cleanDeck = deckNome && deckNome !== "Não registrado" && deckNome !== "Sem deck registrado" ? String(deckNome).trim() : null;
+      const cleanDeck =
+        deckNome && deckNome !== "Não registrado" && deckNome !== "Sem deck registrado"
+          ? String(deckNome).trim()
+          : null;
+      const normName = jogadorNome.toLowerCase().trim();
 
       await db
         .update(etapaResultados)
@@ -22,41 +31,109 @@ export async function PUT(req: Request) {
         .where(
           and(
             eq(etapaResultados.etapaData, etapaData),
-            eq(etapaResultados.jogadorNome, jogadorNome)
+            or(
+              eq(etapaResultados.jogadorNome, jogadorNome),
+              eq(sql`lower(trim(${etapaResultados.jogadorNome}))`, normName)
+            )
           )
         );
 
       // 2. Atualizar ou inserir na tabela de metagame
       if (cleanDeck) {
-        // Remover registro anterior do jogador nesta etapa
         await db
           .delete(metagame)
           .where(
             and(
               eq(metagame.etapaData, etapaData),
-              eq(metagame.jogadorNome, jogadorNome)
+              or(
+                eq(metagame.jogadorNome, jogadorNome),
+                eq(sql`lower(trim(${metagame.jogadorNome}))`, normName)
+              )
             )
           );
 
-        // Inserir registro atualizado
         await db.insert(metagame).values({
           etapaData,
           sessionCode: `${etapaData}-Liga`,
-          jogadorNome,
+          jogadorNome: jogadorNome.trim(),
           deckNome: cleanDeck,
         });
-
-        // 3. Se for a etapa mais recente, atualizar rankingConsolidado.ultimoDeck
+      } else {
         await db
-          .update(rankingConsolidado)
-          .set({ ultimoDeck: cleanDeck })
-          .where(eq(rankingConsolidado.jogadorNome, jogadorNome));
+          .delete(metagame)
+          .where(
+            and(
+              eq(metagame.etapaData, etapaData),
+              or(
+                eq(metagame.jogadorNome, jogadorNome),
+                eq(sql`lower(trim(${metagame.jogadorNome}))`, normName)
+              )
+            )
+          );
       }
     }
 
+    // 3. Atualizar fisicamente o arquivo src/data/metagame.json
+    try {
+      const metaPath = path.join(process.cwd(), "src", "data", "metagame.json");
+      let currentMeta: Record<string, any> = {};
+      if (fs.existsSync(metaPath)) {
+        try {
+          currentMeta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+        } catch (e) {
+          currentMeta = {};
+        }
+      }
+
+      if (!currentMeta[etapaData]) {
+        currentMeta[etapaData] = { sessionCode: `${etapaData}-Liga`, decks: {} };
+      }
+      if (!currentMeta[etapaData].decks) {
+        currentMeta[etapaData].decks = {};
+      }
+
+      for (const [jogadorNome, deckNome] of Object.entries<any>(decksMap)) {
+        const cleanDeck =
+          deckNome && deckNome !== "Não registrado" && deckNome !== "Sem deck registrado"
+            ? String(deckNome).trim()
+            : null;
+        if (cleanDeck) {
+          currentMeta[etapaData].decks[jogadorNome.trim()] = cleanDeck;
+        } else {
+          delete currentMeta[etapaData].decks[jogadorNome.trim()];
+        }
+      }
+
+      fs.writeFileSync(metaPath, JSON.stringify(currentMeta, null, 4), "utf-8");
+
+      // Sincronizar com repositório legado se existir
+      const ligaMetaPath = path.resolve(process.cwd(), "..", "LigaAtlântica", "metagame.json");
+      if (fs.existsSync(ligaMetaPath)) {
+        try {
+          fs.writeFileSync(ligaMetaPath, JSON.stringify(currentMeta, null, 4), "utf-8");
+        } catch (e) {}
+      }
+    } catch (fsErr) {
+      console.warn("Aviso ao persistir metagame.json:", fsErr);
+    }
+
+    // 4. Limpar cache em memória e recalcular ranking consolidado
+    clearFileCache();
+    await recalculateRankingConsolidado();
+
+    // 5. Revalidar rotas públicas Next.js
+    try {
+      revalidatePath("/");
+      revalidatePath("/ranking");
+      revalidatePath("/metagame");
+      revalidatePath("/etapas");
+      revalidatePath("/portal");
+      revalidatePath("/admin");
+    } catch (e) {}
+
     return NextResponse.json({
       success: true,
-      message: "Metagame e decks da etapa atualizados com sucesso!",
+      message: "Metagame e decks da etapa atualizados e sincronizados com sucesso!",
     });
   } catch (error: any) {
     console.error("Erro ao atualizar metagame da etapa:", error);

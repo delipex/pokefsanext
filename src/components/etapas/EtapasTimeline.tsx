@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Trophy, Users, CheckCircle2, ChevronRight, X, Award, Shield } from "lucide-react";
 import { formatCategoryAbbr } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
+import { PlayerModal, PlayerModalData } from "@/components/ranking/PlayerModal";
 
 import { EnergyBadge } from "../ui/EnergyBadge";
 
@@ -49,6 +50,7 @@ interface EtapasTimelineProps {
 
 export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
   const [selectedEtapa, setSelectedEtapa] = useState<EtapaSummaryItem | null>(null);
+  const [inspectingPlayer, setInspectingPlayer] = useState<PlayerModalData | null>(null);
 
   if (!etapas || etapas.length === 0) return null;
 
@@ -245,7 +247,41 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
                       return (
                         <tr
                           key={rIdx}
-                          className={`hover:bg-blue-500/10 transition-colors ${
+                          onClick={() => {
+                            const mult = selectedEtapa.multiplicador ? Number(selectedEtapa.multiplicador) : 1.0;
+                            const etapaPts = Number((res.pontos * mult).toFixed(1));
+                            const foundDeck = allDecks.find((d) => d.nome.toLowerCase() === (res.deckNome || "").toLowerCase());
+                            setInspectingPlayer({
+                              jogadorNome: res.jogadorNome,
+                              jogadorId: res.jogadorId || "—",
+                              categoria: res.categoria || "Master",
+                              pontos: etapaPts,
+                              vitorias: res.vitorias,
+                              empates: res.empates,
+                              derrotas: res.derrotas,
+                              podios: res.colocacao <= 4 ? 1 : 0,
+                              mediaColocacao: res.colocacao,
+                              participacoes: 1,
+                              historicoColocacoes: `${res.colocacao}`,
+                              ultimoDeck: res.deckNome,
+                              ultimoDeckEnergia: foundDeck?.tipoEnergia || "colorless",
+                              stageContext: {
+                                etapaData: selectedEtapa.data,
+                                numeroEtapa: selectedEtapa.numeroEtapa,
+                                tipo: selectedEtapa.tipo,
+                                multiplicador: mult,
+                                colocacao: res.colocacao,
+                                pontos: etapaPts,
+                                basePontos: res.pontos,
+                                vitorias: res.vitorias,
+                                empates: res.empates,
+                                derrotas: res.derrotas,
+                                deckNome: res.deckNome || null,
+                                deckEnergia: foundDeck?.tipoEnergia || "colorless",
+                              },
+                            });
+                          }}
+                          className={`hover:bg-blue-500/10 transition-colors cursor-pointer ${
                             isWinner ? "bg-yellow-500/10 font-bold" : isTop4 ? "bg-slate-800/30" : ""
                           }`}
                         >
@@ -311,6 +347,12 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Modal de Detalhes do Jogador na Etapa */}
+      <PlayerModal
+        player={inspectingPlayer}
+        onClose={() => setInspectingPlayer(null)}
+      />
     </div>
   );
 }

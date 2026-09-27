@@ -21,6 +21,10 @@ import path from "path";
 // Cache em memória baseado em timestamp de modificação (mtime) para máxima velocidade
 const fileCache = new Map<string, { mtime: number; data: any }>();
 
+export function clearFileCache() {
+  fileCache.clear();
+}
+
 // Helper para ler arquivos de dados locais com segurança e cache de alta performance
 function readDataFile<T = any>(filename: string, defaultValue: T): T {
   try {
@@ -201,6 +205,7 @@ function getFallbackEtapas(): any[] {
 
 export async function getRanking(categoria?: string) {
   const fallback = getFallbackRanking();
+  const latestDecks = getLatestDecksMap();
   try {
     let query = db
       .select()
@@ -218,14 +223,27 @@ export async function getRanking(categoria?: string) {
     }
 
     const res = await query;
-    if (res && res.length >= fallback.length) return res;
-    if (fallback.length > 0) {
-      if (categoria && categoria !== "TODOS") {
-        return fallback.filter((r) => r.categoria?.toUpperCase() === categoria.toUpperCase());
+    if (res && res.length > 0) {
+      const enriched = res.map((p) => {
+        const resolvedDeck =
+          p.ultimoDeck && p.ultimoDeck !== "Não registrado" && p.ultimoDeck !== "Sem deck registrado"
+            ? p.ultimoDeck
+            : latestDecks[p.jogadorNome.toLowerCase().trim()] || null;
+        return {
+          ...p,
+          ultimoDeck: resolvedDeck,
+        };
+      });
+
+      if (enriched.length >= fallback.length) return enriched;
+      if (fallback.length > 0) {
+        if (categoria && categoria !== "TODOS") {
+          return fallback.filter((r) => r.categoria?.toUpperCase() === categoria.toUpperCase());
+        }
+        return fallback;
       }
-      return fallback;
+      return enriched;
     }
-    if (res && res.length > 0) return res;
   } catch (err) {
     // Silencioso
   }
@@ -237,6 +255,7 @@ export async function getRanking(categoria?: string) {
 }
 
 export async function getTop4Podium() {
+  const latestDecks = getLatestDecksMap();
   try {
     const res = await db
       .select()
@@ -248,7 +267,18 @@ export async function getTop4Podium() {
         asc(rankingConsolidado.jogadorNome)
       )
       .limit(4);
-    if (res && res.length > 0) return res;
+    if (res && res.length > 0) {
+      return res.map((p) => {
+        const resolvedDeck =
+          p.ultimoDeck && p.ultimoDeck !== "Não registrado" && p.ultimoDeck !== "Sem deck registrado"
+            ? p.ultimoDeck
+            : latestDecks[p.jogadorNome.toLowerCase().trim()] || null;
+        return {
+          ...p,
+          ultimoDeck: resolvedDeck,
+        };
+      });
+    }
   } catch (err) {
     // Silencioso
   }
@@ -431,25 +461,46 @@ export async function getMetagameData() {
 
 export async function getCampeoes() {
   try {
-    const res = await db.select().from(campeoes).orderBy(desc(campeoes.id));
-    if (res && res.length > 0) return res;
+    const res = await db.select().from(campeoes);
+    if (res && res.length > 0) {
+      const map = new Map<string, any>();
+      for (const c of res) {
+        const key = (c.temporada || "").toLowerCase().trim();
+        if (!map.has(key)) {
+          map.set(key, c);
+        }
+      }
+      return Array.from(map.values()).sort((a, b) => {
+        return (b.temporada || "").localeCompare(a.temporada || "", undefined, { numeric: true });
+      });
+    }
   } catch (err) {
     // Silencioso
   }
 
   const raw = readDataFile<any[]>("campeoes.json", []);
-  return raw.map((c, i) => ({
-    id: i + 1,
-    temporada: c.Temporada || c.temporada || `Temporada #${4 - i}`,
-    campeao: c.Campeao || c.campeao || c.nome || "Desconhecido",
-    vice: c.Vice || c.vice || "Desconhecido",
-    deckCampeao: c.DeckCampeao || c.deckCampeao || c.deck || "Desconhecido",
-    data: c.Data || c.data || "",
-    fotoCampeao: c.FotoCampeao || c.fotoCampeao || c.foto || null,
-    urlDeck: c.URLDeck || c.urlDeck || null,
-    imagemDeck: c.ImagemDeck || c.imagemDeck || null,
-    observacaoDeck: c.ObservacaoDeck || c.observacaoDeck || null,
-  }));
+  const map = new Map<string, any>();
+  raw.forEach((c, i) => {
+    const temp = c.Temporada || c.temporada || `Temporada #${4 - i}`;
+    const key = temp.toLowerCase().trim();
+    if (!map.has(key)) {
+      map.set(key, {
+        id: i + 1,
+        temporada: temp,
+        campeao: c.Campeao || c.campeao || c.nome || "Desconhecido",
+        vice: c.Vice || c.vice || "Desconhecido",
+        deckCampeao: c.DeckCampeao || c.deckCampeao || c.deck || "Desconhecido",
+        data: c.Data || c.data || "",
+        fotoCampeao: c.FotoCampeao || c.fotoCampeao || c.foto || null,
+        urlDeck: c.URLDeck || c.urlDeck || null,
+        imagemDeck: c.ImagemDeck || c.imagemDeck || null,
+        observacaoDeck: c.ObservacaoDeck || c.observacaoDeck || null,
+      });
+    }
+  });
+  return Array.from(map.values()).sort((a, b) => {
+    return (b.temporada || "").localeCompare(a.temporada || "", undefined, { numeric: true });
+  });
 }
 
 export async function getGaleria() {
@@ -505,32 +556,91 @@ export async function getScoresAntigos() {
   return Array.from(uniqueMap.values());
 }
 
+function parseEventDateTime(dateStr: string, timeStr?: string | null): Date {
+  let y = 2026, m = 1, d = 1;
+  const clean = (dateStr || "").replace(/\//g, "-").trim();
+  const parts = clean.split("-");
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      y = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10);
+      d = parseInt(parts[2], 10);
+    } else {
+      d = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10);
+      y = parseInt(parts[2], 10);
+    }
+  }
+  let hr = 14, min = 0;
+  if (timeStr) {
+    const tParts = timeStr.trim().split(":");
+    hr = parseInt(tParts[0] || "14", 10);
+    min = parseInt(tParts[1] || "0", 10);
+  }
+  const iso = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}T${String(hr).padStart(2, "0")}:${String(min).padStart(2, "0")}:00-03:00`;
+  return new Date(iso);
+}
+
+export function getEventEndDateTime(dateStr: string, timeStr?: string | null): Date {
+  const start = parseEventDateTime(dateStr, timeStr);
+  // Torneio é considerado em andamento por até 4 horas após o horário oficial de início
+  return new Date(start.getTime() + 4 * 60 * 60 * 1000);
+}
+
 export async function getCalendario() {
+  let list: any[] = [];
   try {
     const res = await db.select().from(calendario);
-    if (res && res.length > 0) return res;
+    if (res && res.length > 0) {
+      list = res;
+    }
   } catch (err) {
     // Silencioso
   }
 
-  const raw = readDataFile<any[]>("calendario.json", []);
-  return raw.map((cal, i) => ({
-    id: i + 1,
-    data: cal.data,
-    evento: cal.evento || cal.titulo || "Torneio Semanal",
-    local: cal.local || "Livraria Atlântica +",
-    horario: cal.horario || "14:00",
-    status: cal.status || "confirmado",
-    descricao: cal.descricao || null,
-    linkMaps: cal.linkMaps || cal.linkMapa || null,
-    linkInscricao: cal.linkInscricao || null,
-    foto: cal.foto || null,
-  }));
+  if (list.length === 0) {
+    const raw = readDataFile<any[]>("calendario.json", []);
+    list = raw.map((cal, i) => ({
+      id: i + 1,
+      data: cal.data,
+      evento: cal.evento || cal.titulo || "Torneio Semanal",
+      local: cal.local || "Livraria Atlântica +",
+      horario: cal.horario || "14:00",
+      status: cal.status || "confirmado",
+      descricao: cal.descricao || null,
+      linkMaps: cal.linkMaps || cal.linkMapa || null,
+      linkInscricao: cal.linkInscricao || null,
+      foto: cal.foto || null,
+    }));
+  }
+
+  return list.sort((a, b) => {
+    return parseEventDateTime(a.data, a.horario).getTime() - parseEventDateTime(b.data, b.horario).getTime();
+  });
 }
 
 export async function getNextEvent() {
   const events = await getCalendario();
-  return events[0] || null;
+  if (!events || events.length === 0) return null;
+
+  const now = new Date();
+
+  // 1. Procura eventos ativos cujo término ainda não ocorreu (início até início + 4h)
+  const upcoming = events.filter((e) => {
+    const st = (e.status || "").toLowerCase().trim();
+    if (st === "concluido" || st === "cancelado") return false;
+    const eventEnd = getEventEndDateTime(e.data, e.horario);
+    return eventEnd.getTime() >= now.getTime();
+  });
+
+  if (upcoming.length > 0) {
+    upcoming.sort((a, b) => {
+      return parseEventDateTime(a.data, a.horario).getTime() - parseEventDateTime(b.data, b.horario).getTime();
+    });
+    return upcoming[0];
+  }
+
+  return events[events.length - 1] || null;
 }
 
 export async function getSeasonAwards() {

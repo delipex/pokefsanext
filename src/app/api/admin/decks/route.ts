@@ -1,7 +1,40 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { decks } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
+import { clearFileCache } from "@/lib/queries";
+import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
+import fs from "fs";
+import path from "path";
+
+async function syncDecksJson() {
+  try {
+    const allDecks = await db.select().from(decks).orderBy(asc(decks.nome));
+    const mapped = allDecks.map((d) => ({
+      deck: d.nome,
+      tipoEnergia: d.tipoEnergia || "colorless",
+      imagem: d.imagem || null,
+      limitless: d.limitless || null,
+      icone: d.icone || null,
+    }));
+
+    const p1 = path.join(process.cwd(), "src", "data", "decks.json");
+    if (fs.existsSync(p1)) {
+      fs.writeFileSync(p1, JSON.stringify(mapped, null, 4), "utf-8");
+    }
+
+    const p2 = path.resolve(process.cwd(), "..", "LigaAtlântica", "decks.json");
+    if (fs.existsSync(p2)) {
+      try {
+        fs.writeFileSync(p2, JSON.stringify(mapped, null, 4), "utf-8");
+      } catch {}
+    }
+  } catch (err) {
+    console.warn("Aviso ao sincronizar decks.json:", err);
+  }
+  clearFileCache();
+}
 
 export async function GET() {
   try {
@@ -41,6 +74,17 @@ export async function POST(req: Request) {
         },
       });
 
+    await syncDecksJson();
+    try {
+      await recalculateRankingConsolidado();
+    } catch {}
+
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/metagame");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
+
     return NextResponse.json({ success: true, message: "Deck salvo com sucesso!" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -79,6 +123,17 @@ export async function PUT(req: Request) {
         .where(eq(decks.nome, String(nome).trim()));
     }
 
+    await syncDecksJson();
+    try {
+      await recalculateRankingConsolidado();
+    } catch {}
+
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/metagame");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
+
     return NextResponse.json({ success: true, message: "Deck atualizado com sucesso!" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -98,6 +153,17 @@ export async function DELETE(req: Request) {
     } else {
       return NextResponse.json({ error: "ID ou Nome do deck é obrigatório" }, { status: 400 });
     }
+
+    await syncDecksJson();
+    try {
+      await recalculateRankingConsolidado();
+    } catch {}
+
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/metagame");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
 
     return NextResponse.json({ success: true, message: "Deck excluído com sucesso!" });
   } catch (error: any) {

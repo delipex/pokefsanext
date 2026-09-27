@@ -118,11 +118,12 @@ export default async function HomePage() {
       }
     : null;
 
-  const top4: PlayerModalData[] = top4Raw.map((r) => {
+  const top4: PlayerModalData[] = top4Raw.map((r, index) => {
     const deckInfo = metaData.decksInfo.find(
       (d) => d.nome.toLowerCase() === r.ultimoDeck?.toLowerCase()
     );
     return {
+      posicaoOficial: index + 1,
       jogadorNome: r.jogadorNome,
       jogadorId: r.jogadorId,
       categoria: r.categoria,

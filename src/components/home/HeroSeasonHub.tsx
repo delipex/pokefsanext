@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PlayerModalData, PlayerModal } from "@/components/ranking/PlayerModal";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
@@ -104,9 +105,11 @@ export function HeroSeasonHub({
   exibirPodio = true,
   exibirProximoEvento = true,
 }: HeroSeasonHubProps) {
+  const router = useRouter();
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerModalData | null>(null);
 
   // Countdown timer state
+  const [isLive, setIsLive] = useState(false);
   const [timeLeft, setTimeLeft] = useState<{
     days: string;
     hours: string;
@@ -125,7 +128,8 @@ export function HeroSeasonHub({
     const parseTargetDate = () => {
       const rawDate = nextEvent.data.replace(/\//g, "-").trim();
       const parts = rawDate.split("-");
-      let y = 2026, m = 9, d = 24;
+      const nowD = new Date();
+      let y = nowD.getFullYear(), m = nowD.getMonth() + 1, d = nowD.getDate();
       if (parts.length === 3) {
         if (parts[0].length === 4) {
           y = parseInt(parts[0], 10);
@@ -137,26 +141,37 @@ export function HeroSeasonHub({
           y = parseInt(parts[2], 10);
         }
       }
-      const timeParts = (nextEvent.horario || "18:30").split(":");
-      const hr = parseInt(timeParts[0] || "18", 10);
-      const min = parseInt(timeParts[1] || "30", 10);
-      return new Date(y, m - 1, d, hr, min, 0);
+      const timeParts = (nextEvent.horario || "14:00").split(":");
+      const hr = parseInt(timeParts[0] || "14", 10);
+      const min = parseInt(timeParts[1] || "00", 10);
+      return new Date(`${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}T${String(hr).padStart(2, "0")}:${String(min).padStart(2, "0")}:00-03:00`);
     };
 
     const target = parseTargetDate();
+    // Torneio permanece ativo/ao vivo por até 4 horas após o horário oficial de início
+    const eventEnd = new Date(target.getTime() + 4 * 60 * 60 * 1000);
 
     const updateCountdown = () => {
       const now = new Date().getTime();
       const distance = target.getTime() - now;
 
       if (distance <= 0) {
+        // Se ainda está no período de realização do torneio (início até 4h depois):
+        if (now <= eventEnd.getTime()) {
+          setIsLive(true);
+        } else {
+          setIsLive(false);
+          // O evento encerrou: revalida dados para avançar automaticamente ao próximo torneio
+          router.refresh();
+        }
         setTimeLeft({ days: "00", hours: "00", mins: "00", secs: "00" });
         return;
       }
 
+      setIsLive(false);
       const days = Math.floor(distance / (1000 * 60 * 60 * 24));
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const mins = Math.floor((distance % (1000 * 60)) / (1000 * 60));
+      const mins = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const secs = Math.floor((distance % (1000 * 60)) / 1000);
 
       setTimeLeft({
@@ -170,7 +185,7 @@ export function HeroSeasonHub({
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
-  }, [nextEvent]);
+  }, [nextEvent, router]);
 
   if (!exibirPodio && !exibirProximoEvento) return null;
 
@@ -185,6 +200,13 @@ export function HeroSeasonHub({
 
   // Tag inteligente de destaque para eventos especiais (Cup, Challenge, etc.)
   const getEventTagConfig = () => {
+    if (isLive) {
+      return {
+        badgeClass: "bg-emerald-500/15 border-emerald-500/35 text-emerald-300 shadow-sm shadow-emerald-500/20",
+        dotClass: "bg-emerald-400 animate-pulse",
+        label: "🟢 Acontecendo Hoje!",
+      };
+    }
     const combined = `${stageType} ${eventTitle}`.toLowerCase();
     if (combined.includes("cup")) {
       return {
@@ -410,7 +432,7 @@ export function HeroSeasonHub({
                 </div>
                 <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#ffcb05] tabular-nums">
                   <Clock className="h-3.5 w-3.5 text-[#ffcb05]" />
-                  <span>{formattedEventDate} às {eventTime}</span>
+                  <span>{isLive ? "Hoje" : formattedEventDate} às {eventTime}</span>
                 </div>
               </div>
 
@@ -424,33 +446,65 @@ export function HeroSeasonHub({
                 </p>
               </div>
 
-              {/* Timer Regressivo com Visual Glassmorphism Transparente */}
+              {/* Timer Regressivo ou Status Ao Vivo */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-400 px-1">
-                  <span>Contagem Regressiva</span>
-                  <span className="text-slate-400 font-semibold lowercase first-letter:uppercase">faltam poucos dias</span>
+                  <span>{isLive ? "Status da Rodada" : "Contagem Regressiva"}</span>
+                  {isLive ? (
+                    <span className="text-emerald-400 font-bold flex items-center gap-1.5 normal-case">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                      Acontecendo Agora!
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 font-semibold lowercase first-letter:uppercase">
+                      {timeLeft.days === "00" ? "é hoje!" : "faltam poucos dias"}
+                    </span>
+                  )}
                 </div>
-                <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                  {[
-                    { label: "DIAS", value: timeLeft.days },
-                    { label: "HORAS", value: timeLeft.hours },
-                    { label: "MINS", value: timeLeft.mins },
-                    { label: "SEGS", value: timeLeft.secs },
-                  ].map((item, i) => (
-                    <motion.div
-                      key={i}
-                      whileHover={{ y: -2 }}
-                      className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.04] bg-white/[0.02] py-3 px-2 shadow-sm transition-all"
-                    >
-                      <span className="tabular-nums text-xl sm:text-2xl font-black text-slate-100">
-                        {item.value}
-                      </span>
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
-                        {item.label}
-                      </span>
-                    </motion.div>
-                  ))}
-                </div>
+
+                {isLive ? (
+                  <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 sm:p-4 backdrop-blur-md flex items-center justify-between gap-3 shadow-lg shadow-emerald-950/20">
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex h-3.5 w-3.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                      </div>
+                      <div>
+                        <div className="text-xs sm:text-sm font-black text-emerald-300 uppercase tracking-wide">
+                          Torneio em Andamento!
+                        </div>
+                        <div className="text-[11px] text-slate-300 font-medium mt-0.5">
+                          Rodadas em disputa presencial na {eventLocation}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="rounded-xl bg-emerald-500/20 border border-emerald-400/40 px-3 py-1 text-[11px] font-black text-emerald-300 shrink-0">
+                      AO VIVO
+                    </span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                    {[
+                      { label: "DIAS", value: timeLeft.days },
+                      { label: "HORAS", value: timeLeft.hours },
+                      { label: "MINS", value: timeLeft.mins },
+                      { label: "SEGS", value: timeLeft.secs },
+                    ].map((item, i) => (
+                      <motion.div
+                        key={i}
+                        whileHover={{ y: -2 }}
+                        className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.04] bg-white/[0.02] py-3 px-2 shadow-sm transition-all"
+                      >
+                        <span className="tabular-nums text-xl sm:text-2xl font-black text-slate-100">
+                          {item.value}
+                        </span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">
+                          {item.label}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Rodapé: Local e Botão de Ação */}

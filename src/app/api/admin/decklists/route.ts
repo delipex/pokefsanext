@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { jogadorDecklists, jogadores, configuracoes } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -56,6 +57,9 @@ export async function POST(req: Request) {
       })
       .returning();
 
+    revalidatePath("/admin");
+    revalidatePath("/portal");
+
     return NextResponse.json({ success: true, message: "Inscrição registrada com sucesso!", item: inserted });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -85,6 +89,9 @@ export async function PUT(req: Request) {
       .where(eq(jogadorDecklists.id, Number(id)))
       .returning();
 
+    revalidatePath("/admin");
+    revalidatePath("/portal");
+
     return NextResponse.json({ success: true, message: "Inscrição atualizada com sucesso!", item: updated });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -102,6 +109,9 @@ export async function DELETE(req: Request) {
     }
 
     await db.delete(jogadorDecklists).where(eq(jogadorDecklists.id, Number(id)));
+
+    revalidatePath("/admin");
+    revalidatePath("/portal");
 
     return NextResponse.json({ success: true, message: "Inscrição removida com sucesso!" });
   } catch (error: any) {

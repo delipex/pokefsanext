@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { solicitacoesDecks, etapaResultados, metagame } from "@/db/schema";
-import { eq, or, and, desc } from "drizzle-orm";
+import { eq, or, and, desc, sql } from "drizzle-orm";
 import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { clearFileCache } from "@/lib/queries";
 import fs from "fs";
 import path from "path";
 
@@ -40,23 +42,35 @@ export async function POST(req: Request) {
         .set({ status: "rejeitada" })
         .where(eq(solicitacoesDecks.id, Number(id)));
 
+      revalidatePath("/admin");
+      revalidatePath("/portal");
+
       return NextResponse.json({ success: true, message: "Solicitação rejeitada com sucesso." });
     }
 
     // Ação: Aprovar
-    const cleanId = String(request.jogadorId).trim();
-    const cleanName = String(request.jogadorNome).trim();
-    const cleanDate = String(request.etapaData).trim();
-    const cleanDeck = String(request.deckNome).trim();
+    const cleanId = String(request.jogadorId || "").trim();
+    const cleanName = String(request.jogadorNome || "").trim();
+    const cleanDate = String(request.etapaData || "").trim();
+    const cleanDeck = String(request.deckNome || "").trim();
+    const lowerName = cleanName.toLowerCase();
 
-    // 1. Atualizar resultado da partida em etapa_resultados
+    // 1. Atualizar resultado da partida em etapa_resultados (case-insensitive + ID)
+    const nameMatchConditions = [
+      eq(etapaResultados.jogadorNome, cleanName),
+      eq(sql`lower(trim(${etapaResultados.jogadorNome}))`, lowerName),
+    ];
+    if (cleanId) {
+      nameMatchConditions.push(eq(etapaResultados.jogadorId, cleanId));
+    }
+
     await db
       .update(etapaResultados)
       .set({ deckNome: cleanDeck })
       .where(
         and(
           eq(etapaResultados.etapaData, cleanDate),
-          or(eq(etapaResultados.jogadorId, cleanId), eq(etapaResultados.jogadorNome, cleanName))
+          or(...nameMatchConditions)
         )
       );
 
@@ -68,7 +82,7 @@ export async function POST(req: Request) {
       deckNome: cleanDeck,
     });
 
-    // 3. Atualizar metagame.json se gravável
+    // 3. Atualizar metagame.json físico em ambos os locais
     try {
       const metaFilePath = path.join(process.cwd(), "src", "data", "metagame.json");
       if (fs.existsSync(metaFilePath)) {
@@ -81,8 +95,19 @@ export async function POST(req: Request) {
         }
         rawMeta[cleanDate].decks[cleanName] = cleanDeck;
         fs.writeFileSync(metaFilePath, JSON.stringify(rawMeta, null, 4), "utf-8");
+
+        const legacyMetaPath = path.resolve(process.cwd(), "..", "LigaAtlântica", "metagame.json");
+        if (fs.existsSync(legacyMetaPath)) {
+          try {
+            fs.writeFileSync(legacyMetaPath, JSON.stringify(rawMeta, null, 4), "utf-8");
+          } catch {}
+        }
       }
-    } catch {}
+    } catch (err) {
+      console.warn("Aviso ao sincronizar metagame.json na aprovação de deck:", err);
+    }
+
+    clearFileCache();
 
     // 4. Marcar solicitação como aprovada
     await db
@@ -92,6 +117,13 @@ export async function POST(req: Request) {
 
     // 5. Recalcular o ranking consolidado
     await recalculateRankingConsolidado();
+
+    revalidatePath("/");
+    revalidatePath("/ranking");
+    revalidatePath("/metagame");
+    revalidatePath("/etapas");
+    revalidatePath("/admin");
+    revalidatePath("/portal");
 
     return NextResponse.json({
       success: true,

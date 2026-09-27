@@ -5,6 +5,32 @@ import { etapas, etapaResultados, metagame, configuracoes } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { clearFileCache } from "@/lib/queries";
+import fs from "fs";
+import path from "path";
+
+async function syncEtapasJson() {
+  try {
+    const allStages = await db.select().from(etapas).orderBy(etapas.data);
+    const mapped = allStages.map((s) => ({
+      data: s.data,
+      tipo: s.tipo || "Liga",
+      multiplicador: Number(s.multiplicador) || 1,
+    }));
+
+    const p1 = path.join(process.cwd(), "src", "data", "etapas.json");
+    fs.writeFileSync(p1, JSON.stringify(mapped, null, 2), "utf-8");
+
+    const p2 = path.resolve(process.cwd(), "..", "LigaAtlântica", "etapas.json");
+    if (fs.existsSync(p2)) {
+      try {
+        fs.writeFileSync(p2, JSON.stringify(mapped, null, 2), "utf-8");
+      } catch (e) {}
+    }
+  } catch (err) {
+    console.warn("Aviso ao sincronizar etapas.json:", err);
+  }
+}
 
 // POST: Publicar nova etapa (ou atualizar existente)
 export async function POST(req: Request) {
@@ -16,6 +42,7 @@ export async function POST(req: Request) {
     // Se for apenas uma ação de recalcular o ranking geral:
     if (action === "recalculate") {
       const result = await recalculateRankingConsolidado();
+      await syncEtapasJson();
       revalidatePath("/");
       revalidatePath("/ranking");
       revalidatePath("/metagame");
@@ -97,11 +124,18 @@ export async function POST(req: Request) {
 
     // 4. Recalcular o ranking consolidado da temporada
     await recalculateRankingConsolidado(activeSeason);
+    await syncEtapasJson();
 
-    revalidatePath("/");
-    revalidatePath("/ranking");
-    revalidatePath("/metagame");
-    revalidatePath("/campeoes");
+    clearFileCache();
+    try {
+      revalidatePath("/");
+      revalidatePath("/ranking");
+      revalidatePath("/metagame");
+      revalidatePath("/etapas");
+      revalidatePath("/campeoes");
+      revalidatePath("/portal");
+      revalidatePath("/admin");
+    } catch (e) {}
 
     return NextResponse.json({
       success: true,
@@ -130,11 +164,18 @@ export async function DELETE(req: Request) {
 
     // 2. Recalcular ranking geral consolidado
     const result = await recalculateRankingConsolidado();
+    await syncEtapasJson();
 
-    revalidatePath("/");
-    revalidatePath("/ranking");
-    revalidatePath("/metagame");
-    revalidatePath("/campeoes");
+    clearFileCache();
+    try {
+      revalidatePath("/");
+      revalidatePath("/ranking");
+      revalidatePath("/metagame");
+      revalidatePath("/etapas");
+      revalidatePath("/campeoes");
+      revalidatePath("/portal");
+      revalidatePath("/admin");
+    } catch (e) {}
 
     return NextResponse.json({
       success: true,
@@ -142,6 +183,52 @@ export async function DELETE(req: Request) {
     });
   } catch (error: any) {
     console.error("Erro ao excluir etapa:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// PATCH: Atualizar tipo e multiplicador de uma etapa e recalcular o ranking consolidado
+export async function PATCH(req: Request) {
+  try {
+    await ensureDatabaseSchema();
+    const body = await req.json();
+    const { data, tipo, multiplicador } = body;
+
+    if (!data) {
+      return NextResponse.json({ error: "Data da etapa não fornecida" }, { status: 400 });
+    }
+
+    const mult = Number(multiplicador) || 1.0;
+
+    const updateFields: Record<string, any> = { multiplicador: mult };
+    if (tipo !== undefined && tipo !== null) {
+      updateFields.tipo = String(tipo).trim() || "Liga";
+    }
+
+    await db.update(etapas).set(updateFields).where(eq(etapas.data, data));
+
+    // Recalcular o ranking consolidado da temporada
+    const result = await recalculateRankingConsolidado();
+    await syncEtapasJson();
+
+    clearFileCache();
+    try {
+      revalidatePath("/");
+      revalidatePath("/ranking");
+      revalidatePath("/metagame");
+      revalidatePath("/etapas");
+      revalidatePath("/campeoes");
+      revalidatePath("/portal");
+      revalidatePath("/admin");
+    } catch (e) {}
+
+    return NextResponse.json({
+      success: true,
+      message: `Etapa ${data} atualizada para ${mult}x e ranking consolidado recalculado com sucesso!`,
+      ...result,
+    });
+  } catch (error: any) {
+    console.error("Erro ao atualizar etapa:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

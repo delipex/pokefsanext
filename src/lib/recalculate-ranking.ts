@@ -22,6 +22,7 @@ export async function recalculateRankingConsolidado(targetSeason?: number) {
 
   const etapaMap = new Map(allEtapas.map((e) => [e.data, e]));
   const allResults = await db.select().from(etapaResultados);
+  allResults.sort((a, b) => a.etapaData.localeCompare(b.etapaData));
 
   // 2. Mapear resultados por jogador (chave: jogadorId ou jogadorNome)
   const playerStatsMap: Record<string, any> = {};
@@ -121,6 +122,7 @@ export async function recalculateRankingConsolidado(targetSeason?: number) {
   return {
     totalEtapas: allEtapas.length,
     totalJogadores: consolidatedList.length,
+    totalPlayers: consolidatedList.length,
     consolidatedList,
   };
 }

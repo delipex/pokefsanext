@@ -81,13 +81,16 @@ export default async function CalendarioPage() {
         <div className="space-y-4">
           {eventos.map((ev, idx) => {
             const dateBadge = parseEventDate(ev.data);
-            const isConfirmed = ev.status?.toLowerCase() === "confirmado";
+            const isConcluded = ev.status?.toLowerCase() === "concluido" || ev.status?.toLowerCase() === "concluído";
+            const isConfirmed = !isConcluded && ev.status?.toLowerCase() === "confirmado";
             const eventType = getEventTypeBadge(ev.evento);
 
             return (
               <div
                 key={ev.id || idx}
-                className="group relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.08] p-4 sm:p-6 shadow-xl backdrop-blur-2xl transition-all duration-300 hover:scale-[1.01]"
+                className={`group relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.08] p-4 sm:p-6 shadow-xl backdrop-blur-2xl transition-all duration-300 hover:scale-[1.01] ${
+                  isConcluded ? "opacity-60 saturate-50" : ""
+                }`}
               >
                 {/* Lado Esquerdo: Bloco de Data + Informações */}
                 <div className="flex items-start sm:items-center gap-3.5 sm:gap-5 min-w-0 flex-1">
@@ -110,6 +113,11 @@ export default async function CalendarioPage() {
                       <span className={`rounded-lg border px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${eventType.color}`}>
                         {eventType.label}
                       </span>
+                      {isConcluded && (
+                        <span className="inline-flex items-center gap-1 rounded-lg bg-slate-500/15 border border-slate-500/30 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-slate-400">
+                          <CheckCircle2 className="h-3 w-3" /> Concluído
+                        </span>
+                      )}
                       {isConfirmed && (
                         <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-emerald-400">
                           <CheckCircle2 className="h-3 w-3" /> Confirmado

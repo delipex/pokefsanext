@@ -4,7 +4,7 @@
         "evento": "Sessão #21 de Liga (Torneio TBT)  [5ª Temporada]",
         "local": "Livraria Atlântica +",
         "horario": "18:30",
-        "status": "confirmado",
+        "status": "concluido",
         "descricao": "",
         "linkMaps": "https://maps.app.goo.gl/PNzqi2VsaCmUd3vY6",
         "linkInscricao": "",
@@ -15,7 +15,7 @@
         "evento": "Sessão #22 de Liga [5ª Temporada]",
         "local": "Livraria Atlântica +",
         "horario": "14:00",
-        "status": "pendente",
+        "status": "concluido",
         "descricao": "",
         "linkMaps": "https://maps.app.goo.gl/PNzqi2VsaCmUd3vY6",
         "linkInscricao": "",
@@ -187,7 +187,7 @@
         "foto": ""
     },
     {
-        "data": "17-10-2026",
+        "data": "21-11-2026",
         "evento": "Sessão #4 de Liga [6ª Temporada]",
         "local": "Livraria Atlântica +",
         "horario": "14:00",
@@ -198,7 +198,7 @@
         "foto": ""
     },
     {
-        "data": "18-10-2026",
+        "data": "26-11-2026",
         "evento": "Sessão #5 de Liga [6ª Temporada]",
         "local": "Livraria Atlântica +",
         "horario": "14:00",
@@ -209,7 +209,7 @@
         "foto": ""
     },
     {
-        "data": "19-10-2026",
+        "data": "28-11-2026",
         "evento": "Sessão #6 de Liga [6ª Temporada]",
         "local": "Livraria Atlântica +",
         "horario": "14:00",

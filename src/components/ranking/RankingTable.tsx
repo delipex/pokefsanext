@@ -181,26 +181,51 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
   // Helper para abrir modal a partir do resultado da etapa
   const handleOpenStagePlayerModal = (result: StageResult) => {
     const generalPlayer = initialPlayers.find(
-      (p) => p.jogadorNome.toLowerCase() === result.jogadorNome.toLowerCase() || (result.jogadorId && p.jogadorId === result.jogadorId)
+      (p) =>
+        p.jogadorNome.toLowerCase().trim() === result.jogadorNome.toLowerCase().trim() ||
+        (result.jogadorId && p.jogadorId === result.jogadorId)
     );
 
+    const mult = currentStage?.multiplicador ? Number(currentStage.multiplicador) : 1.0;
+    const etapaPts = Number((result.pontos * mult).toFixed(1));
+
+    const stageContext = {
+      etapaData: result.etapaData,
+      numeroEtapa: currentStage?.numeroEtapa,
+      tipo: currentStage?.tipo || "Liga",
+      multiplicador: mult,
+      colocacao: result.colocacao,
+      pontos: etapaPts,
+      basePontos: result.pontos,
+      vitorias: result.vitorias,
+      empates: result.empates,
+      derrotas: result.derrotas,
+      deckNome: result.deckNome || null,
+      deckEnergia: getDeckEnergy(result.deckNome),
+      deckIcone: null,
+    };
+
     if (generalPlayer) {
-      setSelectedPlayer(generalPlayer);
+      setSelectedPlayer({
+        ...generalPlayer,
+        stageContext,
+      });
     } else {
       setSelectedPlayer({
         jogadorNome: result.jogadorNome,
         jogadorId: result.jogadorId || "—",
         categoria: result.categoria || "Master",
-        pontos: result.pontos,
+        pontos: etapaPts,
         vitorias: result.vitorias,
         empates: result.empates,
         derrotas: result.derrotas,
         podios: result.colocacao <= 4 ? 1 : 0,
         mediaColocacao: result.colocacao,
         participacoes: 1,
-        historicoColocacoes: `${result.etapaData}:${result.colocacao}`,
+        historicoColocacoes: `${result.colocacao}`,
         ultimoDeck: result.deckNome,
         ultimoDeckEnergia: getDeckEnergy(result.deckNome),
+        stageContext,
       });
     }
   };
