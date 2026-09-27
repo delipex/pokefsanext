@@ -10,7 +10,16 @@ import path from "path";
 async function syncScoresAntigosJson() {
   try {
     const list = await db.select().from(scoresAntigos).orderBy(asc(scoresAntigos.pos));
-    const mapped = list.map((s) => ({
+    const seen = new Set<string>();
+    const deduplicated = [];
+    for (const s of list) {
+      const key = `${s.temporada || ""}-${s.pos}-${(s.jogador || "").toLowerCase().trim()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(s);
+      }
+    }
+    const mapped = deduplicated.map((s) => ({
       temporada: s.temporada,
       dataFechamento: s.dataFechamento || "",
       pos: s.pos,
@@ -38,7 +47,16 @@ async function syncScoresAntigosJson() {
 export async function GET() {
   try {
     const list = await db.select().from(scoresAntigos).orderBy(asc(scoresAntigos.temporada), asc(scoresAntigos.pos));
-    return NextResponse.json(list);
+    const seen = new Set<string>();
+    const deduplicated = [];
+    for (const s of list) {
+      const key = `${s.temporada || ""}-${s.pos}-${(s.jogador || "").toLowerCase().trim()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(s);
+      }
+    }
+    return NextResponse.json(deduplicated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -54,12 +72,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Temporada e Jogador são obrigatórios." }, { status: 400 });
     }
 
+    const cleanTemporada = String(temporada).trim();
+    const cleanJogador = String(jogador).trim();
+    const cleanPos = Number(pos) || 1;
+
+    // Remove existing duplicates for same season and player or pos to maintain integrity
+    const existing = await db
+      .select({ id: scoresAntigos.id, jogador: scoresAntigos.jogador, pos: scoresAntigos.pos })
+      .from(scoresAntigos)
+      .where(eq(scoresAntigos.temporada, cleanTemporada));
+
+    const duplicate = existing.find(
+      (s) =>
+        s.jogador.trim().toLowerCase() === cleanJogador.toLowerCase() ||
+        s.pos === cleanPos
+    );
+    if (duplicate) {
+      await db.delete(scoresAntigos).where(eq(scoresAntigos.id, duplicate.id));
+    }
+
     const [inserted] = await db
       .insert(scoresAntigos)
       .values({
-        temporada: String(temporada).trim(),
-        pos: Number(pos) || 1,
-        jogador: String(jogador).trim(),
+        temporada: cleanTemporada,
+        pos: cleanPos,
+        jogador: cleanJogador,
         categoria: categoria || "ME",
         pontos: String(pontos || "0").trim(),
         deck: String(deck || "").trim(),

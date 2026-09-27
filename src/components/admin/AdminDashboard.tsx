@@ -147,8 +147,25 @@ export function AdminDashboard({
   const [publishMessage, setPublishMessage] = useState("");
   const [resolvedNamesMap, setResolvedNamesMap] = useState<Record<string, string>>({});
 
-  // Estado de Jogadores
-  const [players, setPlayers] = useState(initialPlayers);
+  // Estado de Jogadores com deduplicação defensiva por ID e Nome
+  const deduplicatedInitialPlayers = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const p of initialPlayers || []) {
+      const cleanName = String(p?.nome || p?.jogador || p?.Jogador || "").trim();
+      const rawId = String(p?.id || p?.ID || "").trim();
+      const key = rawId ? `id_${rawId}` : `name_${cleanName.toLowerCase()}`;
+      if (key && !map.has(key)) {
+        map.set(key, {
+          ...p,
+          id: rawId || p?.id,
+          nome: cleanName || "Desconhecido",
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [initialPlayers]);
+
+  const [players, setPlayers] = useState(deduplicatedInitialPlayers);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [newPlayerId, setNewPlayerId] = useState("");
   const [newPlayerName, setNewPlayerName] = useState("");
@@ -169,7 +186,16 @@ export function AdminDashboard({
       const res = await fetch("/api/admin/players");
       const data = await res.json();
       if (res.ok && Array.isArray(data.players)) {
-        setPlayers(data.players);
+        const pMap = new Map<string, any>();
+        for (const p of data.players) {
+          const cleanName = String(p?.nome || p?.jogador || "").trim();
+          const rawId = String(p?.id || "").trim();
+          const key = rawId ? `id_${rawId}` : `name_${cleanName.toLowerCase()}`;
+          if (key && !pMap.has(key)) {
+            pMap.set(key, { ...p, nome: cleanName || "Desconhecido" });
+          }
+        }
+        setPlayers(Array.from(pMap.values()));
       }
     } catch (err) {
       console.error("Erro ao atualizar lista de atletas:", err);
@@ -190,8 +216,22 @@ export function AdminDashboard({
     }
   }, [activeTab]);
 
-  // Estado de Decks
-  const [decks, setDecks] = useState(initialDecks);
+  // Estado de Decks com deduplicação defensiva por Nome
+  const deduplicatedInitialDecks = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const d of initialDecks || []) {
+      const key = String(d?.nome || d?.deck || "").trim().toLowerCase();
+      if (key && !map.has(key)) {
+        map.set(key, {
+          ...d,
+          nome: d.nome || d.deck || "",
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [initialDecks]);
+
+  const [decks, setDecks] = useState(deduplicatedInitialDecks);
   const [isDeckModalOpen, setIsDeckModalOpen] = useState(false);
   const [editingDeckId, setEditingDeckId] = useState<number | null>(null);
   const [editingDeckOriginalName, setEditingDeckOriginalName] = useState<string | null>(null);
@@ -273,8 +313,9 @@ export function AdminDashboard({
   const [configMessage, setConfigMessage] = useState("");
   const [isSavingConfig, setIsSavingConfig] = useState(false);
 
-  // Normalizador de nomes
-  const normalizeName = (name: string) => {
+  // Normalizador de nomes 100% seguro contra null/undefined
+  const normalizeName = (name?: string | null) => {
+    if (!name || typeof name !== "string") return "";
     return name
       .toLowerCase()
       .normalize("NFD")
@@ -317,48 +358,61 @@ export function AdminDashboard({
   // Leitura de um ou múltiplos arquivos TDF (XML TOM e TSV)
   const handleFilesProcess = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
+    setPublishMessage("");
 
-    let combinedPlayers: (ParsedPlayerRow & { deckNome?: string })[] = [];
-    let detectedDate: string | null = null;
+    try {
+      let combinedPlayers: (ParsedPlayerRow & { deckNome?: string })[] = [];
+      let detectedDate: string | null = null;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const text = await file.text();
-      const parsed = parseTDFContent(text, file.name);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const text = await file.text();
+        const parsed = parseTDFContent(text, file.name);
 
-      if (parsed.dataTorneio && !detectedDate) {
-        detectedDate = parsed.dataTorneio;
+        if (parsed.dataTorneio && !detectedDate) {
+          detectedDate = parsed.dataTorneio;
+        }
+
+        if (Array.isArray(parsed.jogadores) && parsed.jogadores.length > 0) {
+          combinedPlayers = combinedPlayers.concat(
+            parsed.jogadores.map((j) => ({
+              ...j,
+              jogador: j.jogador || `Jogador ${j.id || ""}`.trim(),
+              deckNome: "Não registrado",
+            }))
+          );
+        }
       }
 
-      combinedPlayers = combinedPlayers.concat(
-        parsed.jogadores.map((j) => ({
-          ...j,
-          deckNome: "Não registrado",
-        }))
-      );
+      if (combinedPlayers.length === 0) {
+        setPublishMessage("⚠️ Nenhum jogador ou resultado válido foi detectado no arquivo selecionado.");
+        return;
+      }
+
+      if (detectedDate) {
+        setStageDate(detectedDate);
+      }
+
+      // Ordenação Estrita Oficial:
+      // 1. Pontos DESC -> 2. Vitórias DESC -> 3. OMW DESC -> 4. Colocação ASC -> 5. Nome ASC
+      combinedPlayers.sort((a, b) => {
+        if ((b.pontos || 0) !== (a.pontos || 0)) return (b.pontos || 0) - (a.pontos || 0);
+        if ((b.vitorias || 0) !== (a.vitorias || 0)) return (b.vitorias || 0) - (a.vitorias || 0);
+        if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
+        if ((a.colocacao || 0) !== (b.colocacao || 0)) return (a.colocacao || 0) - (b.colocacao || 0);
+        return String(a.jogador || "").localeCompare(String(b.jogador || ""), "pt-BR");
+      });
+
+      // Reatribuir colocação sequencial
+      combinedPlayers.forEach((p, idx) => {
+        p.colocacao = idx + 1;
+      });
+
+      setParsedRows(combinedPlayers);
+    } catch (err: any) {
+      console.error("Erro ao processar arquivo TDF:", err);
+      setPublishMessage(`❌ Erro ao ler o arquivo TDF: ${err?.message || "Estrutura do arquivo incompatível"}`);
     }
-
-    if (detectedDate) {
-      setStageDate(detectedDate);
-    }
-
-    // Ordenação Estrita Oficial:
-    // 1. Pontos DESC -> 2. Vitórias DESC -> 3. OMW DESC -> 4. Colocação ASC -> 5. Nome ASC
-    combinedPlayers.sort((a, b) => {
-      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-      if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
-      if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
-      if (a.colocacao !== b.colocacao) return a.colocacao - b.colocacao;
-      return a.jogador.localeCompare(b.jogador, "pt-BR");
-    });
-
-    // Reatribuir colocação sequencial
-    combinedPlayers.forEach((p, idx) => {
-      p.colocacao = idx + 1;
-    });
-
-    setParsedRows(combinedPlayers);
-    setPublishMessage("");
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -367,19 +421,27 @@ export function AdminDashboard({
     }
   };
 
-  // Identificar jogadores não cadastrados no banco
+  // Identificar jogadores não cadastrados no banco com verificação defensiva 360°
   const unresolvedPlayers = useMemo(() => {
-    if (parsedRows.length === 0) return [];
+    if (!parsedRows || parsedRows.length === 0) return [];
 
-    const dbNamesNormalized = new Set(players.map((p) => normalizeName(p.nome)));
-    const dbIds = new Set(players.map((p) => String(p.id).trim()).filter(Boolean));
+    const dbNamesNormalized = new Set(
+      (players || [])
+        .map((p) => normalizeName(p?.nome || p?.jogador || p?.Jogador))
+        .filter(Boolean)
+    );
+    const dbIds = new Set(
+      (players || [])
+        .map((p) => String(p?.id || p?.ID || "").trim())
+        .filter(Boolean)
+    );
 
     const unresolved: (ParsedPlayerRow & { deckNome?: string })[] = [];
 
     parsedRows.forEach((row) => {
-      const rowId = row.id ? String(row.id).trim() : "";
+      const rowId = row?.id ? String(row.id).trim() : "";
       const isMatchedById = rowId && dbIds.has(rowId);
-      const isMatchedByName = dbNamesNormalized.has(normalizeName(row.jogador));
+      const isMatchedByName = row?.jogador && dbNamesNormalized.has(normalizeName(row.jogador));
 
       if (!isMatchedById && !isMatchedByName) {
         if (!resolvedNamesMap[row.jogador]) {

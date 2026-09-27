@@ -53,20 +53,24 @@ export async function POST(req: Request) {
       ? String(currentSeason)
       : `Temporada #${currentSeason}`;
 
-    // 2. Transpor ranking final para a tabela `scores_antigos`
     const scoresToInsert = rankingFinal.map((r, idx) => ({
       temporada: seasonLabel,
-      dataFechamento,
       pos: idx + 1,
       jogador: r.jogadorNome,
-      categoria: r.categoria || "Master",
-      pontos: String(Math.round(r.pontos)),
+      categoria: r.categoria || "ME",
+      pontos: String(r.pontos || 0),
       deck: r.ultimoDeck || "",
+      dataFechamento,
     }));
 
-    await db.insert(scoresAntigos).values(scoresToInsert);
+    // 2. Transpor ranking final para a tabela `scores_antigos` (limpa anterior para garantir idempotência)
+    await db.delete(scoresAntigos).where(eq(scoresAntigos.temporada, seasonLabel));
+    if (scoresToInsert.length > 0) {
+      await db.insert(scoresAntigos).values(scoresToInsert);
+    }
 
-    // 3. Coroar campeão no Hall da Fama (`campeoes`)
+    // 3. Coroar campeão no Hall da Fama (`campeoes`) (limpa anterior para não duplicar)
+    await db.delete(campeoes).where(eq(campeoes.temporada, seasonLabel));
     await db.insert(campeoes).values({
       temporada: seasonLabel,
       campeao: detectedCampeao,

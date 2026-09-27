@@ -8,6 +8,7 @@ import {
   rankingConsolidado,
   configuracoes,
   campeoes,
+  galeria,
   scoresAntigos,
   calendario,
 } from "@/db/schema";
@@ -60,51 +61,92 @@ export async function POST() {
         });
     }
 
-    // 2. Decks
+    // 2. Decks (com upsert por nome)
     const rawDecks = readDataFile<any[]>("decks.json", []);
     for (const d of rawDecks) {
-      if (!d.deck) continue;
+      const dNome = (d.deck || d.nome || "").trim();
+      if (!dNome) continue;
       await db
         .insert(decks)
         .values({
-          nome: d.deck,
+          nome: dNome,
           tipoEnergia: d.tipoEnergia || "colorless",
           imagem: d.imagem || null,
           limitless: d.limitless || null,
           icone: d.icone || null,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: decks.nome,
+          set: {
+            tipoEnergia: d.tipoEnergia || "colorless",
+            imagem: d.imagem || null,
+            limitless: d.limitless || null,
+            icone: d.icone || null,
+          },
+        });
     }
 
-    // 3. Jogadores
+    // 3. Jogadores (com leitura segura de jogador/Jogador/nome e auto-ID)
     const rawJogadores = readDataFile<any[]>("jogadores.json", []);
-    for (const j of rawJogadores) {
-      if (!j.id && !j.nome) continue;
+    for (let i = 0; i < rawJogadores.length; i++) {
+      const j = rawJogadores[i];
+      const nome = String(j.jogador || j.Jogador || j.nome || "").trim();
+      if (!nome) continue;
+      const rawId = String(j.id || j.ID || "").trim();
+      const id = rawId || `sem-id-${i + 1}`;
+      const cat = ["Master", "Senior", "Junior"].includes(j.categoria || j.Categoria)
+        ? (j.categoria || j.Categoria)
+        : "Master";
+
       await db
         .insert(jogadores)
         .values({
-          id: j.id || j.nome,
-          nome: j.nome,
-          categoria: j.categoria || "Master",
+          id,
+          nome,
+          categoria: cat,
           ativo: true,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: jogadores.id,
+          set: {
+            nome,
+            categoria: cat,
+            ativo: true,
+          },
+        });
     }
 
-    // 4. Campeões
+    // 4. Campeões (limpa antes para impedir duplicação a cada clique)
+    await db.delete(campeoes);
     const rawCampeoes = readDataFile<any[]>("campeoes.json", []);
     for (const c of rawCampeoes) {
+      const seasonLabel = String(c.Temporada || c.temporada || "1").trim();
       await db
         .insert(campeoes)
         .values({
-          temporada: String(c.temporada || "1"),
-          campeao: c.campeao || c.nome || "Desconhecido",
-          vice: c.vice || "Desconhecido",
-          deckCampeao: c.deckCampeao || c.deck || "Desconhecido",
-          data: c.data || "2026-01-01",
-          fotoCampeao: c.fotoCampeao || c.foto || null,
-        })
-        .onConflictDoNothing();
+          temporada: seasonLabel,
+          campeao: c.Campeao || c.campeao || c.nome || "Desconhecido",
+          vice: c.Vice || c.vice || "Desconhecido",
+          deckCampeao: c.DeckCampeao || c.deckCampeao || c.deck || "Desconhecido",
+          data: c.Data || c.data || "2026-01-01",
+          fotoCampeao: c.FotoCampeao || c.fotoCampeao || c.foto || null,
+          urlDeck: c.URLDeck || c.urlDeck || null,
+          imagemDeck: c.ImagemDeck || c.imagemDeck || null,
+          observacaoDeck: c.ObservacaoDeck || c.observacaoDeck || null,
+        });
+    }
+
+    // Galeria de Fotos
+    await db.delete(galeria);
+    const rawGaleria = readDataFile<any[]>("galeria.json", []);
+    for (const g of rawGaleria) {
+      if (!g.urlImagem) continue;
+      await db.insert(galeria).values({
+        titulo: g.titulo || "Foto do Evento",
+        descricao: g.descricao || null,
+        urlImagem: g.urlImagem,
+        data: g.data || null,
+      });
     }
 
     // 5. Calendário

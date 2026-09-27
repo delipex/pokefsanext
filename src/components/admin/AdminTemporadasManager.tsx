@@ -33,8 +33,21 @@ export function AdminTemporadasManager({
   onChampionsUpdated,
   onScoresUpdated,
 }: AdminTemporadasManagerProps) {
-  // Estado dos Campeões
-  const [champions, setChampions] = useState<any[]>(initialChampions);
+  // Estado dos Campeões com deduplicação defensiva por temporada
+  const deduplicatedInitialChampions = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const c of initialChampions || []) {
+      const key = String(c?.temporada || "").trim().toLowerCase();
+      if (key && !map.has(key)) {
+        map.set(key, c);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      String(b?.temporada || "").localeCompare(String(a?.temporada || ""), undefined, { numeric: true })
+    );
+  }, [initialChampions]);
+
+  const [champions, setChampions] = useState<any[]>(deduplicatedInitialChampions);
   const [isChampionModalOpen, setIsChampionModalOpen] = useState(false);
   const [editingChampion, setEditingChampion] = useState<any | null>(null);
   const [championForm, setChampionForm] = useState({
@@ -49,8 +62,19 @@ export function AdminTemporadasManager({
     observacaoDeck: "",
   });
 
-  // Estado dos Scores Antigos
-  const [scoresAntigos, setScoresAntigos] = useState<any[]>(initialScoresAntigos);
+  // Estado dos Scores Antigos com deduplicação defensiva por temporada/pos/jogador
+  const deduplicatedInitialScores = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const s of initialScoresAntigos || []) {
+      const key = `${String(s?.temporada || "").trim()}-${s?.pos}-${String(s?.jogador || "").trim().toLowerCase()}`;
+      if (!map.has(key)) {
+        map.set(key, s);
+      }
+    }
+    return Array.from(map.values());
+  }, [initialScoresAntigos]);
+
+  const [scoresAntigos, setScoresAntigos] = useState<any[]>(deduplicatedInitialScores);
   const [seasonFilter, setSeasonFilter] = useState<string>("all");
   const [scoreSearch, setScoreSearch] = useState<string>("");
   const [isScoreModalOpen, setIsScoreModalOpen] = useState(false);

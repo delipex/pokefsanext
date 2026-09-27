@@ -16,12 +16,21 @@ function syncJogadoresJson(fn: (list: any[]) => any[]) {
     if (fs.existsSync(filePath)) {
       const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
       const updated = fn(raw);
-      fs.writeFileSync(filePath, JSON.stringify(updated, null, 4), "utf-8");
+      const seen = new Set<string>();
+      const dedupList: any[] = [];
+      for (const item of updated) {
+        const idKey = String(item.id || item.ID || "").trim();
+        if (idKey && !seen.has(idKey)) {
+          seen.add(idKey);
+          dedupList.push(item);
+        }
+      }
+      fs.writeFileSync(filePath, JSON.stringify(dedupList, null, 4), "utf-8");
 
       const legacyPath = path.resolve(process.cwd(), "..", "LigaAtlântica", "jogadores.json");
       if (fs.existsSync(legacyPath)) {
         try {
-          fs.writeFileSync(legacyPath, JSON.stringify(updated, null, 4), "utf-8");
+          fs.writeFileSync(legacyPath, JSON.stringify(dedupList, null, 4), "utf-8");
         } catch {}
       }
     }
@@ -33,11 +42,20 @@ export async function GET() {
   try {
     await ensureDatabaseSchema();
     const list = await db.select().from(jogadores).orderBy(asc(jogadores.nome));
-    if (list && list.length > 0) {
-      return NextResponse.json({ success: true, players: list });
+    const targetList = (list && list.length > 0) ? list : await getAllJogadores();
+    const seenIds = new Set<string>();
+    const seenNames = new Set<string>();
+    const deduplicated = [];
+    for (const p of targetList) {
+      const idKey = String(p.id || "").trim();
+      const nameKey = String(p.nome || (p as any).jogador || "").toLowerCase().trim();
+      if ((idKey && !seenIds.has(idKey)) || (nameKey && !seenNames.has(nameKey))) {
+        if (idKey) seenIds.add(idKey);
+        if (nameKey) seenNames.add(nameKey);
+        deduplicated.push(p);
+      }
     }
-    const fallbackList = await getAllJogadores();
-    return NextResponse.json({ success: true, players: fallbackList });
+    return NextResponse.json({ success: true, players: deduplicated });
   } catch (error: any) {
     const fallbackList = await getAllJogadores();
     return NextResponse.json({ success: true, players: fallbackList });

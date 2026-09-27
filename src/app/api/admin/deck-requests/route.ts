@@ -74,7 +74,19 @@ export async function POST(req: Request) {
         )
       );
 
-    // 2. Inserir ou atualizar no metagame da etapa
+    // 2. Inserir ou atualizar no metagame da etapa (limpa anterior para não duplicar)
+    await db
+      .delete(metagame)
+      .where(
+        and(
+          eq(metagame.etapaData, cleanDate),
+          or(
+            eq(metagame.jogadorNome, cleanName),
+            eq(sql`lower(trim(${metagame.jogadorNome}))`, lowerName)
+          )
+        )
+      );
+
     await db.insert(metagame).values({
       etapaData: cleanDate,
       sessionCode: `${cleanDate}-Liga`,

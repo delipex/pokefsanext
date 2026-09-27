@@ -10,7 +10,15 @@ import path from "path";
 async function syncCampeoesJson() {
   try {
     const list = await db.select().from(campeoes);
-    const sorted = list.sort((a, b) =>
+    const map = new Map<string, any>();
+    for (const c of list) {
+      const key = String(c.temporada || "").trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, c);
+      }
+    }
+    const deduplicated = Array.from(map.values());
+    const sorted = deduplicated.sort((a, b) =>
       (b.temporada || "").localeCompare(a.temporada || "", undefined, { numeric: true })
     );
 
@@ -40,11 +48,18 @@ async function syncCampeoesJson() {
   }
 }
 
-// GET: Listar todos os campeões do Hall da Fama
+// GET: Listar todos os campeões do Hall da Fama (com deduplicação estrita por temporada)
 export async function GET() {
   try {
     const list = await db.select().from(campeoes);
-    const sorted = list.sort((a, b) =>
+    const map = new Map<string, any>();
+    for (const c of list) {
+      const key = String(c.temporada || "").trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, c);
+      }
+    }
+    const sorted = Array.from(map.values()).sort((a, b) =>
       (b.temporada || "").localeCompare(a.temporada || "", undefined, { numeric: true })
     );
     return NextResponse.json(sorted);
@@ -53,7 +68,7 @@ export async function GET() {
   }
 }
 
-// POST: Cadastrar novo campeão
+// POST: Cadastrar ou atualizar campeão (upsert por temporada)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -67,20 +82,46 @@ export async function POST(req: Request) {
       ? String(temporada).trim()
       : `Temporada #${String(temporada).trim()}`;
 
-    const [inserted] = await db
-      .insert(campeoes)
-      .values({
-        temporada: seasonLabel,
-        campeao: String(campeao).trim(),
-        vice: String(vice || "A definir").trim(),
-        deckCampeao: String(deckCampeao).trim(),
-        data: String(data || new Date().toISOString().split("T")[0]).trim(),
-        fotoCampeao: fotoCampeao ? String(fotoCampeao).trim() : null,
-        urlDeck: urlDeck ? String(urlDeck).trim() : null,
-        imagemDeck: imagemDeck ? String(imagemDeck).trim() : null,
-        observacaoDeck: observacaoDeck ? String(observacaoDeck).trim() : null,
-      })
-      .returning();
+    const existing = await db
+      .select()
+      .from(campeoes)
+      .where(eq(campeoes.temporada, seasonLabel));
+
+    let finalItem: any;
+
+    if (existing && existing.length > 0) {
+      const [updated] = await db
+        .update(campeoes)
+        .set({
+          campeao: String(campeao).trim(),
+          vice: String(vice || "A definir").trim(),
+          deckCampeao: String(deckCampeao).trim(),
+          data: String(data || new Date().toISOString().split("T")[0]).trim(),
+          fotoCampeao: fotoCampeao ? String(fotoCampeao).trim() : null,
+          urlDeck: urlDeck ? String(urlDeck).trim() : null,
+          imagemDeck: imagemDeck ? String(imagemDeck).trim() : null,
+          observacaoDeck: observacaoDeck ? String(observacaoDeck).trim() : null,
+        })
+        .where(eq(campeoes.id, existing[0].id))
+        .returning();
+      finalItem = updated;
+    } else {
+      const [inserted] = await db
+        .insert(campeoes)
+        .values({
+          temporada: seasonLabel,
+          campeao: String(campeao).trim(),
+          vice: String(vice || "A definir").trim(),
+          deckCampeao: String(deckCampeao).trim(),
+          data: String(data || new Date().toISOString().split("T")[0]).trim(),
+          fotoCampeao: fotoCampeao ? String(fotoCampeao).trim() : null,
+          urlDeck: urlDeck ? String(urlDeck).trim() : null,
+          imagemDeck: imagemDeck ? String(imagemDeck).trim() : null,
+          observacaoDeck: observacaoDeck ? String(observacaoDeck).trim() : null,
+        })
+        .returning();
+      finalItem = inserted;
+    }
 
     await syncCampeoesJson();
     clearFileCache();
@@ -90,7 +131,7 @@ export async function POST(req: Request) {
       revalidatePath("/admin");
     } catch (e) {}
 
-    return NextResponse.json({ success: true, message: "Campeão cadastrado com sucesso!", item: inserted });
+    return NextResponse.json({ success: true, message: "Campeão salvo com sucesso no Hall da Fama!", item: finalItem });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

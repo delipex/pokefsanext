@@ -235,14 +235,26 @@ export async function getRanking(categoria?: string) {
         };
       });
 
-      if (enriched.length >= fallback.length) return enriched;
+      // Deduplicação defensiva do ranking por ID ou Nome
+      const rankMap = new Map<string, any>();
+      for (const p of enriched) {
+        const rawId = String(p.jogadorId || "").trim();
+        const rawName = String(p.jogadorNome || "").trim().toLowerCase();
+        const key = rawId ? `id_${rawId}` : `name_${rawName}`;
+        if (!rankMap.has(key)) {
+          rankMap.set(key, p);
+        }
+      }
+      const uniqueEnriched = Array.from(rankMap.values());
+
+      if (uniqueEnriched.length >= fallback.length) return uniqueEnriched;
       if (fallback.length > 0) {
         if (categoria && categoria !== "TODOS") {
           return fallback.filter((r) => r.categoria?.toUpperCase() === categoria.toUpperCase());
         }
         return fallback;
       }
-      return enriched;
+      return uniqueEnriched;
     }
   } catch (err) {
     // Silencioso
@@ -288,23 +300,35 @@ export async function getTop4Podium() {
 }
 
 export async function getAllDecks() {
+  let list: any[] = [];
   try {
     const res = await db.select().from(decks).where(eq(decks.ativo, true)).orderBy(asc(decks.nome));
-    if (res && res.length > 0) return res;
+    if (res && res.length > 0) list = res;
   } catch (err) {
     // Silencioso
   }
 
-  const rawDecks = readDataFile<any[]>("decks.json", []);
-  return rawDecks.map((d, i) => ({
-    id: i + 1,
-    nome: d.deck || "",
-    tipoEnergia: d.tipoEnergia || "colorless",
-    imagem: d.imagem || null,
-    limitless: d.limitless || null,
-    icone: d.icone || null,
-    ativo: true,
-  }));
+  if (list.length === 0) {
+    const rawDecks = readDataFile<any[]>("decks.json", []);
+    list = rawDecks.map((d, i) => ({
+      id: i + 1,
+      nome: d.deck || d.nome || "",
+      tipoEnergia: d.tipoEnergia || "colorless",
+      imagem: d.imagem || null,
+      limitless: d.limitless || null,
+      icone: d.icone || null,
+      ativo: true,
+    }));
+  }
+
+  const map = new Map<string, any>();
+  for (const d of list) {
+    const key = (d.nome || "").toLowerCase().trim();
+    if (key && !map.has(key)) {
+      map.set(key, d);
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
 }
 
 export async function getAllEtapas() {
@@ -504,21 +528,33 @@ export async function getCampeoes() {
 }
 
 export async function getGaleria() {
+  let list: any[] = [];
   try {
     const res = await db.select().from(galeria).orderBy(desc(galeria.id));
-    if (res && res.length > 0) return res;
+    if (res && res.length > 0) list = res;
   } catch (err) {
     // Silencioso
   }
 
-  const raw = readDataFile<any[]>("galeria.json", []);
-  return raw.map((g, i) => ({
-    id: i + 1,
-    titulo: g.titulo || "Foto do Evento",
-    descricao: g.descricao || null,
-    urlImagem: g.urlImagem || "",
-    data: g.data || null,
-  }));
+  if (list.length === 0) {
+    const raw = readDataFile<any[]>("galeria.json", []);
+    list = raw.map((g, i) => ({
+      id: i + 1,
+      titulo: g.titulo || "Foto do Evento",
+      descricao: g.descricao || null,
+      urlImagem: g.urlImagem || "",
+      data: g.data || null,
+    }));
+  }
+
+  const map = new Map<string, any>();
+  for (const g of list) {
+    const key = (g.urlImagem || "").toLowerCase().trim();
+    if (key && !map.has(key)) {
+      map.set(key, g);
+    }
+  }
+  return Array.from(map.values());
 }
 
 export async function getScoresAntigos() {
@@ -658,7 +694,7 @@ export async function getNextEvent() {
     return upcoming[0];
   }
 
-  return events[events.length - 1] || null;
+  return null;
 }
 
 export async function getSeasonAwards() {
@@ -842,22 +878,36 @@ export async function getSeasonAwards() {
 }
 
 export async function getAllJogadores() {
+  let list: any[] = [];
   try {
     const res = await db.select().from(jogadores).where(eq(jogadores.ativo, true)).orderBy(asc(jogadores.nome));
-    if (res && res.length > 0) return res;
+    if (res && res.length > 0) list = res;
   } catch (err) {
     // Silencioso
   }
 
-  const raw = readDataFile<any[]>("jogadores.json", []);
-  return raw.map((j) => ({
-    id: String(j.id || j.ID || "").trim(),
-    nome: String(j.nome || j.jogador || j.Jogador || "Desconhecido").trim(),
-    categoria: j.categoria || j.Categoria || "Master",
-    ativo: true,
-    deckAtivoNome: j.deckAtivoNome || null,
-    decklistTexto: j.decklistTexto || null,
-  }));
+  if (list.length === 0) {
+    const raw = readDataFile<any[]>("jogadores.json", []);
+    list = raw.map((j) => ({
+      id: String(j.id || j.ID || "").trim(),
+      nome: String(j.nome || j.jogador || j.Jogador || "Desconhecido").trim(),
+      categoria: j.categoria || j.Categoria || "Master",
+      ativo: true,
+      deckAtivoNome: j.deckAtivoNome || null,
+      decklistTexto: j.decklistTexto || null,
+    }));
+  }
+
+  const map = new Map<string, any>();
+  for (const p of list) {
+    const rawId = String(p.id || "").trim();
+    const cleanName = String(p.nome || p.jogador || "").trim();
+    const key = rawId ? `id_${rawId}` : `name_${cleanName.toLowerCase()}`;
+    if (key && !map.has(key)) {
+      map.set(key, { ...p, nome: cleanName || "Desconhecido" });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
 }
 
 export async function getSubmittedDecklists() {

@@ -11,7 +11,16 @@ import path from "path";
 async function syncDecksJson() {
   try {
     const allDecks = await db.select().from(decks).orderBy(asc(decks.nome));
-    const mapped = allDecks.map((d) => ({
+    const seen = new Set<string>();
+    const deduplicated = [];
+    for (const d of allDecks) {
+      const key = (d.nome || "").toLowerCase().trim();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(d);
+      }
+    }
+    const mapped = deduplicated.map((d) => ({
       deck: d.nome,
       tipoEnergia: d.tipoEnergia || "colorless",
       imagem: d.imagem || null,
@@ -39,7 +48,16 @@ async function syncDecksJson() {
 export async function GET() {
   try {
     const list = await db.select().from(decks).orderBy(decks.nome);
-    return NextResponse.json({ success: true, decks: list });
+    const seen = new Set<string>();
+    const deduplicated = [];
+    for (const d of list) {
+      const key = (d.nome || "").toLowerCase().trim();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(d);
+      }
+    }
+    return NextResponse.json({ success: true, decks: deduplicated });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

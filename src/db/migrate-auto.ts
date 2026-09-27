@@ -264,18 +264,44 @@ export async function ensureDatabaseSchema() {
 
   hasMigrated = true;
 
-  // Limpeza preventiva de duplicatas no Calendário
-  try {
-    await client.execute(`
-      DELETE FROM calendario
-      WHERE id NOT IN (
-        SELECT MIN(id)
-        FROM calendario
-        GROUP BY data, LOWER(TRIM(evento))
-      );
-    `);
-  } catch {
-    // Ignora erro
+  // Limpeza preventiva de duplicatas em todas as tabelas (360° Deduplication)
+  const cleanupQueries = [
+    // 1. Calendário
+    `DELETE FROM calendario WHERE id NOT IN (
+      SELECT MIN(id) FROM calendario GROUP BY data, LOWER(TRIM(evento))
+    );`,
+    // 2. Campeões (garante 1 campeão por temporada no Hall da Fama)
+    `DELETE FROM campeoes WHERE id NOT IN (
+      SELECT MIN(id) FROM campeoes GROUP BY LOWER(TRIM(temporada))
+    );`,
+    // 3. Decks (evita duplicatas com variação de maiúsculas/minúsculas)
+    `DELETE FROM decks WHERE id NOT IN (
+      SELECT MIN(id) FROM decks GROUP BY LOWER(TRIM(nome))
+    );`,
+    // 4. Galeria de Fotos (evita duplicatas da mesma imagem)
+    `DELETE FROM galeria WHERE id NOT IN (
+      SELECT MIN(id) FROM galeria GROUP BY LOWER(TRIM(url_imagem))
+    );`,
+    // 5. Metagame (1 deck por atleta por etapa)
+    `DELETE FROM metagame WHERE id NOT IN (
+      SELECT MIN(id) FROM metagame GROUP BY etapa_data, LOWER(TRIM(jogador_nome))
+    );`,
+    // 6. Scores Antigos (1 registro por temporada, posição e jogador)
+    `DELETE FROM scores_antigos WHERE id NOT IN (
+      SELECT MIN(id) FROM scores_antigos GROUP BY LOWER(TRIM(temporada)), pos, LOWER(TRIM(jogador))
+    );`,
+    // 7. Ranking Consolidado
+    `DELETE FROM ranking_consolidado WHERE id NOT IN (
+      SELECT MIN(id) FROM ranking_consolidado GROUP BY temporada, LOWER(TRIM(jogador_id)), LOWER(TRIM(jogador_nome))
+    );`,
+  ];
+
+  for (const q of cleanupQueries) {
+    try {
+      await client.execute(q);
+    } catch {
+      // Ignora erro se a tabela ainda não estiver preenchida
+    }
   }
 
   // Auto-hidratação de dados iniciais caso as tabelas estejam vazias

@@ -93,7 +93,7 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
   let tournamentName: string | null = null;
   let tournamentDate: string | null = null;
 
-  // Extrair metadados com Regex ou DOMParser
+  // Extrair metadados com Regex
   const nameMatch = xmlText.match(/<name>(.*?)<\/name>/i);
   if (nameMatch) tournamentName = nameMatch[1].trim();
 
@@ -105,21 +105,25 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     if (fnDateMatch) tournamentDate = fnDateMatch[1].replace(/_/g, "-");
   }
 
-  // Map de jogadores cadastrados sob <players>
+  // 1. Mapear jogadores cadastrados estritamente dentro do bloco <players>...</players>
   const playersMap = new Map<string, { name: string; birthdate: string }>();
-  const playerRegex = /<player\s+userid="([^"]+)"[\s\S]*?(?:<firstname>(.*?)<\/firstname>)?[\s\S]*?(?:<lastname>(.*?)<\/lastname>)?[\s\S]*?(?:<birthdate>(.*?)<\/birthdate>)?[\s\S]*?<\/player>/gi;
-  
-  let pMatch: RegExpExecArray | null;
-  while ((pMatch = playerRegex.exec(xmlText)) !== null) {
-    const userid = pMatch[1];
-    const firstname = pMatch[2] || "";
-    const lastname = pMatch[3] || "";
-    const fullName = `${firstname} ${lastname}`.trim() || `Jogador ${userid}`;
-    const birthdate = pMatch[4] || "";
-    playersMap.set(userid, { name: fullName, birthdate });
+  const playersBlockMatch = xmlText.match(/<players>([\s\S]*?)<\/players>/i);
+  if (playersBlockMatch) {
+    const block = playersBlockMatch[1];
+    const playerTagRegex = /<player\s+userid="([^"]+)"[^>]*>([\s\S]*?)<\/player>/gi;
+    let pMatch: RegExpExecArray | null;
+    while ((pMatch = playerTagRegex.exec(block)) !== null) {
+      const userid = pMatch[1].trim();
+      const inner = pMatch[2];
+      const firstname = inner.match(/<firstname>([\s\S]*?)<\/firstname>/i)?.[1]?.trim() || "";
+      const lastname = inner.match(/<lastname>([\s\S]*?)<\/lastname>/i)?.[1]?.trim() || "";
+      const birthdate = inner.match(/<birthdate>([\s\S]*?)<\/birthdate>/i)?.[1]?.trim() || "";
+      const fullName = `${firstname} ${lastname}`.trim() || `Jogador ${userid}`;
+      playersMap.set(userid, { name: fullName, birthdate });
+    }
   }
 
-  // Estatísticas de vitórias, empates e derrotas computadas de cada partida
+  // 2. Estatísticas de partidas (V, E, D) e oponentes
   const statsMap = new Map<string, { v: number; e: number; d: number }>();
   const opponentsMap = new Map<string, Set<string>>();
 
@@ -128,7 +132,6 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     opponentsMap.set(id, new Set());
   });
 
-  // Extrair partidas das rodadas
   const matchRegex = /<match\s+outcome="(\d+)"[^>]*>([\s\S]*?)<\/match>/gi;
   let mMatch: RegExpExecArray | null;
 
@@ -136,9 +139,9 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     const outcome = parseInt(mMatch[1], 10);
     const matchContent = mMatch[2];
 
-    const p1 = matchContent.match(/<player1\s+userid="([^"]+)"/i)?.[1];
-    const p2 = matchContent.match(/<player2\s+userid="([^"]+)"/i)?.[1];
-    const singleP = matchContent.match(/<player\s+userid="([^"]+)"/i)?.[1];
+    const p1 = matchContent.match(/<player1\s+userid="([^"]+)"/i)?.[1]?.trim();
+    const p2 = matchContent.match(/<player2\s+userid="([^"]+)"/i)?.[1]?.trim();
+    const singleP = matchContent.match(/<player\s+userid="([^"]+)"/i)?.[1]?.trim();
 
     if (p1 && p2) {
       if (!statsMap.has(p1)) {
@@ -164,17 +167,16 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
         statsMap.get(p2)!.e++;
       }
     } else if (p1 && !p2) {
-      // Bye no padrão antigo
       if (statsMap.has(p1)) statsMap.get(p1)!.v++;
     } else if (singleP) {
-      // Bye no padrão novo do TOM (outcome = 5 significa 3-point Bye / Win)
-      if (statsMap.has(singleP) && (outcome === 5 || outcome === 1)) {
+      // Byes no TOM: outcome 1, 5 ou 8 contam como vitória de 3 pontos
+      if (statsMap.has(singleP)) {
         statsMap.get(singleP)!.v++;
       }
     }
   }
 
-  // Cálculo de Win Rate individual para OMW (mínimo de 0.25 conforme regra oficial Play! Pokémon)
+  // 3. Winrates individuais e OMW%
   const winRates = new Map<string, number>();
   playersMap.forEach((_, id) => {
     const st = statsMap.get(id) || { v: 0, e: 0, d: 0 };
@@ -189,7 +191,6 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     }
   });
 
-  // Cálculo de OMW% (Opponent Match Win Percentage)
   const omwMap = new Map<string, number>();
   playersMap.forEach((_, id) => {
     const opps = opponentsMap.get(id);
@@ -204,49 +205,53 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     }
   });
 
-  // Parsing de Standings e Pods
+  // 4. Standings finais a partir do bloco oficial <standings>
   const playersResult: ParsedPlayerRow[] = [];
-  const podRegex = /<pod\s+category="([^"]+)"(?:\s+type="([^"]+)")?[^>]*>([\s\S]*?)<\/pod>/gi;
-  let podMatch: RegExpExecArray | null;
+  const standingsBlock = xmlText.match(/<standings>([\s\S]*?)<\/standings>/i)?.[1] || "";
 
-  while ((podMatch = podRegex.exec(xmlText)) !== null) {
-    const catCode = podMatch[1];
-    const podType = podMatch[2] || "finished"; // "finished" ou "dnf" (drop)
-    const podContent = podMatch[3];
+  if (standingsBlock) {
+    const podRegex = /<pod\s+category="([^"]+)"(?:\s+type="([^"]+)")?[^>]*>([\s\S]*?)<\/pod>/gi;
+    let podMatch: RegExpExecArray | null;
 
-    let categoria: "Master" | "Senior" | "Junior" = "Master";
-    if (catCode === "10" || catCode === "2") categoria = "Master";
-    else if (catCode === "11" || catCode === "1") categoria = "Senior";
-    else if (catCode === "12" || catCode === "0") categoria = "Junior";
+    while ((podMatch = podRegex.exec(standingsBlock)) !== null) {
+      const catCode = podMatch[1];
+      const podType = podMatch[2] || "finished"; // "finished" ou "dnf"
+      const podContent = podMatch[3];
 
-    const pInPodRegex = /<player\s+id="([^"]+)"(?:\s+place="([^"]+)")?[^>]*\/>/gi;
-    let pipMatch: RegExpExecArray | null;
-    let fallbackPlace = 1;
+      let categoria: "Master" | "Senior" | "Junior" = "Master";
+      if (catCode === "10" || catCode === "2") categoria = "Master";
+      else if (catCode === "11" || catCode === "1") categoria = "Senior";
+      else if (catCode === "12" || catCode === "0") categoria = "Junior";
 
-    while ((pipMatch = pInPodRegex.exec(podContent)) !== null) {
-      const id = pipMatch[1];
-      const place = pipMatch[2] ? parseInt(pipMatch[2], 10) : fallbackPlace++;
-      const pInfo = playersMap.get(id) || { name: `Jogador ${id}`, birthdate: "" };
-      const st = statsMap.get(id) || { v: 0, e: 0, d: 0 };
-      const pontos = st.v * 3 + st.e * 1;
-      const omw = omwMap.get(id) || 0.25;
+      const pInPodRegex = /<player\s+id="([^"]+)"(?:\s+place="([^"]+)")?[^>]*\/>/gi;
+      let pipMatch: RegExpExecArray | null;
+      let fallbackPlace = 1;
 
-      playersResult.push({
-        colocacao: place,
-        id,
-        jogador: pInfo.name,
-        categoria,
-        pontos,
-        vitorias: st.v,
-        empates: st.e,
-        derrotas: st.d,
-        omw,
-        isDnf: podType === "dnf",
-      });
+      while ((pipMatch = pInPodRegex.exec(podContent)) !== null) {
+        const id = pipMatch[1].trim();
+        const place = pipMatch[2] ? parseInt(pipMatch[2], 10) : fallbackPlace++;
+        const pInfo = playersMap.get(id) || { name: `Jogador ${id}`, birthdate: "" };
+        const st = statsMap.get(id) || { v: 0, e: 0, d: 0 };
+        const pontos = st.v * 3 + st.e * 1;
+        const omw = omwMap.get(id) || 0.25;
+
+        playersResult.push({
+          colocacao: place,
+          id,
+          jogador: pInfo.name,
+          categoria,
+          pontos,
+          vitorias: st.v,
+          empates: st.e,
+          derrotas: st.d,
+          omw,
+          isDnf: podType === "dnf",
+        });
+      }
     }
   }
 
-  // Se não houver standings explícitos, fallback para os jogadores cadastrados
+  // 5. Fallback para jogadores cadastrados se não houver standings explícitos
   if (playersResult.length === 0 && playersMap.size > 0) {
     let idx = 1;
     playersMap.forEach((pInfo, id) => {
@@ -267,21 +272,17 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     });
   }
 
-  // Ordenação Estrita Oficial:
-  // 1º Pontos DESC
-  // 2º Vitórias DESC
-  // 3º OMW DESC
-  // 4º Colocação Oficial ASC
-  // 5º Nome ASC
+  // 6. Ordenação oficial Play! Pokémon:
+  // 1º Pontos DESC -> 2º Vitórias DESC -> 3º OMW DESC -> 4º Colocação Oficial ASC -> 5º Nome ASC
   playersResult.sort((a, b) => {
-    if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-    if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
+    if ((b.pontos || 0) !== (a.pontos || 0)) return (b.pontos || 0) - (a.pontos || 0);
+    if ((b.vitorias || 0) !== (a.vitorias || 0)) return (b.vitorias || 0) - (a.vitorias || 0);
     if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
-    if (a.colocacao !== b.colocacao) return a.colocacao - b.colocacao;
-    return a.jogador.localeCompare(b.jogador, "pt-BR");
+    if ((a.colocacao || 0) !== (b.colocacao || 0)) return (a.colocacao || 0) - (b.colocacao || 0);
+    return String(a.jogador || "").localeCompare(String(b.jogador || ""), "pt-BR");
   });
 
-  // Reatribuir posições contínuas 1..N
+  // Reatribuir colocação sequencial
   playersResult.forEach((p, idx) => {
     p.colocacao = idx + 1;
   });
@@ -310,6 +311,8 @@ function parseTSV(tsvText: string, fileName?: string): ParsedTDFResult {
     const cols = row.split("\t");
     if (cols.length < 5) continue;
     const [pos, id, jogador, categoria, pontos, vitorias, empates, derrotas] = cols;
+    const cleanPlayerName = (jogador || "").trim();
+    if (!cleanPlayerName) continue;
 
     let cat: "Master" | "Senior" | "Junior" = "Master";
     const catStr = (categoria || "").trim().toUpperCase();
@@ -319,7 +322,7 @@ function parseTSV(tsvText: string, fileName?: string): ParsedTDFResult {
     jogadores.push({
       colocacao: Number(pos) || 99,
       id: id ? id.trim() : "",
-      jogador: jogador ? jogador.trim() : "",
+      jogador: cleanPlayerName,
       categoria: cat,
       pontos: Number(pontos) || 0,
       vitorias: Number(vitorias) || 0,
