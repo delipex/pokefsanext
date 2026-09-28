@@ -17,19 +17,22 @@ export async function recalculateRankingConsolidado(targetSeason?: number) {
   }
 
   // 1. Buscar todas as etapas da temporada ativa ordenadas cronologicamente
-  const allEtapas = await db.select().from(etapas).where(eq(etapas.temporada, activeSeason));
-  allEtapas.sort((a, b) => a.data.localeCompare(b.data));
+  let allEtapas = await db.select().from(etapas).where(eq(etapas.temporada, activeSeason));
+  if (allEtapas.length === 0) {
+    allEtapas = await db.select().from(etapas);
+  }
+  allEtapas.sort((a, b) => String(a.data).localeCompare(String(b.data)));
 
-  const etapaMap = new Map(allEtapas.map((e) => [e.data, e]));
+  const etapaMap = new Map(allEtapas.map((e) => [String(e.data).trim(), e]));
   const allResults = await db.select().from(etapaResultados);
-  allResults.sort((a, b) => a.etapaData.localeCompare(b.etapaData));
+  allResults.sort((a, b) => String(a.etapaData).localeCompare(String(b.etapaData)));
 
   // 2. Mapear resultados por jogador (chave: jogadorId ou jogadorNome)
   const playerStatsMap: Record<string, any> = {};
 
   for (const r of allResults) {
-    const etapaInfo = etapaMap.get(r.etapaData);
-    if (!etapaInfo) continue; // Pula resultados que não pertencem a etapas da temporada ativa
+    const cleanEtapaData = String(r.etapaData).trim();
+    const etapaInfo = etapaMap.get(cleanEtapaData) || { multiplicador: 1.0, data: cleanEtapaData };
 
     const key = r.jogadorId ? String(r.jogadorId).trim() : String(r.jogadorNome).trim();
     if (!playerStatsMap[key]) {

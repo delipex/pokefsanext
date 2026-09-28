@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { etapas, etapaResultados, metagame, configuracoes } from "@/db/schema";
+import { etapas, etapaResultados, metagame, configuracoes, jogadores } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
@@ -70,7 +70,11 @@ export async function POST(req: Request) {
     }
 
     // 1. Inserir ou atualizar a etapa de forma segura
-    const existingEtapa = await db.select().from(etapas).where(eq(etapas.data, data));
+    const cleanData = String(data).trim();
+    const cleanTipo = String(tipo || "Liga").trim();
+    const cleanMult = Number(multiplicador) || 1.0;
+
+    const existingEtapa = await db.select().from(etapas).where(eq(etapas.data, cleanData));
     let etapaId: number | undefined;
 
     if (existingEtapa && existingEtapa.length > 0) {
@@ -78,39 +82,56 @@ export async function POST(req: Request) {
       await db
         .update(etapas)
         .set({
-          tipo: tipo || "Liga",
-          multiplicador: Number(multiplicador) || 1.0,
+          tipo: cleanTipo,
+          multiplicador: cleanMult,
           temporada: activeSeason,
           status: "concluida",
         })
         .where(eq(etapas.id, etapaId));
     } else {
-      const [insertedEtapa] = await db
-        .insert(etapas)
-        .values({
-          data,
-          tipo: tipo || "Liga",
-          multiplicador: Number(multiplicador) || 1.0,
-          temporada: activeSeason,
-          status: "concluida",
-        })
-        .returning();
-      etapaId = insertedEtapa?.id;
+      await db.insert(etapas).values({
+        data: cleanData,
+        tipo: cleanTipo,
+        multiplicador: cleanMult,
+        temporada: activeSeason,
+        status: "concluida",
+      });
+      const newlyInserted = await db.select().from(etapas).where(eq(etapas.data, cleanData));
+      etapaId = newlyInserted[0]?.id;
     }
 
     // 2. Limpar resultados anteriores da mesma data
-    await db.delete(etapaResultados).where(eq(etapaResultados.etapaData, data));
-    await db.delete(metagame).where(eq(metagame.etapaData, data));
+    await db.delete(etapaResultados).where(eq(etapaResultados.etapaData, cleanData));
+    await db.delete(metagame).where(eq(metagame.etapaData, cleanData));
 
-    // 3. Inserir os resultados da etapa
+    // 3. Inserir os resultados da etapa e auto-cadastrar jogadores se necessário
     for (const res of resultados) {
       const deckName = res.deckNome && res.deckNome !== "Não registrado" && res.deckNome !== "Sem deck registrado" ? res.deckNome.trim() : null;
+      const jogadorNome = String(res.jogador || "").trim();
+      const jogadorId = res.id ? String(res.id).trim() : null;
+
+      if (jogadorId) {
+        try {
+          const existingPlayer = await db.select().from(jogadores).where(eq(jogadores.id, jogadorId));
+          if (!existingPlayer || existingPlayer.length === 0) {
+            await db.insert(jogadores).values({
+              id: jogadorId,
+              nome: jogadorNome,
+              categoria: (res.categoria as any) || "Master",
+              status: "ativo",
+              ativo: true,
+            });
+          }
+        } catch (e) {
+          console.warn(`Aviso ao auto-cadastrar jogador ${jogadorNome} (${jogadorId}):`, e);
+        }
+      }
 
       await db.insert(etapaResultados).values({
-        etapaId,
-        etapaData: data,
-        jogadorId: res.id ? String(res.id).trim() : null,
-        jogadorNome: String(res.jogador).trim(),
+        etapaId: etapaId || null,
+        etapaData: cleanData,
+        jogadorId: jogadorId,
+        jogadorNome: jogadorNome,
         categoria: res.categoria || "Master",
         colocacao: Number(res.colocacao) || 99,
         pontos: Number(res.pontos) || 0,
@@ -118,14 +139,14 @@ export async function POST(req: Request) {
         empates: Number(res.empates) || 0,
         derrotas: Number(res.derrotas) || 0,
         deckNome: deckName,
-        dropou: res.isDnf || false,
+        dropou: Boolean(res.isDnf || res.dropou),
       });
 
       if (deckName) {
         await db.insert(metagame).values({
-          etapaData: data,
-          sessionCode: `${data}-${tipo || "Liga"}`,
-          jogadorNome: String(res.jogador).trim(),
+          etapaData: cleanData,
+          sessionCode: `${cleanData}-${cleanTipo}`,
+          jogadorNome: jogadorNome,
           deckNome: deckName,
         });
       }
