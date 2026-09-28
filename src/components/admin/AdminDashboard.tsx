@@ -240,10 +240,35 @@ export function AdminDashboard({
   }, []);
 
   useEffect(() => {
+    if (initialEtapas) {
+      setAdminEtapas(initialEtapas);
+    }
+  }, [initialEtapas]);
+
+  useEffect(() => {
+    if (initialPlayers) {
+      setPlayers(deduplicatedInitialPlayers);
+    }
+  }, [initialPlayers, deduplicatedInitialPlayers]);
+
+  useEffect(() => {
+    if (initialDecklists) {
+      setDecklists(initialDecklists);
+    }
+  }, [initialDecklists]);
+
+  useEffect(() => {
     if (activeTab === "jogadores") {
       fetchPlayers();
     } else if (activeTab === "metagame") {
       fetchDeckRequests();
+    } else if (activeTab === "etapas") {
+      fetch("/api/admin/stage")
+        .then((r) => r.json())
+        .then((d) => {
+          if (Array.isArray(d?.etapas)) setAdminEtapas(d.etapas);
+        })
+        .catch(() => {});
     }
   }, [activeTab]);
 
@@ -614,10 +639,15 @@ export function AdminDashboard({
           "success"
         );
         setParsedRows([]);
-        setAdminEtapas((prev) => [
-          { data: stageDate, tipo: finalEventName, multiplicador: multiplier, status: "concluida" },
-          ...prev.filter((item) => item.data !== stageDate),
-        ]);
+        try {
+          const freshStagesRes = await fetch("/api/admin/stage");
+          if (freshStagesRes.ok) {
+            const freshData = await freshStagesRes.json();
+            if (Array.isArray(freshData.etapas)) {
+              setAdminEtapas(freshData.etapas);
+            }
+          }
+        } catch {}
         router.refresh();
       } else {
         const errorMsg = `❌ Erro ao publicar etapa: ${data.error || "Falha no servidor"}`;
@@ -1922,7 +1952,16 @@ export function AdminDashboard({
       {activeTab === "etapas" && (
         <AdminEtapasManager
           etapas={adminEtapas}
-          onEtapasUpdated={() => {
+          onEtapasUpdated={async () => {
+            try {
+              const freshStagesRes = await fetch("/api/admin/stage");
+              if (freshStagesRes.ok) {
+                const freshData = await freshStagesRes.json();
+                if (Array.isArray(freshData.etapas)) {
+                  setAdminEtapas(freshData.etapas);
+                }
+              }
+            } catch {}
             router.refresh();
           }}
         />

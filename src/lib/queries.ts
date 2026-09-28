@@ -245,16 +245,7 @@ export async function getRanking(categoria?: string) {
           rankMap.set(key, p);
         }
       }
-      const uniqueEnriched = Array.from(rankMap.values());
-
-      if (uniqueEnriched.length >= fallback.length) return uniqueEnriched;
-      if (fallback.length > 0) {
-        if (categoria && categoria !== "TODOS") {
-          return fallback.filter((r) => r.categoria?.toUpperCase() === categoria.toUpperCase());
-        }
-        return fallback;
-      }
-      return uniqueEnriched;
+      return Array.from(rankMap.values());
     }
   } catch (err) {
     // Silencioso
@@ -353,10 +344,16 @@ export async function getEtapasWithSummary() {
       .from(etapaResultados)
       .orderBy(asc(etapaResultados.colocacao));
 
-    // Se o banco tiver dados completos (todas as etapas do fallback)
-    if (allEtapas && allEtapas.length >= fallback.length && results.length >= 100) {
+    if (allEtapas && allEtapas.length > 0) {
+      const fallbackMap = new Map<string, any>(fallback.map((f: any) => [f.data, f]));
+
       const mapped = allEtapas.map((etapa, idx) => {
-        const etapaMatches = results.filter((r) => r.etapaData === etapa.data);
+        let etapaMatches = results.filter((r) => r.etapaData === etapa.data || r.etapaId === etapa.id);
+
+        if (etapaMatches.length === 0 && fallbackMap.has(etapa.data)) {
+          etapaMatches = fallbackMap.get(etapa.data).resultados || [];
+        }
+
         const enrichedMatches = etapaMatches.map((m) => {
           let deck = m.deckNome;
           if (!deck || deck === "Sem deck" || deck === "Sem deck registrado" || deck === "Não registrado") {
@@ -375,37 +372,19 @@ export async function getEtapasWithSummary() {
         return {
           ...etapa,
           numeroEtapa: idx + 1,
-          totalJogadores: enrichedMatches.length,
-          campeaoNome: campeao?.jogadorNome || null,
+          totalJogadores: enrichedMatches.length || (fallbackMap.get(etapa.data)?.totalJogadores || 0),
+          campeaoNome: campeao?.jogadorNome || fallbackMap.get(etapa.data)?.campeaoNome || null,
           campeaoId: campeao?.jogadorId || null,
-          campeaoDeck: campeao?.deckNome || null,
+          campeaoDeck: campeao?.deckNome || fallbackMap.get(etapa.data)?.campeaoDeck || null,
           top4,
           resultados: enrichedMatches,
         };
       });
 
       return mapped.sort((a, b) => b.data.localeCompare(a.data));
-    } else if (results.length > 0) {
-      // Se o banco tiver apenas algumas etapas ou decks aprovados, mesclar sobre o fallback
-      const dbDeckMap = new Map<string, string>();
-      for (const r of results) {
-        if (r.deckNome && r.deckNome !== "Sem deck" && r.deckNome !== "Sem deck registrado" && r.deckNome !== "Não registrado") {
-          dbDeckMap.set(`${r.etapaData}_${(r.jogadorNome || "").toLowerCase().trim()}`, r.deckNome);
-        }
-      }
-      return fallback.map((etapa: any) => ({
-        ...etapa,
-        resultados: (etapa.resultados || []).map((r: any) => {
-          const overrideDeck = dbDeckMap.get(`${etapa.data}_${(r.jogadorNome || "").toLowerCase().trim()}`);
-          return {
-            ...r,
-            deckNome: overrideDeck || r.deckNome,
-          };
-        }),
-      }));
     }
   } catch (err) {
-    // Silencioso
+    console.error("Erro ao buscar etapas resumidas:", err);
   }
 
   return fallback;

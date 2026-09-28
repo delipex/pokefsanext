@@ -5,7 +5,7 @@ import { etapas, etapaResultados, metagame, configuracoes, jogadores } from "@/d
 import { eq } from "drizzle-orm";
 import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
-import { clearFileCache } from "@/lib/queries";
+import { clearFileCache, getEtapasWithSummary } from "@/lib/queries";
 import fs from "fs";
 import path from "path";
 
@@ -31,6 +31,16 @@ async function syncEtapasJson() {
     }
   } catch (err) {
     console.warn("Aviso ao sincronizar etapas.json:", err);
+  }
+}
+
+// GET: Listar todas as etapas com resumo
+export async function GET() {
+  try {
+    const etapasList = await getEtapasWithSummary();
+    return NextResponse.json({ success: true, etapas: etapasList });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
