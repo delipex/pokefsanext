@@ -165,7 +165,7 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
   }
 
   // 1. Mapear jogadores cadastrados estritamente dentro do bloco <players>...</players>
-  const playersMap = new Map<string, { name: string; birthdate: string }>();
+  const playersMap = new Map<string, { name: string; birthdate: string; dropped?: boolean }>();
   const playersBlockMatch = xmlText.match(/<players>([\s\S]*?)<\/players>/i);
   if (playersBlockMatch) {
     const block = playersBlockMatch[1];
@@ -177,17 +177,18 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
       const firstname = inner.match(/<firstname>([\s\S]*?)<\/firstname>/i)?.[1]?.trim() || "";
       const lastname = inner.match(/<lastname>([\s\S]*?)<\/lastname>/i)?.[1]?.trim() || "";
       const birthdate = inner.match(/<birthdate>([\s\S]*?)<\/birthdate>/i)?.[1]?.trim() || "";
+      const dropped = inner.includes("<dropped>") || inner.includes('drop="true"');
       const fullName = `${firstname} ${lastname}`.trim() || `Jogador ${userid}`;
-      playersMap.set(userid, { name: fullName, birthdate });
+      playersMap.set(userid, { name: fullName, birthdate, dropped });
     }
   }
 
   // 2. Estatísticas de partidas (V, E, D) e oponentes
-  const statsMap = new Map<string, { v: number; e: number; d: number }>();
+  const statsMap = new Map<string, { v: number; e: number; d: number; roundsPlayed: number }>();
   const opponentsMap = new Map<string, Set<string>>();
 
   playersMap.forEach((_, id) => {
-    statsMap.set(id, { v: 0, e: 0, d: 0 });
+    statsMap.set(id, { v: 0, e: 0, d: 0, roundsPlayed: 0 });
     opponentsMap.set(id, new Set());
   });
 
@@ -204,14 +205,16 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
 
     if (p1 && p2) {
       if (!statsMap.has(p1)) {
-        statsMap.set(p1, { v: 0, e: 0, d: 0 });
+        statsMap.set(p1, { v: 0, e: 0, d: 0, roundsPlayed: 0 });
         opponentsMap.set(p1, new Set());
       }
       if (!statsMap.has(p2)) {
-        statsMap.set(p2, { v: 0, e: 0, d: 0 });
+        statsMap.set(p2, { v: 0, e: 0, d: 0, roundsPlayed: 0 });
         opponentsMap.set(p2, new Set());
       }
 
+      statsMap.get(p1)!.roundsPlayed++;
+      statsMap.get(p2)!.roundsPlayed++;
       opponentsMap.get(p1)!.add(p2);
       opponentsMap.get(p2)!.add(p1);
 
@@ -226,28 +229,28 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
         statsMap.get(p2)!.e++;
       }
     } else if (p1 && !p2) {
-      if (statsMap.has(p1)) statsMap.get(p1)!.v++;
+      if (statsMap.has(p1)) {
+        statsMap.get(p1)!.v++;
+        statsMap.get(p1)!.roundsPlayed++;
+      }
     } else if (singleP) {
       // Byes no TOM: outcome 1, 5 ou 8 contam como vitória de 3 pontos
       if (statsMap.has(singleP)) {
         statsMap.get(singleP)!.v++;
+        statsMap.get(singleP)!.roundsPlayed++;
       }
     }
   }
 
-  // 3. Winrates individuais e OMW%
-  const winRates = new Map<string, number>();
-  playersMap.forEach((_, id) => {
-    const st = statsMap.get(id) || { v: 0, e: 0, d: 0 };
-    const points = st.v * 3 + st.e * 1;
-    const opps = opponentsMap.get(id);
-    const totalMatches = opps ? opps.size : 0;
-    if (totalMatches === 0) {
-      winRates.set(id, 0.25);
-    } else {
-      const rate = points / (totalMatches * 3);
-      winRates.set(id, Math.max(0.25, rate));
-    }
+  // 3. Winrates individuais e OMW% (Play! Pokémon / TOM padrão oficial)
+  const totalRounds = 4;
+  const mwpMap = new Map<string, number>();
+  playersMap.forEach((p, id) => {
+    const st = statsMap.get(id) || { v: 0, e: 0, d: 0, roundsPlayed: 0 };
+    const score = st.v * 1.0 + st.e * 0.5;
+    const rounds = p.dropped ? st.roundsPlayed : totalRounds;
+    const rawRate = rounds > 0 ? score / rounds : 0.25;
+    mwpMap.set(id, Math.max(0.25, rawRate));
   });
 
   const omwMap = new Map<string, number>();
@@ -258,14 +261,15 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     } else {
       let sum = 0;
       opps.forEach((oppId) => {
-        sum += winRates.get(oppId) || 0.25;
+        sum += mwpMap.get(oppId) || 0.25;
       });
       omwMap.set(id, sum / opps.size);
     }
   });
 
   // 4. Standings oficiais soberanos a partir do bloco <standings> gerado pelo TOM
-  const playersResult: ParsedPlayerRow[] = [];
+  const activePlayersResult: ParsedPlayerRow[] = [];
+  const droppedPlayersResult: ParsedPlayerRow[] = [];
   const standingsBlock = xmlText.match(/<standings>([\s\S]*?)<\/standings>/i)?.[1] || "";
 
   if (standingsBlock) {
@@ -289,12 +293,13 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
       while ((pipMatch = pInPodRegex.exec(podContent)) !== null) {
         const id = pipMatch[1].trim();
         const place = pipMatch[2] ? parseInt(pipMatch[2], 10) : fallbackPlace++;
-        const pInfo = playersMap.get(id) || { name: `Jogador ${id}`, birthdate: "" };
+        const pInfo = playersMap.get(id) || { name: `Jogador ${id}`, birthdate: "", dropped: false };
         const st = statsMap.get(id) || { v: 0, e: 0, d: 0 };
         const pontos = st.v * 3 + st.e * 1;
+        const isDnf = Boolean(pInfo.dropped || podType === "dnf");
         const omw = omwMap.get(id) || 0.25;
 
-        playersResult.push({
+        const row: ParsedPlayerRow = {
           colocacao: place,
           id,
           jogador: pInfo.name,
@@ -304,11 +309,28 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
           empates: st.e,
           derrotas: st.d,
           omw,
-          isDnf: podType === "dnf",
-        });
+          isDnf,
+        };
+
+        if (isDnf) {
+          droppedPlayersResult.push(row);
+        } else {
+          activePlayersResult.push(row);
+        }
       }
     }
   }
+
+  // Re-atribuir colocação para garantir que DNF fiquem no final
+  let posCounter = 1;
+  activePlayersResult.forEach((p) => {
+    p.colocacao = posCounter++;
+  });
+  droppedPlayersResult.forEach((p) => {
+    p.colocacao = posCounter++;
+  });
+
+  const playersResult: ParsedPlayerRow[] = [...activePlayersResult, ...droppedPlayersResult];
 
   // 5. Fallback estritamente para arquivos sem bloco <standings> (em andamento)
   if (playersResult.length === 0 && playersMap.size > 0) {
