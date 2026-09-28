@@ -513,6 +513,7 @@ export function AdminDashboard({
       } else {
         setPublishMessage(`⚠️ ${successCount} de ${unresolvedPlayers.length} atletas cadastrados. Verifique se restou algum.`);
       }
+      fetchPlayers();
     } catch (err: any) {
       setPublishMessage(`❌ Erro ao cadastrar atletas em lote: ${err.message}`);
     } finally {
@@ -2094,7 +2095,7 @@ export function AdminDashboard({
                       <th className="py-2.5 pl-3">Atleta</th>
                       <th className="px-3 py-2.5">POP ID</th>
                       <th className="px-3 py-2.5 text-center">Divisão</th>
-                      <th className="px-3 py-2.5 text-center">Portal</th>
+                      <th className="px-3 py-2.5 text-center">Acesso Portal</th>
                       <th className="py-2.5 pr-3 text-right">Ações</th>
                     </tr>
                   </thead>
@@ -2162,11 +2163,11 @@ export function AdminDashboard({
                             <td className="px-3 py-2.5 text-center">
                               {hasPin ? (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                                  <Check className="h-2.5 w-2.5" /> Ativo
+                                  <Check className="h-2.5 w-2.5" /> PIN Ativo
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
-                                  Pendente
+                                <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 border border-white/5 px-2 py-0.5 text-[10px] font-medium text-slate-400" title="Atleta cadastrado. Pode criar um PIN de 4 dígitos acessando o Portal do Atleta.">
+                                  Sem PIN
                                 </span>
                               )}
                             </td>
