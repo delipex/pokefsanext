@@ -2,7 +2,7 @@ import { getRanking, getEtapasWithSummary, getAllDecks } from "@/lib/queries";
 import { RankingTable } from "@/components/ranking/RankingTable";
 import { PlayerModalData } from "@/components/ranking/PlayerModal";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Ranking & Etapas | Liga Atlântica TCG",
