@@ -236,6 +236,7 @@ export function AdminDashboard({
   };
 
   const [dbStatus, setDbStatus] = useState<any>(null);
+  const [isDbModalOpen, setIsDbModalOpen] = useState(false);
 
   const fetchDbStatus = useCallback(async () => {
     try {
@@ -1392,11 +1393,13 @@ export function AdminDashboard({
 
         <div className="flex items-center gap-3 flex-wrap">
           {dbStatus && (
-            <div
-              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${
+            <button
+              onClick={() => setIsDbModalOpen(true)}
+              title="Clique para ver o diagnóstico completo da conexão com o banco"
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] ${
                 dbStatus.isPersistent
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                  : "border-amber-500/30 bg-amber-500/10 text-amber-300 animate-pulse"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                  : "border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 animate-pulse"
               }`}
             >
               <Database className="h-3.5 w-3.5" />
@@ -1404,7 +1407,7 @@ export function AdminDashboard({
                 {dbStatus.isPersistent ? "Banco: " : "Modo: "}
                 <strong>{dbStatus.dbType}</strong>
               </span>
-            </div>
+            </button>
           )}
 
           <button
@@ -3679,6 +3682,95 @@ export function AdminDashboard({
           onChampionsUpdated={() => router.refresh()}
           onScoresUpdated={() => router.refresh()}
         />
+      )}
+
+      {/* Modal de Diagnóstico do Banco de Dados */}
+      {isDbModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+              <div className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-blue-400" />
+                <h3 className="text-lg font-bold text-white">Status da Conexão com o Banco</h3>
+              </div>
+              <button
+                onClick={() => setIsDbModalOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-300">
+              <div
+                className={`p-4 rounded-xl border flex items-start gap-3 ${
+                  dbStatus?.isPersistent
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                    : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                }`}
+              >
+                {dbStatus?.isPersistent ? (
+                  <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <div className="font-bold text-sm">
+                    {dbStatus?.isPersistent ? "Banco de Dados Conectado e Persistente!" : "Atenção: Banco em Memória RAM Volátil"}
+                  </div>
+                  <div className="mt-1 text-xs opacity-90 leading-relaxed">
+                    {dbStatus?.isPersistent
+                      ? "Todas as alterações, novos atletas e etapas publicadas estão sendo gravadas diretamente no Turso Cloud na nuvem e permanecerão salvas permanentemente."
+                      : "O servidor da Vercel não encontrou as variáveis TURSO_DATABASE_URL e TURSO_AUTH_TOKEN configuradas no ambiente de Produção. Os dados salvos agora serão perdidos ao reiniciar o servidor ou dar F5."}
+                  </div>
+                </div>
+              </div>
+
+              {!dbStatus?.isPersistent && (
+                <div className="rounded-xl border border-white/10 bg-slate-800/80 p-4 space-y-3">
+                  <div className="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    Como Ativar a Persistência Definitiva (1 Minuto):
+                  </div>
+                  <ol className="list-decimal list-inside space-y-2 text-slate-300 text-xs leading-relaxed">
+                    <li>Acesse o painel da <strong>Vercel (vercel.com)</strong>.</li>
+                    <li>Abra o projeto que está com o domínio <strong>pokefsa.vercel.app</strong>.</li>
+                    <li>Vá em <strong>Settings ➔ Environment Variables</strong>.</li>
+                    <li>Certifique-se de que <code>TURSO_DATABASE_URL</code> e <code>TURSO_AUTH_TOKEN</code> estão marcadas para o ambiente <strong>Production</strong>.</li>
+                    <li>Vá na aba <strong>Deployments</strong>, clique nos <strong>...</strong> do último deploy e selecione <strong>Redeploy</strong>.</li>
+                  </ol>
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 gap-2 text-center pt-2">
+                <div className="rounded-xl bg-slate-800/60 p-3 border border-white/5">
+                  <div className="text-[10px] text-slate-400">Etapas</div>
+                  <div className="text-base font-bold text-white">{dbStatus?.metrics?.totalEtapas ?? 0}</div>
+                </div>
+                <div className="rounded-xl bg-slate-800/60 p-3 border border-white/5">
+                  <div className="text-[10px] text-slate-400">Resultados</div>
+                  <div className="text-base font-bold text-white">{dbStatus?.metrics?.totalResultados ?? 0}</div>
+                </div>
+                <div className="rounded-xl bg-slate-800/60 p-3 border border-white/5">
+                  <div className="text-[10px] text-slate-400">Ranking</div>
+                  <div className="text-base font-bold text-white">{dbStatus?.metrics?.totalRanking ?? 0}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  fetchDbStatus();
+                  setIsDbModalOpen(false);
+                }}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-500 cursor-pointer transition-all"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Floating Toast Notification Stack */}
