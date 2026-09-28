@@ -834,9 +834,8 @@ export async function getSeasonAwards() {
         return a.mediaColocacao - b.mediaColocacao;
       });
 
-    // 4. POKÉBOLA MURCHA (Persistência: Mín 40% etapas + Zero Pódios + Mais Jogos Sem Vencer)
-    const totalStagesCount = ranking.length > 0 ? Math.max(...ranking.map((r) => r.participacoes || 0)) : 20;
-    const minEtapasMurcha = Math.max(4, Math.floor(totalStagesCount * 0.40));
+    // 4. POKÉBOLA MURCHA (Persistência: Mín 4 etapas + Zero Pódios + Mais Etapas & Jogos Sem Vencer)
+    const minEtapasMurcha = 4;
 
     let baseMurchaList = ranking.filter((r) => r.participacoes >= minEtapasMurcha && (r.podios || 0) === 0);
     if (baseMurchaList.length === 0) {
@@ -856,6 +855,7 @@ export async function getSeasonAwards() {
         return {
           player: r.jogadorNome,
           id: r.jogadorId,
+          categoria: r.categoria,
           deficit,
           tropecos,
           podios: r.podios || 0,
@@ -865,6 +865,7 @@ export async function getSeasonAwards() {
           participations: r.participacoes,
           totalPartidas,
           minEtapasRequired: minEtapasMurcha,
+          mediaColocacao: Number(r.mediaColocacao || 0),
           winRate: Number(winRate.toFixed(1)),
           lossRate: Number(lossRate.toFixed(1)),
           tropecoRate: Number(tropecoRate.toFixed(1)),
@@ -872,10 +873,10 @@ export async function getSeasonAwards() {
         };
       })
       .sort((a, b) => {
-        // 1º Critério: Mais Jogos Sem Vencer (Derrotas + Empates)
-        if (b.tropecos !== a.tropecos) return b.tropecos - a.tropecos;
-        // 2º Critério: Mais Etapas Disputadas (Persistência / Assiduidade)
+        // 1º Critério: Mais Etapas Disputadas (Persistência na Liga)
         if (b.participations !== a.participations) return b.participations - a.participations;
+        // 2º Critério: Mais Jogos Sem Vencer (Derrotas + Empates)
+        if (b.tropecos !== a.tropecos) return b.tropecos - a.tropecos;
         // 3º Critério: Menos Vitórias
         if (a.wins !== b.wins) return a.wins - b.wins;
         // 4º Critério: Maior Taxa de Tropeços %

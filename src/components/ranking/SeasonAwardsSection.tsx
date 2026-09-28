@@ -241,7 +241,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
 
             <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-rose-300">Tropeços: {murcha.tropecos} jogos ({murcha.losses}D / {murcha.draws}E)</span>
+                <span className="font-bold text-rose-300">{murcha.tropecos} de {murcha.totalPartidas} sem ganhar ({murcha.tropecoRate}%)</span>
                 <span className="text-slate-300 font-bold tabular-nums">{murcha.participations} etapas</span>
               </div>
               <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all">
@@ -543,18 +543,22 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                     </div>
                     <div>
                       <h3 className="text-xl font-black text-white">Pokébola Murcha</h3>
-                      <p className="text-xs text-rose-400 font-bold">1º Jogos Sem Vencer (D+E) • 2º Mais Etapas • Zero Pódios</p>
+                      <p className="text-xs text-rose-400 font-bold">1º Mais Etapas • 2º Mais Jogos Sem Ganhar (D+E) • Zero Pódios</p>
                     </div>
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Premiação de persistência para o treinador frequente (mínimo de 40% das etapas) que mais enfrentou rodadas sem vencer e nunca alcançou um pódio!
+                    Classificação oficial de persistência para treinadores frequentes (mínimo de 4 etapas) que <strong>nunca subiram ao pódio</strong> na temporada inteira!
                   </p>
 
                   <div className="space-y-2 pt-2">
-                    <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400 px-1">
-                      Classificação Oficial:
-                    </h4>
+                    <div className="flex items-center justify-between px-1">
+                      <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400">
+                        Classificação Oficial ({murchaRanking.length} Candidatos):
+                      </h4>
+                      <span className="text-[10px] text-slate-500 font-semibold">Corte: $\ge 4$ etapas • 0 pódios</span>
+                    </div>
+
                     <div className="rounded-2xl border border-white/10 bg-slate-900/80 overflow-hidden divide-y divide-white/5">
                       {murchaRanking.map((p, idx) => {
                         const pos = idx + 1;
@@ -585,7 +589,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                                   {p.player}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
-                                  {p.losses}D / {p.draws}E / {p.wins}V • {p.participations} etapas ({p.podios || 0} pódios)
+                                  Cartel: {p.losses}D / {p.draws}E / {p.wins}V • Média: #{p.mediaColocacao ? Number(p.mediaColocacao).toFixed(1) : "-"}
                                 </span>
                               </div>
                             </div>
@@ -593,9 +597,9 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                             <div className="text-right shrink-0 flex items-center gap-2 sm:gap-3">
                               <div className="text-right">
                                 <span className="font-black text-sm sm:text-base text-rose-400 tabular-nums">
-                                  {p.tropecos}
+                                  {p.tropecos} de {p.totalPartidas}
                                 </span>
-                                <span className="block text-[9px] font-semibold text-slate-400">SEM VENCER</span>
+                                <span className="block text-[9px] font-semibold text-rose-300/80">({p.tropecoRate}% SEM GANHAR)</span>
                               </div>
                               <div className="rounded-xl bg-white/5 px-2.5 py-1 border border-white/10 text-center min-w-[50px]">
                                 <span className="font-black text-xs sm:text-sm text-slate-200 tabular-nums">{p.participations}</span>
