@@ -264,7 +264,7 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     }
   });
 
-  // 4. Standings finais a partir do bloco oficial <standings>
+  // 4. Standings oficiais soberanos a partir do bloco <standings> gerado pelo TOM
   const playersResult: ParsedPlayerRow[] = [];
   const standingsBlock = xmlText.match(/<standings>([\s\S]*?)<\/standings>/i)?.[1] || "";
 
@@ -310,7 +310,7 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     }
   }
 
-  // 5. Fallback para jogadores cadastrados se não houver standings explícitos
+  // 5. Fallback estritamente para arquivos sem bloco <standings> (em andamento)
   if (playersResult.length === 0 && playersMap.size > 0) {
     let idx = 1;
     playersMap.forEach((pInfo, id) => {
@@ -329,22 +329,18 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
         isDnf: false,
       });
     });
+
+    // Ordenação oficial Play! Pokémon no fallback: Pontos DESC -> OMW DESC -> Nome ASC
+    playersResult.sort((a, b) => {
+      if ((b.pontos || 0) !== (a.pontos || 0)) return (b.pontos || 0) - (a.pontos || 0);
+      if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
+      return String(a.jogador || "").localeCompare(String(b.jogador || ""), "pt-BR");
+    });
+
+    playersResult.forEach((p, idx) => {
+      p.colocacao = idx + 1;
+    });
   }
-
-  // 6. Ordenação oficial Play! Pokémon:
-  // 1º Pontos DESC -> 2º Vitórias DESC -> 3º OMW DESC -> 4º Colocação Oficial ASC -> 5º Nome ASC
-  playersResult.sort((a, b) => {
-    if ((b.pontos || 0) !== (a.pontos || 0)) return (b.pontos || 0) - (a.pontos || 0);
-    if ((b.vitorias || 0) !== (a.vitorias || 0)) return (b.vitorias || 0) - (a.vitorias || 0);
-    if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
-    if ((a.colocacao || 0) !== (b.colocacao || 0)) return (a.colocacao || 0) - (b.colocacao || 0);
-    return String(a.jogador || "").localeCompare(String(b.jogador || ""), "pt-BR");
-  });
-
-  // Reatribuir colocação sequencial
-  playersResult.forEach((p, idx) => {
-    p.colocacao = idx + 1;
-  });
 
   return {
     nomeTorneio: tournamentName,

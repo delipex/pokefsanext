@@ -536,21 +536,6 @@ export function AdminDashboard({
         name: tournamentName,
       });
 
-      // Ordenação Estrita Oficial:
-      // 1. Pontos DESC -> 2. Vitórias DESC -> 3. OMW DESC -> 4. Colocação ASC -> 5. Nome ASC
-      combinedPlayers.sort((a, b) => {
-        if ((b.pontos || 0) !== (a.pontos || 0)) return (b.pontos || 0) - (a.pontos || 0);
-        if ((b.vitorias || 0) !== (a.vitorias || 0)) return (b.vitorias || 0) - (a.vitorias || 0);
-        if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
-        if ((a.colocacao || 0) !== (b.colocacao || 0)) return (a.colocacao || 0) - (b.colocacao || 0);
-        return String(a.jogador || "").localeCompare(String(b.jogador || ""), "pt-BR");
-      });
-
-      // Reatribuir colocação sequencial
-      combinedPlayers.forEach((p, idx) => {
-        p.colocacao = idx + 1;
-      });
-
       setParsedRows(combinedPlayers);
       const successFeedback = `ℹ️ Arquivo TDF validado com sucesso! ${combinedPlayers.length} atletas carregados (${tournamentName ? `"${tournamentName}" • ` : ""}Data: ${detectedDate || stageDate}). Revise os decks na tabela abaixo e clique em "Publicar Etapa & Atualizar Ranking".`;
       setPublishMessage(successFeedback);
