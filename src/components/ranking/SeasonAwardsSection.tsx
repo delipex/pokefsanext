@@ -556,7 +556,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                       <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400">
                         Classificação Oficial ({murchaRanking.length} Candidatos):
                       </h4>
-                      <span className="text-[10px] text-slate-500 font-semibold">Corte: $\ge 4$ etapas • 0 pódios</span>
+                      <span className="text-[10px] text-slate-500 font-semibold">Corte: Mínimo de 4 etapas • 0 pódios</span>
                     </div>
 
                     <div className="rounded-2xl border border-white/10 bg-slate-900/80 overflow-hidden divide-y divide-white/5">
