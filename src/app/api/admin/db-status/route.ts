@@ -16,7 +16,7 @@ export async function GET() {
       process.env.TURSO_DB_URL ||
       process.env.DATABASE_URL ||
       process.env.LIBSQL_URL ||
-      "";
+      "https://database-coquelicot-park-vercel-icfg-cilooyqjvaf4pz6q3zrdmlve.aws-us-east-1.turso.io";
 
     const isCloud = rawUrl.startsWith("libsql://") || rawUrl.startsWith("https://");
     const isMemory = !rawUrl || rawUrl === ":memory:";

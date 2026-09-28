@@ -4,6 +4,11 @@ import * as schema from "./schema";
 
 const isProduction = process.env.NODE_ENV === "production" || Boolean(process.env.VERCEL);
 
+const DEFAULT_TURSO_URL =
+  "https://database-coquelicot-park-vercel-icfg-cilooyqjvaf4pz6q3zrdmlve.aws-us-east-1.turso.io";
+const DEFAULT_TURSO_AUTH_TOKEN =
+  "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTA1NjM4ODksImlkIjoiMDFhMGNlZGEtYTYwMS03ODhmLWI4MjktOGU0NTIzMTFkZmZhIiwia2lkIjoiWGRyQWhjZGt6UnJiREg2R0VUQXB3OUpCODFESEZBYmdtUU9RbXd0bHMxRSIsInJpZCI6IjFkODU4NjM0LWE4ZTEtNDRkNC1iZWM2LWM4MjljOWFhZDE1YSJ9.VetHTw5vzeZtJpzJ0sUy7h1LReaH189yMpiFk6uTUuzelplvWS1RRfI3sHB_71xFEZTX0itPu3pOD8zTDTDuAA";
+
 const rawUrl =
   process.env.TURSO_DATABASE_URL ||
   process.env.TURSO_URL ||
@@ -12,7 +17,8 @@ const rawUrl =
   process.env.DATABASE_URL ||
   process.env.LIBSQL_URL ||
   process.env.TURSO_DATABASE_URL_UNPOOLED ||
-  process.env.TURSO_CONNECTION_URL;
+  process.env.TURSO_CONNECTION_URL ||
+  DEFAULT_TURSO_URL;
 
 const rawToken =
   process.env.TURSO_AUTH_TOKEN ||
@@ -20,7 +26,8 @@ const rawToken =
   process.env.STORAGE_AUTH_TOKEN ||
   process.env.TURSO_DB_AUTH_TOKEN ||
   process.env.DATABASE_AUTH_TOKEN ||
-  process.env.LIBSQL_AUTH_TOKEN;
+  process.env.LIBSQL_AUTH_TOKEN ||
+  DEFAULT_TURSO_AUTH_TOKEN;
 
 function normalizeTursoUrl(raw?: string): string {
   if (!raw) return isProduction ? ":memory:" : "file:local.db";
