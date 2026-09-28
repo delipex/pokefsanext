@@ -183,12 +183,12 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     }
   }
 
-  // 2. Estatísticas de partidas (V, E, D) e oponentes
-  const statsMap = new Map<string, { v: number; e: number; d: number; roundsPlayed: number }>();
+  // 2. Estatísticas de partidas (V, E, D), Byes e oponentes
+  const statsMap = new Map<string, { v: number; e: number; d: number; byes: number; realMatches: number }>();
   const opponentsMap = new Map<string, Set<string>>();
 
   playersMap.forEach((_, id) => {
-    statsMap.set(id, { v: 0, e: 0, d: 0, roundsPlayed: 0 });
+    statsMap.set(id, { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 });
     opponentsMap.set(id, new Set());
   });
 
@@ -205,16 +205,16 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
 
     if (p1 && p2) {
       if (!statsMap.has(p1)) {
-        statsMap.set(p1, { v: 0, e: 0, d: 0, roundsPlayed: 0 });
+        statsMap.set(p1, { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 });
         opponentsMap.set(p1, new Set());
       }
       if (!statsMap.has(p2)) {
-        statsMap.set(p2, { v: 0, e: 0, d: 0, roundsPlayed: 0 });
+        statsMap.set(p2, { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 });
         opponentsMap.set(p2, new Set());
       }
 
-      statsMap.get(p1)!.roundsPlayed++;
-      statsMap.get(p2)!.roundsPlayed++;
+      statsMap.get(p1)!.realMatches++;
+      statsMap.get(p2)!.realMatches++;
       opponentsMap.get(p1)!.add(p2);
       opponentsMap.get(p2)!.add(p1);
 
@@ -228,28 +228,24 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
         statsMap.get(p1)!.e++;
         statsMap.get(p2)!.e++;
       }
-    } else if (p1 && !p2) {
-      if (statsMap.has(p1)) {
-        statsMap.get(p1)!.v++;
-        statsMap.get(p1)!.roundsPlayed++;
-      }
     } else if (singleP) {
-      // Byes no TOM: outcome 1, 5 ou 8 contam como vitória de 3 pontos
+      // Byes no TOM: vitória automática de 3 pontos
       if (statsMap.has(singleP)) {
         statsMap.get(singleP)!.v++;
-        statsMap.get(singleP)!.roundsPlayed++;
+        statsMap.get(singleP)!.byes++;
       }
     }
   }
 
-  // 3. Winrates individuais e OMW% (Play! Pokémon / TOM padrão oficial)
+  // 3. Winrates individuais (MWP) e OMW% oficiais do Play! Pokémon / TOM
   const totalRounds = 4;
   const mwpMap = new Map<string, number>();
   playersMap.forEach((p, id) => {
-    const st = statsMap.get(id) || { v: 0, e: 0, d: 0, roundsPlayed: 0 };
-    const score = st.v * 1.0 + st.e * 0.5;
-    const rounds = p.dropped ? st.roundsPlayed : totalRounds;
-    const rawRate = rounds > 0 ? score / rounds : 0.25;
+    const st = statsMap.get(id) || { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 };
+    const winsReal = st.v - st.byes;
+    const scoreReal = winsReal * 1.0 + st.e * 0.5;
+    const matchesCount = st.realMatches > 0 ? st.realMatches : Math.max(1, totalRounds - st.byes);
+    const rawRate = matchesCount > 0 ? scoreReal / matchesCount : 0.25;
     mwpMap.set(id, Math.max(0.25, rawRate));
   });
 
@@ -267,70 +263,98 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     }
   });
 
-  // 4. Standings oficiais soberanos a partir do bloco <standings> gerado pelo TOM
-  const activePlayersResult: ParsedPlayerRow[] = [];
-  const droppedPlayersResult: ParsedPlayerRow[] = [];
-  const standingsBlock = xmlText.match(/<standings>([\s\S]*?)<\/standings>/i)?.[1] || "";
+  const oomwMap = new Map<string, number>();
+  playersMap.forEach((_, id) => {
+    const opps = opponentsMap.get(id);
+    if (!opps || opps.size === 0) {
+      oomwMap.set(id, 0.25);
+    } else {
+      let sum = 0;
+      opps.forEach((oppId) => {
+        sum += omwMap.get(oppId) || 0.25;
+      });
+      oomwMap.set(id, sum / opps.size);
+    }
+  });
 
+  // Mapear categoria a partir dos pods de standings
+  const categoryMap = new Map<string, "Master" | "Senior" | "Junior">();
+  const standingsBlock = xmlText.match(/<standings>([\s\S]*?)<\/standings>/i)?.[1] || "";
   if (standingsBlock) {
     const podRegex = /<pod\s+category="([^"]+)"(?:\s+type="([^"]+)")?[^>]*>([\s\S]*?)<\/pod>/gi;
     let podMatch: RegExpExecArray | null;
-
     while ((podMatch = podRegex.exec(standingsBlock)) !== null) {
       const catCode = podMatch[1];
-      const podType = podMatch[2] || "finished"; // "finished" ou "dnf"
       const podContent = podMatch[3];
+      let cat: "Master" | "Senior" | "Junior" = "Master";
+      if (catCode === "10" || catCode === "2") cat = "Master";
+      else if (catCode === "11" || catCode === "1") cat = "Senior";
+      else if (catCode === "12" || catCode === "0") cat = "Junior";
 
-      let categoria: "Master" | "Senior" | "Junior" = "Master";
-      if (catCode === "10" || catCode === "2") categoria = "Master";
-      else if (catCode === "11" || catCode === "1") categoria = "Senior";
-      else if (catCode === "12" || catCode === "0") categoria = "Junior";
-
-      const pInPodRegex = /<player\s+id="([^"]+)"(?:\s+place="([^"]+)")?[^>]*\/>/gi;
+      const pInPodRegex = /<player\s+id="([^"]+)"/gi;
       let pipMatch: RegExpExecArray | null;
-      let fallbackPlace = 1;
-
       while ((pipMatch = pInPodRegex.exec(podContent)) !== null) {
-        const id = pipMatch[1].trim();
-        const place = pipMatch[2] ? parseInt(pipMatch[2], 10) : fallbackPlace++;
-        const pInfo = playersMap.get(id) || { name: `Jogador ${id}`, birthdate: "", dropped: false };
-        const st = statsMap.get(id) || { v: 0, e: 0, d: 0 };
-        const pontos = st.v * 3 + st.e * 1;
-        const isDnf = Boolean(pInfo.dropped || podType === "dnf");
-        const omw = omwMap.get(id) || 0.25;
-
-        const row: ParsedPlayerRow = {
-          colocacao: place,
-          id,
-          jogador: pInfo.name,
-          categoria,
-          pontos,
-          vitorias: st.v,
-          empates: st.e,
-          derrotas: st.d,
-          omw,
-          isDnf,
-        };
-
-        if (isDnf) {
-          droppedPlayersResult.push(row);
-        } else {
-          activePlayersResult.push(row);
-        }
+        categoryMap.set(pipMatch[1].trim(), cat);
       }
     }
   }
 
-  // Re-atribuir colocação para garantir que DNF fiquem no final
-  let posCounter = 1;
-  activePlayersResult.forEach((p) => {
-    p.colocacao = posCounter++;
-  });
-  droppedPlayersResult.forEach((p) => {
-    p.colocacao = posCounter++;
+  // 4. Montar classificação geral única do torneio (idêntica à tabela impressa do TOM)
+  const activeList: ParsedPlayerRow[] = [];
+  const droppedList: ParsedPlayerRow[] = [];
+
+  playersMap.forEach((p, id) => {
+    const st = statsMap.get(id) || { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 };
+    const pontos = st.v * 3 + st.e * 1;
+    const omw = omwMap.get(id) || 0.25;
+    const cat = categoryMap.get(id) || "Master";
+
+    const row: ParsedPlayerRow = {
+      colocacao: 1,
+      id,
+      jogador: p.name,
+      categoria: cat,
+      pontos,
+      vitorias: st.v,
+      empates: st.e,
+      derrotas: st.d,
+      omw,
+      isDnf: Boolean(p.dropped),
+    };
+
+    if (row.isDnf) {
+      droppedList.push(row);
+    } else {
+      activeList.push(row);
+    }
   });
 
-  const playersResult: ParsedPlayerRow[] = [...activePlayersResult, ...droppedPlayersResult];
+  // Ordenação Geral Suíço Oficial: Pontos DESC -> OMW% DESC -> OOMW% DESC -> Nome ASC
+  activeList.sort((a, b) => {
+    if ((b.pontos || 0) !== (a.pontos || 0)) return (b.pontos || 0) - (a.pontos || 0);
+    if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
+    const oomwA = oomwMap.get(a.id) || 0.25;
+    const oomwB = oomwMap.get(b.id) || 0.25;
+    if (Math.abs(oomwB - oomwA) > 0.0001) return oomwB - oomwA;
+    return String(a.jogador || "").localeCompare(String(b.jogador || ""), "pt-BR");
+  });
+
+  droppedList.sort((a, b) => {
+    if ((b.pontos || 0) !== (a.pontos || 0)) return (b.pontos || 0) - (a.pontos || 0);
+    if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
+    return String(a.jogador || "").localeCompare(String(b.jogador || ""), "pt-BR");
+  });
+
+  // Atribuir colocações contínuas de 1º a N
+  let pos = 1;
+  activeList.forEach((p) => {
+    p.colocacao = pos++;
+  });
+  droppedList.forEach((p) => {
+    p.colocacao = pos++;
+  });
+
+  const playersResult: ParsedPlayerRow[] = [...activeList, ...droppedList];
 
   // 5. Fallback estritamente para arquivos sem bloco <standings> (em andamento)
   if (playersResult.length === 0 && playersMap.size > 0) {
