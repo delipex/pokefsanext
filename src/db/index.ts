@@ -8,7 +8,11 @@ const rawUrl =
   process.env.TURSO_DATABASE_URL ||
   process.env.TURSO_URL ||
   process.env.STORAGE_URL ||
-  process.env.TURSO_DB_URL;
+  process.env.TURSO_DB_URL ||
+  process.env.DATABASE_URL ||
+  process.env.LIBSQL_URL ||
+  process.env.TURSO_DATABASE_URL_UNPOOLED ||
+  process.env.TURSO_CONNECTION_URL;
 
 const url = rawUrl || (isProduction ? ":memory:" : "file:local.db");
 
@@ -16,6 +20,9 @@ const authToken =
   process.env.TURSO_AUTH_TOKEN ||
   process.env.TURSO_TOKEN ||
   process.env.STORAGE_AUTH_TOKEN ||
+  process.env.TURSO_DB_AUTH_TOKEN ||
+  process.env.DATABASE_AUTH_TOKEN ||
+  process.env.LIBSQL_AUTH_TOKEN ||
   undefined;
 
 export const client = createClient({

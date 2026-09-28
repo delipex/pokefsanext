@@ -235,9 +235,22 @@ export function AdminDashboard({
     }
   };
 
+  const [dbStatus, setDbStatus] = useState<any>(null);
+
+  const fetchDbStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/db-status");
+      if (res.ok) {
+        const data = await res.json();
+        setDbStatus(data);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     fetchDeckRequests();
-  }, []);
+    fetchDbStatus();
+  }, [fetchDbStatus]);
 
   useEffect(() => {
     if (initialEtapas) {
@@ -1377,7 +1390,23 @@ export function AdminDashboard({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {dbStatus && (
+            <div
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${
+                dbStatus.isPersistent
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                  : "border-amber-500/30 bg-amber-500/10 text-amber-300 animate-pulse"
+              }`}
+            >
+              <Database className="h-3.5 w-3.5" />
+              <span>
+                {dbStatus.isPersistent ? "Banco: " : "Modo: "}
+                <strong>{dbStatus.dbType}</strong>
+              </span>
+            </div>
+          )}
+
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/20 hover:text-rose-300 transition-all cursor-pointer shadow-sm"
