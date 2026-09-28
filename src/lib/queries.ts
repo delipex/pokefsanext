@@ -15,6 +15,7 @@ import {
 } from "@/db/schema";
 import { desc, asc, eq } from "drizzle-orm";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { getCanonicalPlayersMap, resolveCanonicalPlayer } from "./player-canonical";
 import fs from "fs";
 import path from "path";
 
@@ -454,17 +455,35 @@ export async function getMetagameData() {
     allEtapas = readDataFile<any[]>("etapas.json", []);
   }
 
-  // Fallback Etapa Resultados (Lê dos 21 TDFs de etapas com correspondência de decks)
-  if (!allResults || allResults.length === 0) {
-    const fallbackEtapas = getFallbackEtapas();
-    allResults = fallbackEtapas.flatMap((e) => e.resultados || []);
-  }
+  // Normalização Universal Canônica para evitar duplicatas por maiúsculas/minúsculas
+  const canonicalMaps = await getCanonicalPlayersMap();
+
+  const normalizedMeta = (allMeta || []).map((m) => {
+    const canonical = resolveCanonicalPlayer({ nome: m.jogadorNome }, canonicalMaps);
+    return {
+      ...m,
+      jogadorNome: canonical.nome,
+    };
+  });
+
+  const normalizedResults = (allResults || []).map((r) => {
+    const canonical = resolveCanonicalPlayer(
+      { id: r.jogadorId, nome: r.jogadorNome, categoria: r.categoria },
+      canonicalMaps
+    );
+    return {
+      ...r,
+      jogadorId: canonical.id || r.jogadorId,
+      jogadorNome: canonical.nome,
+      categoria: canonical.categoria || r.categoria,
+    };
+  });
 
   return {
-    metagameEntries: allMeta || [],
+    metagameEntries: normalizedMeta,
     decksInfo: allDecks || [],
     etapas: allEtapas || [],
-    etapaResultados: allResults || [],
+    etapaResultados: normalizedResults,
   };
 }
 

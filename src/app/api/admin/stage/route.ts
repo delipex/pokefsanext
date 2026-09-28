@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
 import { clearFileCache, getEtapasWithSummary } from "@/lib/queries";
+import { getCanonicalPlayersMap, resolveCanonicalPlayer } from "@/lib/player-canonical";
 import fs from "fs";
 import path from "path";
 
@@ -115,12 +116,16 @@ export async function POST(req: Request) {
     await db.delete(metagame).where(eq(metagame.etapaData, cleanData));
 
     // 3. Inserir os resultados da etapa e auto-cadastrar jogadores se necessário
+    const canonicalMaps = await getCanonicalPlayersMap();
     const tdfRows: string[] = ["Pos\tID\tJogador\tCategoria\tPontos\tVitorias\tEmpates\tDerrotas"];
 
     for (const res of resultados) {
       const deckName = res.deckNome && res.deckNome !== "Não registrado" && res.deckNome !== "Sem deck registrado" ? res.deckNome.trim() : null;
-      const jogadorNome = String(res.jogador || "").trim();
-      const jogadorId = res.id ? String(res.id).trim() : null;
+      const rawNome = String(res.jogador || "").trim();
+      const rawId = res.id ? String(res.id).trim() : null;
+      const canonical = resolveCanonicalPlayer({ id: rawId, nome: rawNome, categoria: res.categoria }, canonicalMaps);
+      const jogadorNome = canonical.nome;
+      const jogadorId = canonical.id || rawId;
 
       if (jogadorId) {
         try {
@@ -129,7 +134,7 @@ export async function POST(req: Request) {
             await db.insert(jogadores).values({
               id: jogadorId,
               nome: jogadorNome,
-              categoria: (res.categoria as any) || "Master",
+              categoria: canonical.categoria || "Master",
               status: "ativo",
               ativo: true,
             });
@@ -144,7 +149,7 @@ export async function POST(req: Request) {
         etapaData: cleanData,
         jogadorId: jogadorId,
         jogadorNome: jogadorNome,
-        categoria: res.categoria || "Master",
+        categoria: canonical.categoria || "Master",
         colocacao: Number(res.colocacao) || 99,
         pontos: Number(res.pontos) || 0,
         vitorias: Number(res.vitorias) || 0,
@@ -164,7 +169,7 @@ export async function POST(req: Request) {
       }
 
       tdfRows.push(
-        `${res.colocacao}\t${jogadorId || ""}\t${jogadorNome}\t${res.categoria || "Master"}\t${res.pontos || 0}\t${res.vitorias || 0}\t${res.empates || 0}\t${res.derrotas || 0}`
+        `${res.colocacao}\t${jogadorId || ""}\t${jogadorNome}\t${canonical.categoria || "Master"}\t${res.pontos || 0}\t${res.vitorias || 0}\t${res.empates || 0}\t${res.derrotas || 0}`
       );
     }
 

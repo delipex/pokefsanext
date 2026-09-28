@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { etapas, etapaResultados, rankingConsolidado, configuracoes } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { getCanonicalPlayersMap, resolveCanonicalPlayer } from "./player-canonical";
 
 export async function recalculateRankingConsolidado(targetSeason?: number) {
   await ensureDatabaseSchema();
@@ -16,6 +17,9 @@ export async function recalculateRankingConsolidado(targetSeason?: number) {
     }
   }
 
+  // Mapa canônico universal para resolver POP IDs e nomes
+  const canonicalMaps = await getCanonicalPlayersMap();
+
   // 1. Buscar todas as etapas da temporada ativa ordenadas cronologicamente
   let allEtapas = await db.select().from(etapas).where(eq(etapas.temporada, activeSeason));
   if (allEtapas.length === 0) {
@@ -27,19 +31,25 @@ export async function recalculateRankingConsolidado(targetSeason?: number) {
   const allResults = await db.select().from(etapaResultados);
   allResults.sort((a, b) => String(a.etapaData).localeCompare(String(b.etapaData)));
 
-  // 2. Mapear resultados por jogador (chave: jogadorId ou jogadorNome)
+  // 2. Mapear resultados por jogador canônico
   const playerStatsMap: Record<string, any> = {};
 
   for (const r of allResults) {
     const cleanEtapaData = String(r.etapaData).trim();
     const etapaInfo = etapaMap.get(cleanEtapaData) || { multiplicador: 1.0, data: cleanEtapaData };
 
-    const key = r.jogadorId ? String(r.jogadorId).trim() : String(r.jogadorNome).trim();
+    const canonical = resolveCanonicalPlayer(
+      { id: r.jogadorId, nome: r.jogadorNome, categoria: (r.categoria as any) || "Master" },
+      canonicalMaps
+    );
+
+    const key = canonical.id ? canonical.id : canonical.nome.toLowerCase().trim();
+
     if (!playerStatsMap[key]) {
       playerStatsMap[key] = {
-        jogadorId: r.jogadorId ? String(r.jogadorId).trim() : "",
-        jogadorNome: r.jogadorNome.trim(),
-        categoria: r.categoria || "Master",
+        jogadorId: canonical.id || "",
+        jogadorNome: canonical.nome,
+        categoria: canonical.categoria || "Master",
         pontos: 0,
         vitorias: 0,
         empates: 0,
@@ -118,8 +128,9 @@ export async function recalculateRankingConsolidado(targetSeason?: number) {
   // 5. Atualizar tabela de rankingConsolidado
   await db.delete(rankingConsolidado);
 
-  for (const p of consolidatedList) {
-    await db.insert(rankingConsolidado).values(p);
+  if (consolidatedList.length > 0) {
+    // Inserção em lote para performance ultra-rápida (1 round-trip HTTP)
+    await db.insert(rankingConsolidado).values(consolidatedList);
   }
 
   return {
