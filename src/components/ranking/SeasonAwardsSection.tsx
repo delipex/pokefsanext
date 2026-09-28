@@ -235,14 +235,14 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
               </div>
 
               <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
-                Mais etapas disputadas ({murcha.participations} et.), maior volume de derrotas ({murcha.losses}D) e menos vitórias ({murcha.wins}V).
+                Maior volume de derrotas ({murcha.losses}D), menos vitórias ({murcha.wins}V) e alta presença em etapas ({murcha.participations} et.).
               </p>
             </div>
 
             <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-rose-300">Déficit: +{murcha.deficit}</span>
-                <span className="text-slate-300 font-bold tabular-nums">{murcha.participations} etapas ({murcha.losses}D - {murcha.wins}V)</span>
+                <span className="font-bold text-rose-300">{murcha.losses} Derrotas</span>
+                <span className="text-slate-300 font-bold tabular-nums">{murcha.wins} vitórias • {murcha.participations} etapas</span>
               </div>
               <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all">
                 <span>Ver classificação e detalhes</span>
@@ -543,17 +543,17 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                     </div>
                     <div>
                       <h3 className="text-xl font-black text-white">Pokébola Murcha</h3>
-                      <p className="text-xs text-rose-400 font-bold">1º Etapas • 2º Mais Derrotas • 3º Menos Vitórias</p>
+                      <p className="text-xs text-rose-400 font-bold">1º Mais Derrotas • 2º Menos Vitórias • 3º Mais Etapas</p>
                     </div>
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Troféu aos guerreiros que acumularam o <strong>maior número de derrotas</strong> em sua jornada de <strong>alta presença e assiduidade nas etapas</strong> da Liga!
+                    Classificação direta por dados: <strong>maior número de derrotas</strong>, desempatando por <strong>menos vitórias</strong> e <strong>mais etapas disputadas</strong>!
                   </p>
 
                   <div className="space-y-2 pt-2">
                     <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400 px-1">
-                      Ranking de Resiliência & Presença:
+                      Classificação Oficial:
                     </h4>
                     <div className="rounded-2xl border border-white/10 bg-slate-900/80 overflow-hidden divide-y divide-white/5">
                       {murchaRanking.map((p, idx) => {
@@ -585,7 +585,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                                   {p.player}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
-                                  <strong className="text-slate-200">{p.participations} etapas</strong> • {p.losses} derrotas vs {p.wins} vitórias
+                                  {p.participations} etapas • {p.wins} vitórias ({p.winRate}% win rate)
                                 </span>
                               </div>
                             </div>
@@ -593,9 +593,9 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                             <div className="text-right shrink-0 flex items-center gap-2 sm:gap-3">
                               <div className="text-right">
                                 <span className="font-black text-sm sm:text-base text-rose-400 tabular-nums">
-                                  +{p.deficit}
+                                  {p.losses}
                                 </span>
-                                <span className="block text-[9px] font-semibold text-slate-400">DÉFICIT</span>
+                                <span className="block text-[9px] font-semibold text-slate-400">DERROTAS</span>
                               </div>
                               <div className="rounded-xl bg-white/5 px-2.5 py-1 border border-white/10 text-center min-w-[50px]">
                                 <span className="font-black text-xs sm:text-sm text-slate-200 tabular-nums">{p.participations}</span>

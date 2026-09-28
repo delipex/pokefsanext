@@ -859,14 +859,14 @@ export async function getSeasonAwards() {
         };
       })
       .sort((a, b) => {
-        // 1º Critério: Mais Etapas Disputadas
-        if (b.participations !== a.participations) return b.participations - a.participations;
-        // 2º Critério: Mais Número Total de Derrotas
+        // 1º Critério: Mais Número Total de Derrotas
         if (b.losses !== a.losses) return b.losses - a.losses;
-        // 3º Critério: Menos Número de Vitórias
+        // 2º Critério: Menos Número de Vitórias (Inversamente proporcional)
         if (a.wins !== b.wins) return a.wins - b.wins;
-        // 4º Critério: Maior Déficit (D - V)
-        return b.deficit - a.deficit;
+        // 3º Critério: Mais Etapas Disputadas
+        if (b.participations !== a.participations) return b.participations - a.participations;
+        // 4º Critério: Maior Taxa de Derrotas
+        return b.lossRate - a.lossRate;
       });
 
     return {
