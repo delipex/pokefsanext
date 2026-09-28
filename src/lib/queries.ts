@@ -815,15 +815,14 @@ export async function getSeasonAwards() {
         return a.mediaColocacao - b.mediaColocacao;
       });
 
-    // 4. POKÉBOLA MURCHA (Maior Proporção de Derrotas e Menor Aproveitamento, mín 2 etapas)
+    // 4. POKÉBOLA MURCHA (Maior Déficit de Derrotas D - V com Alta Presença nas Etapas, mín 2 etapas)
     const murchaCandidates = ranking
-      .filter((r) => r.participacoes >= 2)
+      .filter((r) => r.participacoes >= 2 && r.derrotas > r.vitorias)
       .map((r) => {
         const totalPartidas = r.vitorias + r.derrotas + r.empates;
         const winRate = totalPartidas > 0 ? (r.vitorias / totalPartidas) * 100 : 0;
         const lossRate = totalPartidas > 0 ? (r.derrotas / totalPartidas) * 100 : 0;
         const mediaDerrotasEtapa = r.participacoes > 0 ? r.derrotas / r.participacoes : 0;
-        const aproveitamento = totalPartidas > 0 ? ((r.vitorias * 3 + r.empates) / (totalPartidas * 3)) * 100 : 0;
         const deficit = r.derrotas - r.vitorias;
 
         return {
@@ -838,17 +837,16 @@ export async function getSeasonAwards() {
           winRate: Number(winRate.toFixed(1)),
           lossRate: Number(lossRate.toFixed(1)),
           mediaDerrotas: Number(mediaDerrotasEtapa.toFixed(2)),
-          aproveitamento: Number(aproveitamento.toFixed(1)),
         };
       })
       .sort((a, b) => {
-        // 1º Maior taxa de derrota (% de partidas perdidas)
-        if (b.lossRate !== a.lossRate) return b.lossRate - a.lossRate;
-        // 2º Menor taxa de aproveitamento
-        if (a.aproveitamento !== b.aproveitamento) return a.aproveitamento - b.aproveitamento;
-        // 3º Maior média de derrotas por etapa
-        if (b.mediaDerrotas !== a.mediaDerrotas) return b.mediaDerrotas - a.mediaDerrotas;
-        return b.losses - a.losses;
+        // 1º Maior Déficit de Derrotas (D - V)
+        if (b.deficit !== a.deficit) return b.deficit - a.deficit;
+        // 2º Maior quantidade de Etapas disputadas (Presença e Resiliência contínua)
+        if (b.participations !== a.participations) return b.participations - a.participations;
+        // 3º Maior número total de derrotas
+        if (b.losses !== a.losses) return b.losses - a.losses;
+        return b.lossRate - a.lossRate;
       });
 
     return {
