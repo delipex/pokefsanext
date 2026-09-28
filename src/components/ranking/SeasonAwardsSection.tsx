@@ -235,13 +235,13 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
               </div>
 
               <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
-                Maior volume de derrotas ({murcha.losses}D), déficit (+{murcha.deficit}) e menos vitórias ({murcha.wins}V) em {murcha.participations} etapas.
+                Maior persistência sem pódios na temporada ({murcha.participations} etapas disputadas).
               </p>
             </div>
 
             <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-rose-300">Déficit: +{murcha.deficit} ({murcha.losses}D - {murcha.wins}V)</span>
+                <span className="font-bold text-rose-300">Tropeços: {murcha.tropecos} jogos ({murcha.losses}D / {murcha.draws}E)</span>
                 <span className="text-slate-300 font-bold tabular-nums">{murcha.participations} etapas</span>
               </div>
               <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all">
@@ -543,12 +543,12 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                     </div>
                     <div>
                       <h3 className="text-xl font-black text-white">Pokébola Murcha</h3>
-                      <p className="text-xs text-rose-400 font-bold">1º Mais Derrotas • 2º Menos Vitórias • 3º Mais Etapas</p>
+                      <p className="text-xs text-rose-400 font-bold">1º Jogos Sem Vencer (D+E) • 2º Mais Etapas • Zero Pódios</p>
                     </div>
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Classificação direta por dados: <strong>maior número de derrotas</strong>, desempatando por <strong>menos vitórias</strong> e <strong>mais etapas disputadas</strong>!
+                    Premiação de persistência para o treinador frequente (mínimo de 40% das etapas) que mais enfrentou rodadas sem vencer e nunca alcançou um pódio!
                   </p>
 
                   <div className="space-y-2 pt-2">
@@ -585,7 +585,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                                   {p.player}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
-                                  {p.participations} etapas • {p.losses}D vs {p.wins}V ({p.winRate}% win rate)
+                                  {p.losses}D / {p.draws}E / {p.wins}V • {p.participations} etapas ({p.podios || 0} pódios)
                                 </span>
                               </div>
                             </div>
@@ -593,9 +593,9 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                             <div className="text-right shrink-0 flex items-center gap-2 sm:gap-3">
                               <div className="text-right">
                                 <span className="font-black text-sm sm:text-base text-rose-400 tabular-nums">
-                                  +{p.deficit}
+                                  {p.tropecos}
                                 </span>
-                                <span className="block text-[9px] font-semibold text-slate-400">DÉFICIT</span>
+                                <span className="block text-[9px] font-semibold text-slate-400">SEM VENCER</span>
                               </div>
                               <div className="rounded-xl bg-white/5 px-2.5 py-1 border border-white/10 text-center min-w-[50px]">
                                 <span className="font-black text-xs sm:text-sm text-slate-200 tabular-nums">{p.participations}</span>

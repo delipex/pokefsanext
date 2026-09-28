@@ -834,11 +834,20 @@ export async function getSeasonAwards() {
         return a.mediaColocacao - b.mediaColocacao;
       });
 
-    // 4. POKÉBOLA MURCHA (Troféu de Resiliência: 1º Etapas -> 2º Mais Derrotas -> 3º Menos Vitórias)
-    const murchaCandidates = ranking
-      .filter((r) => r.participacoes >= 2 && r.derrotas > r.vitorias)
+    // 4. POKÉBOLA MURCHA (Persistência: Mín 40% etapas + Zero Pódios + Mais Jogos Sem Vencer)
+    const totalStagesCount = ranking.length > 0 ? Math.max(...ranking.map((r) => r.participacoes || 0)) : 20;
+    const minEtapasMurcha = Math.max(4, Math.floor(totalStagesCount * 0.40));
+
+    let baseMurchaList = ranking.filter((r) => r.participacoes >= minEtapasMurcha && (r.podios || 0) === 0);
+    if (baseMurchaList.length === 0) {
+      baseMurchaList = ranking.filter((r) => r.participacoes >= minEtapasMurcha);
+    }
+
+    const murchaCandidates = baseMurchaList
       .map((r) => {
         const totalPartidas = r.vitorias + r.derrotas + r.empates;
+        const tropecos = r.derrotas + r.empates; // Jogos sem vencer
+        const tropecoRate = totalPartidas > 0 ? (tropecos / totalPartidas) * 100 : 0;
         const winRate = totalPartidas > 0 ? (r.vitorias / totalPartidas) * 100 : 0;
         const lossRate = totalPartidas > 0 ? (r.derrotas / totalPartidas) * 100 : 0;
         const mediaDerrotasEtapa = r.participacoes > 0 ? r.derrotas / r.participacoes : 0;
@@ -848,25 +857,29 @@ export async function getSeasonAwards() {
           player: r.jogadorNome,
           id: r.jogadorId,
           deficit,
+          tropecos,
+          podios: r.podios || 0,
           wins: r.vitorias,
           draws: r.empates,
           losses: r.derrotas,
           participations: r.participacoes,
           totalPartidas,
+          minEtapasRequired: minEtapasMurcha,
           winRate: Number(winRate.toFixed(1)),
           lossRate: Number(lossRate.toFixed(1)),
+          tropecoRate: Number(tropecoRate.toFixed(1)),
           mediaDerrotas: Number(mediaDerrotasEtapa.toFixed(2)),
         };
       })
       .sort((a, b) => {
-        // 1º Critério: Mais Número Total de Derrotas
-        if (b.losses !== a.losses) return b.losses - a.losses;
-        // 2º Critério: Menos Número de Vitórias (Inversamente proporcional)
-        if (a.wins !== b.wins) return a.wins - b.wins;
-        // 3º Critério: Mais Etapas Disputadas
+        // 1º Critério: Mais Jogos Sem Vencer (Derrotas + Empates)
+        if (b.tropecos !== a.tropecos) return b.tropecos - a.tropecos;
+        // 2º Critério: Mais Etapas Disputadas (Persistência / Assiduidade)
         if (b.participations !== a.participations) return b.participations - a.participations;
-        // 4º Critério: Maior Taxa de Derrotas
-        return b.lossRate - a.lossRate;
+        // 3º Critério: Menos Vitórias
+        if (a.wins !== b.wins) return a.wins - b.wins;
+        // 4º Critério: Maior Taxa de Tropeços %
+        return b.tropecoRate - a.tropecoRate;
       });
 
     return {
