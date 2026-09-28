@@ -146,6 +146,8 @@ export function AdminDashboard({
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState("");
   const [resolvedNamesMap, setResolvedNamesMap] = useState<Record<string, string>>({});
+  const [isDraggingTdf, setIsDraggingTdf] = useState(false);
+  const [isRegisteringAll, setIsRegisteringAll] = useState(false);
 
   // Estado de Jogadores com deduplicação defensiva por ID e Nome
   const deduplicatedInitialPlayers = useMemo(() => {
@@ -363,11 +365,16 @@ export function AdminDashboard({
     try {
       let combinedPlayers: (ParsedPlayerRow & { deckNome?: string })[] = [];
       let detectedDate: string | null = null;
+      let tournamentName: string | null = null;
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const text = await file.text();
         const parsed = parseTDFContent(text, file.name);
+
+        if (parsed.nomeTorneio && !tournamentName) {
+          tournamentName = parsed.nomeTorneio;
+        }
 
         if (parsed.dataTorneio && !detectedDate) {
           detectedDate = parsed.dataTorneio;
@@ -385,7 +392,7 @@ export function AdminDashboard({
       }
 
       if (combinedPlayers.length === 0) {
-        setPublishMessage("⚠️ Nenhum jogador ou resultado válido foi detectado no arquivo selecionado.");
+        setPublishMessage("⚠️ Nenhum jogador ou resultado válido foi detectado no arquivo selecionado. Verifique se o arquivo .tdf é válido.");
         return;
       }
 
@@ -409,6 +416,9 @@ export function AdminDashboard({
       });
 
       setParsedRows(combinedPlayers);
+      setPublishMessage(
+        `ℹ️ Arquivo TDF validado com sucesso! ${combinedPlayers.length} atletas carregados (${tournamentName ? `"${tournamentName}" • ` : ""}Data: ${detectedDate || stageDate}). Revise os decks na tabela abaixo e clique em "Publicar Etapa & Atualizar Ranking".`
+      );
     } catch (err: any) {
       console.error("Erro ao processar arquivo TDF:", err);
       setPublishMessage(`❌ Erro ao ler o arquivo TDF: ${err?.message || "Estrutura do arquivo incompatível"}`);
@@ -416,9 +426,10 @@ export function AdminDashboard({
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       handleFilesProcess(e.target.files);
     }
+    e.target.value = "";
   };
 
   // Identificar jogadores não cadastrados no banco com verificação defensiva 360°
@@ -477,6 +488,22 @@ export function AdminDashboard({
     }
   };
 
+  // Ação rápida em lote: Cadastrar todos os jogadores não resolvidos
+  const handleQuickRegisterAllPlayers = async () => {
+    if (unresolvedPlayers.length === 0) return;
+    setIsRegisteringAll(true);
+    try {
+      for (const p of unresolvedPlayers) {
+        await handleQuickRegisterPlayer(p);
+      }
+      setPublishMessage(`✅ Todos os ${unresolvedPlayers.length} atletas foram cadastrados no banco com sucesso!`);
+    } catch (err: any) {
+      setPublishMessage(`❌ Erro ao cadastrar atletas em lote: ${err.message}`);
+    } finally {
+      setIsRegisteringAll(false);
+    }
+  };
+
   // Atualizar deck de um jogador na pré-visualização
   const handlePlayerDeckChange = (index: number, deckName: string) => {
     setParsedRows((prev) => {
@@ -488,7 +515,10 @@ export function AdminDashboard({
 
   // Publicação da Etapa
   const handlePublishStage = async () => {
-    if (parsedRows.length === 0) return;
+    if (parsedRows.length === 0) {
+      setPublishMessage("⚠️ Nenhum resultado carregado para publicar. Selecione um arquivo .tdf primeiro.");
+      return;
+    }
     setIsPublishing(true);
     setPublishMessage("");
 
@@ -500,6 +530,7 @@ export function AdminDashboard({
         finalEventName = customStageTitle.trim() || "Personalizado";
       }
 
+      const totalAtletas = parsedRows.length;
       const res = await fetch("/api/admin/stage", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -516,13 +547,20 @@ export function AdminDashboard({
 
       const data = await res.json();
       if (res.ok) {
-        setPublishMessage("✅ Etapa publicada, metagame atualizado e ranking consolidado recalculado com sucesso!");
+        setPublishMessage(
+          `✅ Etapa de ${stageDate} (${finalEventName}) publicada com sucesso! ${totalAtletas} resultados gravados e o ranking consolidado foi recalculado.`
+        );
         setParsedRows([]);
+        setAdminEtapas((prev) => [
+          { data: stageDate, tipo: finalEventName, multiplicador: multiplier, status: "concluida" },
+          ...prev.filter((item) => item.data !== stageDate),
+        ]);
+        router.refresh();
       } else {
-        setPublishMessage(`❌ Erro: ${data.error}`);
+        setPublishMessage(`❌ Erro ao publicar etapa: ${data.error || "Falha no servidor"}`);
       }
     } catch (err: any) {
-      setPublishMessage(`❌ Erro de conexão: ${err.message}`);
+      setPublishMessage(`❌ Erro de conexão ao publicar: ${err.message}`);
     } finally {
       setIsPublishing(false);
     }
@@ -1329,7 +1367,25 @@ export function AdminDashboard({
       {activeTab === "tdf" && (
         <div className="space-y-6">
           {/* Box de Upload */}
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6">
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingTdf(true);
+            }}
+            onDragLeave={() => setIsDraggingTdf(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDraggingTdf(false);
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFilesProcess(e.dataTransfer.files);
+              }
+            }}
+            className={`rounded-3xl border transition-all p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-6 ${
+              isDraggingTdf
+                ? "border-blue-500 bg-blue-600/20 ring-4 ring-blue-500/30"
+                : "border-white/10 bg-slate-900/60"
+            }`}
+          >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
               <div>
                 <h3 className="text-lg font-black text-white flex items-center gap-2">
@@ -1337,7 +1393,7 @@ export function AdminDashboard({
                   Importar Arquivo Oficial TOM (.tdf)
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Formato oficial e exclusivo do Tournament Operations Manager (.tdf)
+                  Arraste seu arquivo .tdf para cá ou clique no botão para selecionar
                 </p>
               </div>
 
@@ -1567,17 +1623,64 @@ export function AdminDashboard({
             </div>
           </div>
 
+          {/* Banner de Feedback e Validação (Sempre Visível) */}
+          {publishMessage && (
+            <div
+              className={`p-4 rounded-2xl border text-xs sm:text-sm font-bold flex items-center justify-between gap-3 backdrop-blur-xl shadow-xl transition-all ${
+                publishMessage.startsWith("✅")
+                  ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                  : publishMessage.startsWith("❌")
+                  ? "border-red-500/40 bg-red-500/15 text-red-300"
+                  : publishMessage.startsWith("⚠️")
+                  ? "border-amber-500/40 bg-amber-500/15 text-amber-300"
+                  : "border-blue-500/40 bg-blue-500/15 text-blue-300"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                {publishMessage.startsWith("✅") ? (
+                  <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+                ) : publishMessage.startsWith("❌") ? (
+                  <X className="h-5 w-5 text-red-400 shrink-0" />
+                ) : publishMessage.startsWith("⚠️") ? (
+                  <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
+                ) : (
+                  <Sparkles className="h-5 w-5 text-blue-400 shrink-0" />
+                )}
+                <span>{publishMessage}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPublishMessage("")}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                title="Fechar aviso"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           {/* Jogadores Não Reconhecidos / Alerta */}
           {unresolvedPlayers.length > 0 && (
             <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-6 backdrop-blur-xl shadow-xl space-y-4">
-              <div className="flex items-center gap-2 text-amber-400">
-                <AlertTriangle className="h-5 w-5 shrink-0" />
-                <h4 className="font-bold text-sm">
-                  {unresolvedPlayers.length} jogador(es) no arquivo TDF não cadastrados no banco:
-                </h4>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2 text-amber-400">
+                  <AlertTriangle className="h-5 w-5 shrink-0" />
+                  <h4 className="font-bold text-sm">
+                    {unresolvedPlayers.length} jogador(es) no arquivo TDF não cadastrados no banco:
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleQuickRegisterAllPlayers}
+                  disabled={isRegisteringAll}
+                  className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-black text-slate-950 hover:bg-amber-400 transition-colors shadow flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isRegisteringAll ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
+                  <span>Cadastrar Todos Automaticamente</span>
+                </button>
               </div>
               <p className="text-xs text-slate-300">
-                Cadastre-os rapidamente abaixo para vinculá-los ao histórico da Liga e garantir a pontuação correta:
+                Cadastre-os abaixo para vinculá-los ao histórico da Liga e garantir a pontuação correta:
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
@@ -1593,7 +1696,7 @@ export function AdminDashboard({
                     <button
                       type="button"
                       onClick={() => handleQuickRegisterPlayer(p)}
-                      className="rounded-xl bg-amber-500 px-3 py-1.5 text-[10px] font-black text-slate-950 hover:bg-amber-400 transition-colors shadow"
+                      className="rounded-xl bg-amber-500 px-3 py-1.5 text-[10px] font-black text-slate-950 hover:bg-amber-400 transition-colors shadow cursor-pointer"
                     >
                       Cadastrar
                     </button>
@@ -1631,12 +1734,6 @@ export function AdminDashboard({
                   <span>Publicar Etapa & Atualizar Ranking</span>
                 </button>
               </div>
-
-              {publishMessage && (
-                <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-bold">
-                  {publishMessage}
-                </div>
-              )}
 
               <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/80">
                 <table className="w-full text-left text-xs text-slate-200">
