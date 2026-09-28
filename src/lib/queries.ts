@@ -204,6 +204,7 @@ function getFallbackEtapas(): any[] {
 }
 
 export async function getRanking(categoria?: string) {
+  await ensureDatabaseSchema();
   const fallback = getFallbackRanking();
   const latestDecks = getLatestDecksMap();
   try {
@@ -258,6 +259,7 @@ export async function getRanking(categoria?: string) {
 }
 
 export async function getTop4Podium() {
+  await ensureDatabaseSchema();
   const latestDecks = getLatestDecksMap();
   try {
     const res = await db
@@ -291,6 +293,7 @@ export async function getTop4Podium() {
 }
 
 export async function getAllDecks() {
+  await ensureDatabaseSchema();
   let list: any[] = [];
   try {
     const res = await db.select().from(decks).where(eq(decks.ativo, true)).orderBy(asc(decks.nome));
@@ -323,6 +326,7 @@ export async function getAllDecks() {
 }
 
 export async function getAllEtapas() {
+  await ensureDatabaseSchema();
   try {
     const res = await db.select().from(etapas).orderBy(desc(etapas.data));
     if (res && res.length > 0) return res;
@@ -334,6 +338,7 @@ export async function getAllEtapas() {
 }
 
 export async function getEtapasWithSummary() {
+  await ensureDatabaseSchema();
   const fallback = getFallbackEtapas();
   const metaMap = getMetagameMap();
 
@@ -391,6 +396,7 @@ export async function getEtapasWithSummary() {
 }
 
 export async function getMetagameData() {
+  await ensureDatabaseSchema();
   let allMeta: any[] = [];
   let allDecks: any[] = [];
   let allEtapas: any[] = [];

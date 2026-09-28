@@ -7,6 +7,7 @@ import defaultScoresAntigos from "@/data/scores_antigos.json";
 import defaultConfig from "@/data/config.json";
 import defaultEtapas from "@/data/etapas.json";
 import defaultGaleria from "@/data/galeria.json";
+import { initialEtapaResultados, initialMetagameEntries } from "./initial-seed-data";
 
 let hasMigrated = false;
 
@@ -440,6 +441,50 @@ export async function ensureDatabaseSchema() {
           args: [etapa.data, etapa.tipo || "Liga", mult, etapa.temporada || 5],
         });
       }
+    }
+
+    // 8. Etapa Resultados
+    const countResultados = await client.execute("SELECT COUNT(*) as cnt FROM etapa_resultados;");
+    const numResultados = Number(countResultados.rows[0]?.cnt || 0);
+    if (numResultados < 20 && Array.isArray(initialEtapaResultados)) {
+      for (const r of initialEtapaResultados) {
+        await client.execute({
+          sql: `INSERT INTO etapa_resultados (etapa_data, jogador_id, jogador_nome, categoria, colocacao, pontos, vitorias, empates, derrotas, deck_nome, dropou) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+          args: [
+            r.etapaData,
+            r.jogadorId,
+            r.jogadorNome,
+            r.categoria || "Master",
+            r.colocacao,
+            r.pontos,
+            r.vitorias,
+            r.empates,
+            r.derrotas,
+            r.deckNome,
+            r.dropou ? 1 : 0,
+          ],
+        });
+      }
+    }
+
+    // 9. Metagame
+    const countMeta = await client.execute("SELECT COUNT(*) as cnt FROM metagame;");
+    const numMeta = Number(countMeta.rows[0]?.cnt || 0);
+    if (numMeta < 20 && Array.isArray(initialMetagameEntries)) {
+      for (const m of initialMetagameEntries) {
+        await client.execute({
+          sql: `INSERT INTO metagame (etapa_data, session_code, jogador_nome, deck_nome) VALUES (?, ?, ?, ?);`,
+          args: [m.etapaData, m.sessionCode, m.jogadorNome, m.deckNome],
+        });
+      }
+    }
+
+    // 10. Ranking Consolidado
+    const countRank = await client.execute("SELECT COUNT(*) as cnt FROM ranking_consolidado;");
+    const numRank = Number(countRank.rows[0]?.cnt || 0);
+    if (numRank < 10) {
+      const { recalculateRankingConsolidado } = await import("@/lib/recalculate-ranking");
+      await recalculateRankingConsolidado(5);
     }
   } catch (seedErr) {
     console.warn("Aviso ao auto-hidratar banco de dados:", seedErr);
