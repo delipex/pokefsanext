@@ -72,25 +72,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nome e Tipo de Energia são obrigatórios" }, { status: 400 });
     }
 
-    await db
-      .insert(decks)
-      .values({
-        nome: String(nome).trim(),
-        tipoEnergia: String(tipoEnergia).trim(),
+    const cleanNome = String(nome).trim();
+    const cleanTipoEnergia = String(tipoEnergia).trim();
+
+    // Check if deck already exists (case-insensitive safe check)
+    const allExisting = await db.select().from(decks);
+    const existing = allExisting.find(
+      (d) => (d.nome || "").toLowerCase().trim() === cleanNome.toLowerCase()
+    );
+
+    if (existing) {
+      await db
+        .update(decks)
+        .set({
+          nome: cleanNome,
+          tipoEnergia: cleanTipoEnergia,
+          imagem: imagem || null,
+          limitless: limitless || null,
+          icone: icone || null,
+          ativo: true,
+        })
+        .where(eq(decks.id, existing.id));
+    } else {
+      await db.insert(decks).values({
+        nome: cleanNome,
+        tipoEnergia: cleanTipoEnergia,
         imagem: imagem || null,
         limitless: limitless || null,
         icone: icone || null,
         ativo: true,
-      })
-      .onConflictDoUpdate({
-        target: decks.nome,
-        set: {
-          tipoEnergia: String(tipoEnergia).trim(),
-          imagem: imagem || null,
-          limitless: limitless || null,
-          icone: icone || null,
-        },
       });
+    }
 
     await syncDecksJson();
     try {

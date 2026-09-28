@@ -62,28 +62,21 @@ export async function POST() {
     }
 
     // 2. Decks (com upsert por nome)
+    await db.delete(decks);
     const rawDecks = readDataFile<any[]>("decks.json", []);
+    const seenDecks = new Set<string>();
     for (const d of rawDecks) {
       const dNome = (d.deck || d.nome || "").trim();
-      if (!dNome) continue;
-      await db
-        .insert(decks)
-        .values({
-          nome: dNome,
-          tipoEnergia: d.tipoEnergia || "colorless",
-          imagem: d.imagem || null,
-          limitless: d.limitless || null,
-          icone: d.icone || null,
-        })
-        .onConflictDoUpdate({
-          target: decks.nome,
-          set: {
-            tipoEnergia: d.tipoEnergia || "colorless",
-            imagem: d.imagem || null,
-            limitless: d.limitless || null,
-            icone: d.icone || null,
-          },
-        });
+      if (!dNome || seenDecks.has(dNome.toLowerCase())) continue;
+      seenDecks.add(dNome.toLowerCase());
+      await db.insert(decks).values({
+        nome: dNome,
+        tipoEnergia: d.tipoEnergia || "colorless",
+        imagem: d.imagem || null,
+        limitless: d.limitless || null,
+        icone: d.icone || null,
+        ativo: true,
+      });
     }
 
     // 3. Jogadores (com leitura segura de jogador/Jogador/nome e auto-ID)

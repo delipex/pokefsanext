@@ -67,27 +67,34 @@ export async function POST(req: Request) {
       activeSeason = 5;
     }
 
-    // 1. Inserir ou atualizar a etapa
-    const [insertedEtapa] = await db
-      .insert(etapas)
-      .values({
-        data,
-        tipo: tipo || "Liga",
-        multiplicador: Number(multiplicador) || 1.0,
-        temporada: activeSeason,
-        status: "concluida",
-      })
-      .onConflictDoUpdate({
-        target: etapas.data,
-        set: {
+    // 1. Inserir ou atualizar a etapa de forma segura
+    const existingEtapa = await db.select().from(etapas).where(eq(etapas.data, data));
+    let etapaId: number | undefined;
+
+    if (existingEtapa && existingEtapa.length > 0) {
+      etapaId = existingEtapa[0].id;
+      await db
+        .update(etapas)
+        .set({
           tipo: tipo || "Liga",
           multiplicador: Number(multiplicador) || 1.0,
           temporada: activeSeason,
-        },
-      })
-      .returning();
-
-    const etapaId = insertedEtapa?.id;
+          status: "concluida",
+        })
+        .where(eq(etapas.id, etapaId));
+    } else {
+      const [insertedEtapa] = await db
+        .insert(etapas)
+        .values({
+          data,
+          tipo: tipo || "Liga",
+          multiplicador: Number(multiplicador) || 1.0,
+          temporada: activeSeason,
+          status: "concluida",
+        })
+        .returning();
+      etapaId = insertedEtapa?.id;
+    }
 
     // 2. Limpar resultados anteriores da mesma data
     await db.delete(etapaResultados).where(eq(etapaResultados.etapaData, data));

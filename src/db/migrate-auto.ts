@@ -189,9 +189,12 @@ export async function ensureDatabaseSchema() {
       status TEXT NOT NULL DEFAULT 'pendente',
       created_at TEXT DEFAULT (datetime('now'))
     );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_decks_nome ON decks(nome);`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_etapas_data ON etapas(data);`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_configuracoes_chave ON configuracoes(chave);`,
   ];
 
-  // Executa criação das tabelas
+  // Executa criação das tabelas e índices
   for (const sql of tables) {
     try {
       await client.execute(sql);
