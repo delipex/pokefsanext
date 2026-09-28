@@ -40,6 +40,7 @@ import {
   Info,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
+import { CategoryBadge } from "../ui/CategoryBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { parseTDFContent, ParsedPlayerRow } from "@/lib/tdf-parser";
 import { AdminEtapasManager } from "./AdminEtapasManager";
@@ -1990,6 +1991,7 @@ export function AdminDashboard({
                     <tr>
                       <th className="py-3 pl-4 text-center w-12">Pos</th>
                       <th className="py-3 px-3">Jogador</th>
+                      <th className="py-3 px-2 text-center w-14">Cat</th>
                       <th className="py-3 px-3">POP ID</th>
                       <th className="py-3 px-3 text-center">Score (V-D-E)</th>
                       <th className="py-3 px-3 text-center">Pontos</th>
@@ -2001,7 +2003,17 @@ export function AdminDashboard({
                       <tr key={idx} className="hover:bg-slate-800/40">
                         <td className="py-2.5 pl-4 text-center font-bold text-white tabular-nums">{row.colocacao}º</td>
                         <td className="py-2.5 px-3 font-bold text-white">
-                          {resolvedNamesMap[row.jogador] || row.jogador}
+                          <div className="flex items-center gap-2">
+                            <span>{resolvedNamesMap[row.jogador] || row.jogador}</span>
+                            {row.isDnf && (
+                              <span className="rounded bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 text-[9px] font-black uppercase text-rose-400">
+                                DNF / Drop
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-2 text-center">
+                          <CategoryBadge category={row.categoria} size="sm" />
                         </td>
                         <td className="py-2.5 px-3 tabular-nums font-semibold text-slate-400">{row.id || "—"}</td>
                         <td className="py-2.5 px-3 text-center font-bold text-slate-300">
