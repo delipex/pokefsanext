@@ -834,7 +834,7 @@ export async function getSeasonAwards() {
         return a.mediaColocacao - b.mediaColocacao;
       });
 
-    // 4. POKÉBOLA MURCHA (Troféu de Resiliência: Pontuação Ponderada de Déficit D - V × Etapas Disputadas)
+    // 4. POKÉBOLA MURCHA (Troféu de Resiliência: 1º Etapas -> 2º Mais Derrotas -> 3º Menos Vitórias)
     const murchaCandidates = ranking
       .filter((r) => r.participacoes >= 2 && r.derrotas > r.vitorias)
       .map((r) => {
@@ -843,13 +843,11 @@ export async function getSeasonAwards() {
         const lossRate = totalPartidas > 0 ? (r.derrotas / totalPartidas) * 100 : 0;
         const mediaDerrotasEtapa = r.participacoes > 0 ? r.derrotas / r.participacoes : 0;
         const deficit = r.derrotas - r.vitorias;
-        const scoreResiliencia = deficit * r.participacoes;
 
         return {
           player: r.jogadorNome,
           id: r.jogadorId,
           deficit,
-          scoreResiliencia,
           wins: r.vitorias,
           draws: r.empates,
           losses: r.derrotas,
@@ -861,15 +859,14 @@ export async function getSeasonAwards() {
         };
       })
       .sort((a, b) => {
-        // 1º Maior Score de Resiliência Ponderada (Déficit × Etapas Disputadas)
-        if (b.scoreResiliencia !== a.scoreResiliencia) return b.scoreResiliencia - a.scoreResiliencia;
-        // 2º Maior quantidade de Etapas disputadas
+        // 1º Critério: Mais Etapas Disputadas
         if (b.participations !== a.participations) return b.participations - a.participations;
-        // 3º Maior Déficit de Derrotas (D - V)
-        if (b.deficit !== a.deficit) return b.deficit - a.deficit;
-        // 4º Maior número total de derrotas
+        // 2º Critério: Mais Número Total de Derrotas
         if (b.losses !== a.losses) return b.losses - a.losses;
-        return b.lossRate - a.lossRate;
+        // 3º Critério: Menos Número de Vitórias
+        if (a.wins !== b.wins) return a.wins - b.wins;
+        // 4º Critério: Maior Déficit (D - V)
+        return b.deficit - a.deficit;
       });
 
     return {

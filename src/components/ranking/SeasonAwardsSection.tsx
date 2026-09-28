@@ -235,7 +235,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
               </div>
 
               <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
-                Maior déficit de derrotas (+{murcha.deficit}) e resiliência com alta presença nas etapas ({murcha.participations} et.).
+                Mais etapas disputadas ({murcha.participations} et.), maior volume de derrotas ({murcha.losses}D) e menos vitórias ({murcha.wins}V).
               </p>
             </div>
 
@@ -543,12 +543,12 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                     </div>
                     <div>
                       <h3 className="text-xl font-black text-white">Pokébola Murcha</h3>
-                      <p className="text-xs text-rose-400 font-bold">Classificação de Resiliência & Presença (Déficit D - V + Etapas)</p>
+                      <p className="text-xs text-rose-400 font-bold">1º Etapas • 2º Mais Derrotas • 3º Menos Vitórias</p>
                     </div>
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Troféu de resiliência e lealdade aos guerreiros que acumularam o <strong>maior déficit de derrotas</strong> mas seguiram firmes prestigiando e disputando as etapas da Liga!
+                    Troféu aos guerreiros que acumularam o <strong>maior número de derrotas</strong> em sua jornada de <strong>alta presença e assiduidade nas etapas</strong> da Liga!
                   </p>
 
                   <div className="space-y-2 pt-2">
