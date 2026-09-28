@@ -14,16 +14,30 @@ const rawUrl =
   process.env.TURSO_DATABASE_URL_UNPOOLED ||
   process.env.TURSO_CONNECTION_URL;
 
-const url = rawUrl || (isProduction ? ":memory:" : "file:local.db");
-
-const authToken =
+const rawToken =
   process.env.TURSO_AUTH_TOKEN ||
   process.env.TURSO_TOKEN ||
   process.env.STORAGE_AUTH_TOKEN ||
   process.env.TURSO_DB_AUTH_TOKEN ||
   process.env.DATABASE_AUTH_TOKEN ||
-  process.env.LIBSQL_AUTH_TOKEN ||
-  undefined;
+  process.env.LIBSQL_AUTH_TOKEN;
+
+function normalizeTursoUrl(raw?: string): string {
+  if (!raw) return isProduction ? ":memory:" : "file:local.db";
+  let u = raw.trim().replace(/^["']|["']$/g, "");
+  if (u.startsWith("libsql://")) {
+    u = u.replace(/^libsql:\/\//, "https://");
+  }
+  return u;
+}
+
+function normalizeAuthToken(raw?: string): string | undefined {
+  if (!raw) return undefined;
+  return raw.trim().replace(/^["']|["']$/g, "");
+}
+
+const url = normalizeTursoUrl(rawUrl);
+const authToken = normalizeAuthToken(rawToken);
 
 export const client = createClient({
   url,
