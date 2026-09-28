@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Upload,
@@ -37,6 +37,7 @@ import {
   ChevronRight,
   KeyRound,
   Smartphone,
+  Info,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
@@ -46,6 +47,14 @@ import { AdminInscricoesPremier } from "./AdminInscricoesPremier";
 import { AdminTemporadasManager } from "./AdminTemporadasManager";
 import { AdminAuditoria } from "./AdminAuditoria";
 import { AdminRegrasManager } from "./AdminRegrasManager";
+
+interface AdminToast {
+  id: string;
+  title: string;
+  message: string;
+  type: "success" | "error" | "info" | "warning";
+  timestamp: number;
+}
 
 interface AdminDashboardProps {
   initialPlayers: any[];
@@ -100,6 +109,26 @@ export function AdminDashboard({
   const [activeTab, setActiveTab] = useState<
     "tdf" | "etapas" | "jogadores" | "decks" | "metagame" | "inscricoes" | "temporadas" | "calendario" | "config"
   >("tdf");
+
+  // Sistema de Notificações Toast Global do Admin
+  const [toasts, setToasts] = useState<AdminToast[]>([]);
+
+  const showToast = useCallback(
+    (title: string, message: string, type: "success" | "error" | "info" | "warning" = "success") => {
+      const id = `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const newToast: AdminToast = { id, title, message, type, timestamp: Date.now() };
+      setToasts((prev) => [...prev.slice(-4), newToast]);
+
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 6500);
+    },
+    []
+  );
+
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   // Estado de Metagame por Etapa
   const [adminEtapas, setAdminEtapas] = useState<any[]>(initialEtapas);
@@ -416,12 +445,18 @@ export function AdminDashboard({
       });
 
       setParsedRows(combinedPlayers);
-      setPublishMessage(
-        `ℹ️ Arquivo TDF validado com sucesso! ${combinedPlayers.length} atletas carregados (${tournamentName ? `"${tournamentName}" • ` : ""}Data: ${detectedDate || stageDate}). Revise os decks na tabela abaixo e clique em "Publicar Etapa & Atualizar Ranking".`
+      const successFeedback = `ℹ️ Arquivo TDF validado com sucesso! ${combinedPlayers.length} atletas carregados (${tournamentName ? `"${tournamentName}" • ` : ""}Data: ${detectedDate || stageDate}). Revise os decks na tabela abaixo e clique em "Publicar Etapa & Atualizar Ranking".`;
+      setPublishMessage(successFeedback);
+      showToast(
+        "Arquivo TDF Validado!",
+        `${combinedPlayers.length} atletas carregados (${tournamentName ? `"${tournamentName}" • ` : ""}Data: ${detectedDate || stageDate}).`,
+        "info"
       );
     } catch (err: any) {
       console.error("Erro ao processar arquivo TDF:", err);
-      setPublishMessage(`❌ Erro ao ler o arquivo TDF: ${err?.message || "Estrutura do arquivo incompatível"}`);
+      const errorFeedback = `❌ Erro ao ler o arquivo TDF: ${err?.message || "Estrutura do arquivo incompatível"}`;
+      setPublishMessage(errorFeedback);
+      showToast("Erro ao Ler TDF", err?.message || "Estrutura do arquivo incompatível", "error");
     }
   };
 
@@ -485,14 +520,17 @@ export function AdminDashboard({
         setPlayers((prev) => [...prev.filter((item) => item.id !== idToRegister), newEntry]);
         setResolvedNamesMap((prev) => ({ ...prev, [p.jogador]: p.jogador }));
         setPublishMessage(`✅ Atleta "${p.jogador}" cadastrado com sucesso!`);
+        showToast("Atleta Cadastrado!", `"${p.jogador}" (ID: ${idToRegister}) salvo no banco de dados.`, "success");
         return true;
       } else {
         setPublishMessage(`❌ Erro ao cadastrar "${p.jogador}": ${data.error || "Falha no servidor"}`);
+        showToast("Erro ao Cadastrar", `Falha ao cadastrar "${p.jogador}": ${data.error || "Falha no servidor"}`, "error");
         return false;
       }
     } catch (err: any) {
       console.error("Erro ao cadastrar jogador rapidamente:", err);
       setPublishMessage(`❌ Erro de conexão ao cadastrar "${p.jogador}": ${err.message}`);
+      showToast("Erro de Conexão", `Não foi possível cadastrar "${p.jogador}": ${err.message}`, "error");
       return false;
     }
   };
@@ -510,12 +548,15 @@ export function AdminDashboard({
       }
       if (successCount === unresolvedPlayers.length) {
         setPublishMessage(`✅ Todos os ${successCount} atletas foram cadastrados no banco com sucesso!`);
+        showToast("Atletas Cadastrados!", `Todos os ${successCount} atletas foram inseridos com sucesso no banco!`, "success");
       } else {
         setPublishMessage(`⚠️ ${successCount} de ${unresolvedPlayers.length} atletas cadastrados. Verifique se restou algum.`);
+        showToast("Cadastro Parcial", `${successCount} de ${unresolvedPlayers.length} atletas cadastrados.`, "warning");
       }
       fetchPlayers();
     } catch (err: any) {
       setPublishMessage(`❌ Erro ao cadastrar atletas em lote: ${err.message}`);
+      showToast("Erro em Lote", err.message, "error");
     } finally {
       setIsRegisteringAll(false);
     }
@@ -534,6 +575,7 @@ export function AdminDashboard({
   const handlePublishStage = async () => {
     if (parsedRows.length === 0) {
       setPublishMessage("⚠️ Nenhum resultado carregado para publicar. Selecione um arquivo .tdf primeiro.");
+      showToast("Atenção", "Selecione um arquivo .tdf antes de publicar.", "warning");
       return;
     }
     setIsPublishing(true);
@@ -564,8 +606,12 @@ export function AdminDashboard({
 
       const data = await res.json();
       if (res.ok) {
-        setPublishMessage(
-          `✅ Etapa de ${stageDate} (${finalEventName}) publicada com sucesso! ${totalAtletas} resultados gravados e o ranking consolidado foi recalculado.`
+        const successMsg = `✅ Etapa de ${stageDate} (${finalEventName}) publicada com sucesso! ${totalAtletas} resultados gravados e o ranking consolidado foi recalculado.`;
+        setPublishMessage(successMsg);
+        showToast(
+          "Etapa Publicada com Sucesso!",
+          `Etapa de ${stageDate} (${finalEventName}) gravada com ${totalAtletas} atletas. Ranking recalculado!`,
+          "success"
         );
         setParsedRows([]);
         setAdminEtapas((prev) => [
@@ -574,10 +620,14 @@ export function AdminDashboard({
         ]);
         router.refresh();
       } else {
-        setPublishMessage(`❌ Erro ao publicar etapa: ${data.error || "Falha no servidor"}`);
+        const errorMsg = `❌ Erro ao publicar etapa: ${data.error || "Falha no servidor"}`;
+        setPublishMessage(errorMsg);
+        showToast("Erro ao Publicar Etapa", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
-      setPublishMessage(`❌ Erro de conexão ao publicar: ${err.message}`);
+      const connErrorMsg = `❌ Erro de conexão ao publicar: ${err.message}`;
+      setPublishMessage(connErrorMsg);
+      showToast("Erro de Conexão", err.message, "error");
     } finally {
       setIsPublishing(false);
     }
@@ -650,7 +700,13 @@ export function AdminDashboard({
           ...prev.filter((p) => String(p.id || p.ID) !== newPlayerId),
           updatedObj,
         ]);
-        setPlayerMessage(isEditing ? "✅ Jogador atualizado com sucesso!" : "✅ Jogador cadastrado com sucesso!");
+        const msg = isEditing ? "✅ Jogador atualizado com sucesso!" : "✅ Jogador cadastrado com sucesso!";
+        setPlayerMessage(msg);
+        showToast(
+          isEditing ? "Atleta Atualizado!" : "Atleta Cadastrado!",
+          `"${newPlayerName}" foi salvo no banco de dados com sucesso.`,
+          "success"
+        );
         if (isEditing) {
           handleCancelEditPlayer();
         } else {
@@ -663,9 +719,11 @@ export function AdminDashboard({
       } else {
         const data = await res.json();
         setPlayerMessage(`❌ Erro: ${data.error}`);
+        showToast("Erro ao Salvar Atleta", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
       setPlayerMessage(`❌ Erro: ${err.message}`);
+      showToast("Erro de Conexão", err.message, "error");
     }
   };
 
@@ -690,12 +748,15 @@ export function AdminDashboard({
           prev.map((p) => (String(p.id || p.ID) === id ? { ...p, pinHash: null } : p))
         );
         setPlayerMessage("🔑 PIN redefinido com sucesso! O jogador já pode criar um novo PIN no Portal.");
+        showToast("PIN Redefinido!", `O PIN de "${nome}" foi zerado. O atleta pode definir um novo no Portal.`, "info");
         fetchPlayers();
       } else {
         setPlayerMessage(`❌ Erro ao redefinir PIN: ${data.error}`);
+        showToast("Erro ao Redefinir PIN", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
       setPlayerMessage(`❌ Erro: ${err.message}`);
+      showToast("Erro", err.message, "error");
     }
   };
 
@@ -725,12 +786,15 @@ export function AdminDashboard({
           prev.map((p) => (String(p.id || p.ID) === id ? { ...p, pinHash: "active" } : p))
         );
         setPlayerMessage(`🔑 PIN (${clean}) gravado com sucesso para ${nome}!`);
+        showToast("PIN Gravado!", `PIN de 4 dígitos definido com sucesso para "${nome}".`, "success");
         fetchPlayers();
       } else {
         setPlayerMessage(`❌ Erro ao definir PIN: ${data.error}`);
+        showToast("Erro ao Definir PIN", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
       setPlayerMessage(`❌ Erro: ${err.message}`);
+      showToast("Erro", err.message, "error");
     }
   };
 
@@ -745,10 +809,12 @@ export function AdminDashboard({
           handleCancelEditPlayer();
         }
         setPlayerMessage("✅ Jogador excluído com sucesso!");
+        showToast("Atleta Removido!", `"${nome}" foi excluído do banco de dados.`, "info");
         fetchPlayers();
       }
     } catch (err: any) {
       setPlayerMessage(`❌ Erro ao excluir: ${err.message}`);
+      showToast("Erro ao Excluir", err.message, "error");
     }
   };
 
@@ -889,16 +955,24 @@ export function AdminDashboard({
             limitless: newDeckLimitless,
           },
         ]);
-        setDeckMessage(isEditing ? "✅ Deck atualizado com sucesso!" : "✅ Deck cadastrado com sucesso!");
+        const msg = isEditing ? "✅ Deck atualizado com sucesso!" : "✅ Deck cadastrado com sucesso!";
+        setDeckMessage(msg);
+        showToast(
+          isEditing ? "Deck Atualizado!" : "Deck Cadastrado!",
+          `Arquétipo "${newDeckName}" salvo com sucesso!`,
+          "success"
+        );
         setTimeout(() => {
           handleCloseDeckModal();
         }, 700);
       } else {
         const data = await res.json();
         setDeckMessage(`❌ Erro: ${data.error}`);
+        showToast("Erro ao Salvar Deck", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
       setDeckMessage(`❌ Erro: ${err.message}`);
+      showToast("Erro", err.message, "error");
     }
   };
 
@@ -913,9 +987,11 @@ export function AdminDashboard({
           handleCancelEditDeck();
         }
         setDeckMessage("✅ Deck excluído com sucesso!");
+        showToast("Deck Removido", `"${d.nome}" foi excluído.`, "info");
       }
     } catch (err: any) {
       setDeckMessage(`❌ Erro ao excluir: ${err.message}`);
+      showToast("Erro ao Excluir Deck", err.message, "error");
     }
   };
 
@@ -955,6 +1031,7 @@ export function AdminDashboard({
       if (res.ok) {
         setMetaSaveSuccess(true);
         setMetaSaveMessage("✅ " + data.message);
+        showToast("Metagame Atualizado!", `Decks da etapa de ${selectedMetaStageDate} atualizados com sucesso.`, "success");
 
         // Atualizar estado local de adminEtapas
         setAdminEtapas((prev) =>
@@ -976,10 +1053,12 @@ export function AdminDashboard({
       } else {
         setMetaSaveSuccess(false);
         setMetaSaveMessage(`❌ Erro: ${data.error}`);
+        showToast("Erro ao Salvar Metagame", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
       setMetaSaveSuccess(false);
       setMetaSaveMessage(`❌ Erro de conexão: ${err.message}`);
+      showToast("Erro de Conexão", err.message, "error");
     } finally {
       setIsSavingMeta(false);
     }
@@ -1011,14 +1090,18 @@ export function AdminDashboard({
       });
       const data = await res.json();
       if (res.ok) {
-        setModerationMessage(data.message || (action === "approve" ? "Aprovado com sucesso!" : "Rejeitado com sucesso!"));
+        const msg = data.message || (action === "approve" ? "Aprovado com sucesso!" : "Rejeitado com sucesso!");
+        setModerationMessage(msg);
+        showToast(action === "approve" ? "Deck Aprovado!" : "Deck Rejeitado", msg, "success");
         fetchDeckRequests();
         router.refresh();
       } else {
         alert(data.error || "Erro ao processar moderação");
+        showToast("Erro na Moderação", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
       alert("Erro ao conectar com servidor: " + err.message);
+      showToast("Erro de Conexão", err.message, "error");
     }
   };
 
@@ -1088,13 +1171,21 @@ export function AdminDashboard({
             return da.localeCompare(db);
           });
         });
-        setCalendarMessage(isEditing ? "✅ Evento atualizado com sucesso!" : "✅ Evento adicionado com sucesso!");
+        const msg = isEditing ? "✅ Evento atualizado com sucesso!" : "✅ Evento adicionado com sucesso!";
+        setCalendarMessage(msg);
+        showToast(
+          isEditing ? "Evento Atualizado!" : "Evento Adicionado!",
+          `Evento de ${dateBR} (${newCalEvento}) salvo no calendário com sucesso.`,
+          "success"
+        );
         handleCancelEditCal();
       } else {
         setCalendarMessage(`❌ Erro: ${data.error}`);
+        showToast("Erro no Calendário", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
       setCalendarMessage(`❌ Erro: ${err.message}`);
+      showToast("Erro de Conexão", err.message, "error");
     }
   };
 
@@ -1108,9 +1199,11 @@ export function AdminDashboard({
         if (editingCalId === id) {
           handleCancelEditCal();
         }
+        showToast("Evento Removido", "Evento excluído do calendário.", "info");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao excluir evento:", err);
+      showToast("Erro ao Excluir Evento", err.message, "error");
     }
   };
 
@@ -1150,11 +1243,14 @@ export function AdminDashboard({
       const data = await res.json();
       if (res.ok) {
         setConfigMessage("✅ Configurações salvas e aplicadas com sucesso!");
+        showToast("Configurações Salvas!", "Todas as configurações da Liga foram gravadas no banco de dados.", "success");
       } else {
         setConfigMessage(`❌ Erro: ${data.error}`);
+        showToast("Erro nas Configurações", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
       setConfigMessage(`❌ Erro ao salvar: ${err.message}`);
+      showToast("Erro ao Salvar", err.message, "error");
     } finally {
       setIsSavingConfig(false);
     }
@@ -1173,11 +1269,14 @@ export function AdminDashboard({
       const data = await res.json();
       if (res.ok && data.success) {
         setSyncDbMessage("✅ Banco de dados online sincronizado e 100% populado com sucesso!");
+        showToast("Banco Sincronizado!", "Todas as tabelas foram sincronizadas e populadas com sucesso.", "success");
       } else {
         setSyncDbMessage(`❌ Erro: ${data.error || "Falha na sincronização"}`);
+        showToast("Erro na Sincronização", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
       setSyncDbMessage(`❌ Erro de conexão: ${err.message}`);
+      showToast("Erro de Conexão", err.message, "error");
     } finally {
       setIsSyncingDb(false);
     }
@@ -1188,6 +1287,7 @@ export function AdminDashboard({
     e.preventDefault();
     if (closureConfirmText.trim().toUpperCase() !== `ENCERRAR TEMPORADA ${closureCurrentSeason}`) {
       setClosureMessage(`❌ Para confirmar com segurança, digite exatamente "ENCERRAR TEMPORADA ${closureCurrentSeason}".`);
+      showToast("Confirmação Inválida", `Digite "ENCERRAR TEMPORADA ${closureCurrentSeason}" para confirmar.`, "warning");
       return;
     }
     setClosureLoading(true);
@@ -1214,11 +1314,18 @@ export function AdminDashboard({
         setClosureMessage(`✅ ${data.message}`);
         setTemporadaAtual(String(closureNextSeason));
         setNomeLiga(initialConfig.nomeLiga || "Liga Atlântica TCG");
+        showToast(
+          "Temporada Encerrada!",
+          `Temporada ${closureCurrentSeason} fechada com sucesso! Campeão: ${closureCampeao}.`,
+          "success"
+        );
       } else {
         setClosureMessage(`❌ Erro: ${data.error}`);
+        showToast("Erro ao Encerrar", data.error || "Falha no servidor", "error");
       }
     } catch (err: any) {
       setClosureMessage(`❌ Erro ao encerrar temporada: ${err.message}`);
+      showToast("Erro ao Encerrar Temporada", err.message, "error");
     } finally {
       setClosureLoading(false);
     }
@@ -3505,6 +3612,54 @@ export function AdminDashboard({
           onScoresUpdated={() => router.refresh()}
         />
       )}
+
+      {/* Floating Toast Notification Stack */}
+      <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className={`pointer-events-auto flex items-start gap-3 p-4 rounded-2xl border backdrop-blur-xl shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-5 ${
+              t.type === "success"
+                ? "bg-slate-900/95 border-emerald-500/40 text-white shadow-emerald-950/40"
+                : t.type === "error"
+                ? "bg-slate-900/95 border-rose-500/40 text-white shadow-rose-950/40"
+                : t.type === "warning"
+                ? "bg-slate-900/95 border-amber-500/40 text-white shadow-amber-950/40"
+                : "bg-slate-900/95 border-blue-500/40 text-white shadow-blue-950/40"
+            }`}
+          >
+            <div className="shrink-0 mt-0.5">
+              {t.type === "success" && <CheckCircle2 className="h-5 w-5 text-emerald-400" />}
+              {t.type === "error" && <AlertTriangle className="h-5 w-5 text-rose-400" />}
+              {t.type === "warning" && <AlertTriangle className="h-5 w-5 text-amber-400" />}
+              {t.type === "info" && <Info className="h-5 w-5 text-blue-400" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h5
+                className={`text-xs font-black uppercase tracking-wide ${
+                  t.type === "success"
+                    ? "text-emerald-400"
+                    : t.type === "error"
+                    ? "text-rose-400"
+                    : t.type === "warning"
+                    ? "text-amber-400"
+                    : "text-blue-400"
+                }`}
+              >
+                {t.title}
+              </h5>
+              <p className="text-xs text-slate-200 mt-0.5 leading-relaxed break-words">{t.message}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => removeToast(t.id)}
+              className="shrink-0 text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
