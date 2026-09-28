@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { db, client } from "@/db";
+import { db } from "@/db";
 import {
   jogadores,
   decks,
@@ -15,38 +15,23 @@ import {
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
 import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
 import { clearFileCache } from "@/lib/queries";
-import fs from "fs";
-import path from "path";
-
-// Cria as tabelas e migra colunas se elas não existirem no Turso / SQLite
-async function ensureTables() {
-  await ensureDatabaseSchema();
-}
-
-function readDataFile<T = any>(filename: string, defaultValue: T): T {
-  try {
-    const filePath = path.join(process.cwd(), "src", "data", filename);
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, "utf-8");
-      if (filename.endsWith(".json")) {
-        return JSON.parse(content) as T;
-      }
-      return content as unknown as T;
-    }
-  } catch (err) {
-    console.error(`Erro ao ler ${filename}:`, err);
-  }
-  return defaultValue;
-}
+import defaultJogadores from "@/data/jogadores.json";
+import defaultDecks from "@/data/decks.json";
+import defaultCalendario from "@/data/calendario.json";
+import defaultCampeoes from "@/data/campeoes.json";
+import defaultScoresAntigos from "@/data/scores_antigos.json";
+import defaultConfig from "@/data/config.json";
+import defaultGaleria from "@/data/galeria.json";
+import defaultEtapas from "@/data/etapas.json";
 
 export async function POST() {
   try {
     console.log("⚡ Sincronizando banco de dados...");
-    await ensureTables();
+    await ensureDatabaseSchema();
 
     // 1. Configurações
     await db.delete(configuracoes);
-    const configs = readDataFile<Record<string, any>>("config.json", {});
+    const configs: Record<string, any> = (defaultConfig as Record<string, any>) || {};
     for (const [chave, valor] of Object.entries(configs)) {
       await db.insert(configuracoes).values({
         chave,
@@ -54,9 +39,9 @@ export async function POST() {
       });
     }
 
-    // 2. Decks (com upsert por nome)
+    // 2. Decks
     await db.delete(decks);
-    const rawDecks = readDataFile<any[]>("decks.json", []);
+    const rawDecks = (defaultDecks as any[]) || [];
     const seenDecks = new Set<string>();
     for (const d of rawDecks) {
       const dNome = (d.deck || d.nome || "").trim();
@@ -74,7 +59,7 @@ export async function POST() {
 
     // 3. Jogadores (com leitura segura de jogador/Jogador/nome e auto-ID)
     await db.delete(jogadores);
-    const rawJogadores = readDataFile<any[]>("jogadores.json", []);
+    const rawJogadores = (defaultJogadores as any[]) || [];
     const seenPlayerIds = new Set<string>();
     for (let i = 0; i < rawJogadores.length; i++) {
       const j = rawJogadores[i];
@@ -103,7 +88,7 @@ export async function POST() {
 
     // 4. Campeões (limpa antes para impedir duplicação a cada clique)
     await db.delete(campeoes);
-    const rawCampeoes = readDataFile<any[]>("campeoes.json", []);
+    const rawCampeoes = (defaultCampeoes as any[]) || [];
     for (const c of rawCampeoes) {
       const seasonLabel = String(c.Temporada || c.temporada || "1").trim();
       await db
@@ -123,7 +108,7 @@ export async function POST() {
 
     // Galeria de Fotos
     await db.delete(galeria);
-    const rawGaleria = readDataFile<any[]>("galeria.json", []);
+    const rawGaleria = (defaultGaleria as any[]) || [];
     for (const g of rawGaleria) {
       if (!g.urlImagem) continue;
       await db.insert(galeria).values({
@@ -136,7 +121,7 @@ export async function POST() {
 
     // 5. Calendário
     await db.delete(calendario);
-    const rawCal = readDataFile<any[]>("calendario.json", []);
+    const rawCal = (defaultCalendario as any[]) || [];
     for (const cal of rawCal) {
       await db
         .insert(calendario)
@@ -153,7 +138,7 @@ export async function POST() {
     }
 
     // 6. Scores Antigos
-    const rawScores = readDataFile<any[]>("scores_antigos.json", []);
+    const rawScores = (defaultScoresAntigos as any[]) || [];
     await db.delete(scoresAntigos);
     for (const s of rawScores) {
       await db.insert(scoresAntigos).values({
@@ -166,47 +151,22 @@ export async function POST() {
       });
     }
 
-    // 7. Ranking Consolidado a partir de ranking.tdf
-    const rankingContent = readDataFile<string>("ranking.tdf", "");
-    if (rankingContent) {
-      await db.delete(rankingConsolidado);
-      const lines = rankingContent.split(/\r?\n/).filter(Boolean);
-      const rows = lines.slice(1);
-      for (const row of rows) {
-        const cols = row.split("\t");
-        if (cols.length < 12) continue;
-        const [
-          _pos,
-          id,
-          jogador,
-          categoria,
-          pontos,
-          vitorias,
-          empates,
-          derrotas,
-          podios,
-          mediaColocacao,
-          participacoes,
-          historicoColocacoes,
-        ] = cols;
-
-        await db.insert(rankingConsolidado).values({
-          temporada: 5,
-          jogadorId: id.trim(),
-          jogadorNome: jogador.trim(),
-          categoria: categoria.trim(),
-          pontos: Number(pontos) || 0,
-          vitorias: Number(vitorias) || 0,
-          empates: Number(empates) || 0,
-          derrotas: Number(derrotas) || 0,
-          podios: Number(podios) || 0,
-          mediaColocacao: Number(mediaColocacao) || 0,
-          participacoes: Number(participacoes) || 0,
-          historicoColocacoes: historicoColocacoes ? historicoColocacoes.trim() : "",
-        });
-      }
+    // 7. Etapas
+    await db.delete(etapas);
+    const rawEtapas = (defaultEtapas as any[]) || [];
+    for (const etapa of rawEtapas) {
+      if (!etapa.data) continue;
+      const mult = Number(etapa.multiplicador) || 1.0;
+      await db.insert(etapas).values({
+        data: etapa.data,
+        tipo: etapa.tipo || "Liga",
+        multiplicador: mult,
+        temporada: etapa.temporada || 5,
+        status: "concluida",
+      });
     }
 
+    // 8. Recalcular Ranking Consolidado a partir das etapas
     try {
       await recalculateRankingConsolidado(5);
     } catch (e) {

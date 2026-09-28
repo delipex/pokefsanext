@@ -1,4 +1,12 @@
 import { client } from "./index";
+import defaultJogadores from "@/data/jogadores.json";
+import defaultDecks from "@/data/decks.json";
+import defaultCalendario from "@/data/calendario.json";
+import defaultCampeoes from "@/data/campeoes.json";
+import defaultScoresAntigos from "@/data/scores_antigos.json";
+import defaultConfig from "@/data/config.json";
+import defaultEtapas from "@/data/etapas.json";
+import defaultGaleria from "@/data/galeria.json";
 
 let hasMigrated = false;
 
@@ -309,221 +317,128 @@ export async function ensureDatabaseSchema() {
 
   // Auto-hidratação de dados iniciais caso as tabelas estejam vazias
   try {
-    const fs = await import("fs");
-    const path = await import("path");
-    const dataDir = path.join(process.cwd(), "src", "data");
-    if (fs.existsSync(dataDir)) {
-      // 1. Jogadores
-      const countJogadores = await client.execute("SELECT COUNT(*) as cnt FROM jogadores;");
-      const numJogadores = Number(countJogadores.rows[0]?.cnt || 0);
-      if (numJogadores === 0) {
-        const jFile = path.join(dataDir, "jogadores.json");
-        if (fs.existsSync(jFile)) {
-          const jData = JSON.parse(fs.readFileSync(jFile, "utf-8"));
-          for (let i = 0; i < jData.length; i++) {
-            const j = jData[i];
-            const rawId = String(j.id || j.ID || "").trim();
-            const nome = String(j.jogador || j.Jogador || j.nome || "").trim();
-            if (!nome) continue;
-            const id = rawId || `sem-id-${i + 1}`;
-            const cat = j.categoria || j.Categoria || "Master";
-            await client.execute({
-              sql: `INSERT INTO jogadores (id, nome, categoria, status, ativo) VALUES (?, ?, ?, 'ativo', 1) ON CONFLICT(id) DO NOTHING;`,
-              args: [id, nome, cat],
-            });
-          }
-        }
+    // 1. Jogadores
+    const countJogadores = await client.execute("SELECT COUNT(*) as cnt FROM jogadores;");
+    const numJogadores = Number(countJogadores.rows[0]?.cnt || 0);
+    if (numJogadores === 0 && Array.isArray(defaultJogadores)) {
+      for (let i = 0; i < defaultJogadores.length; i++) {
+        const j: any = defaultJogadores[i];
+        const rawId = String(j.id || j.ID || "").trim();
+        const nome = String(j.jogador || j.Jogador || j.nome || "").trim();
+        if (!nome) continue;
+        const id = rawId || `sem-id-${i + 1}`;
+        const cat = j.categoria || j.Categoria || "Master";
+        await client.execute({
+          sql: `INSERT INTO jogadores (id, nome, categoria, status, ativo) VALUES (?, ?, ?, 'ativo', 1);`,
+          args: [id, nome, cat],
+        });
       }
+    }
 
-      // 2. Decks
-      const countDecks = await client.execute("SELECT COUNT(*) as cnt FROM decks;");
-      const numDecks = Number(countDecks.rows[0]?.cnt || 0);
-      if (numDecks === 0) {
-        const dFile = path.join(dataDir, "decks.json");
-        if (fs.existsSync(dFile)) {
-          const dData = JSON.parse(fs.readFileSync(dFile, "utf-8"));
-          for (const d of dData) {
-            const dNome = d.deck || d.nome;
-            if (!dNome) continue;
-            await client.execute({
-              sql: `INSERT INTO decks (nome, tipo_energia, imagem, limitless, icone, ativo) VALUES (?, ?, ?, ?, ?, 1) ON CONFLICT(nome) DO NOTHING;`,
-              args: [dNome, d.tipoEnergia || "colorless", d.imagem || null, d.limitless || null, d.icone || null],
-            });
-          }
-        }
+    // 2. Decks
+    const countDecks = await client.execute("SELECT COUNT(*) as cnt FROM decks;");
+    const numDecks = Number(countDecks.rows[0]?.cnt || 0);
+    if (numDecks === 0 && Array.isArray(defaultDecks)) {
+      for (const d of defaultDecks as any[]) {
+        const dNome = d.deck || d.nome;
+        if (!dNome) continue;
+        await client.execute({
+          sql: `INSERT INTO decks (nome, tipo_energia, imagem, limitless, icone, ativo) VALUES (?, ?, ?, ?, ?, 1);`,
+          args: [dNome, d.tipoEnergia || "colorless", d.imagem || null, d.limitless || null, d.icone || null],
+        });
       }
+    }
 
-      // 3. Calendário
-      const countCal = await client.execute("SELECT COUNT(*) as cnt FROM calendario;");
-      const numCal = Number(countCal.rows[0]?.cnt || 0);
-      if (numCal === 0) {
-        const calFile = path.join(dataDir, "calendario.json");
-        if (fs.existsSync(calFile)) {
-          const calData = JSON.parse(fs.readFileSync(calFile, "utf-8"));
-          for (const c of calData) {
-            if (!c.data) continue;
-            await client.execute({
-              sql: `INSERT INTO calendario (data, evento, local, horario, status, descricao, link_maps, link_inscricao, foto) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-              args: [
-                c.data,
-                c.evento || "Torneio",
-                c.local || "Livraria Atlântica +",
-                c.horario || "14:00",
-                c.status || "confirmado",
-                c.descricao || null,
-                c.linkMaps || null,
-                c.linkInscricao || null,
-                c.foto || null,
-              ],
-            });
-          }
-        }
+    // 3. Calendário
+    const countCal = await client.execute("SELECT COUNT(*) as cnt FROM calendario;");
+    const numCal = Number(countCal.rows[0]?.cnt || 0);
+    if (numCal === 0 && Array.isArray(defaultCalendario)) {
+      for (const c of defaultCalendario as any[]) {
+        if (!c.data) continue;
+        await client.execute({
+          sql: `INSERT INTO calendario (data, evento, local, horario, status, descricao, link_maps, link_inscricao, foto) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+          args: [
+            c.data,
+            c.evento || "Torneio",
+            c.local || "Livraria Atlântica +",
+            c.horario || "14:00",
+            c.status || "confirmado",
+            c.descricao || null,
+            c.linkMaps || null,
+            c.linkInscricao || null,
+            c.foto || null,
+          ],
+        });
       }
+    }
 
-      // 4. Campeões
-      const countCamp = await client.execute("SELECT COUNT(*) as cnt FROM campeoes;");
-      const numCamp = Number(countCamp.rows[0]?.cnt || 0);
-      if (numCamp === 0) {
-        const campFile = path.join(dataDir, "campeoes.json");
-        if (fs.existsSync(campFile)) {
-          const campData = JSON.parse(fs.readFileSync(campFile, "utf-8"));
-          for (const c of campData) {
-            await client.execute({
-              sql: `INSERT INTO campeoes (temporada, campeao, vice, deck_campeao, data, foto_campeao, url_deck, imagem_deck, observacao_deck) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-              args: [
-                c.Temporada || c.temporada || "Temporada",
-                c.Campeao || c.campeao || "",
-                c.Vice || c.vice || "",
-                c.DeckCampeao || c.deckCampeao || "",
-                c.Data || c.data || "",
-                c.FotoCampeao || c.fotoCampeao || null,
-                c.URLDeck || c.urlDeck || null,
-                c.ImagemDeck || c.imagemDeck || null,
-                c.ObservacaoDeck || c.observacaoDeck || null,
-              ],
-            });
-          }
-        }
+    // 4. Campeões
+    const countCamp = await client.execute("SELECT COUNT(*) as cnt FROM campeoes;");
+    const numCamp = Number(countCamp.rows[0]?.cnt || 0);
+    if (numCamp === 0 && Array.isArray(defaultCampeoes)) {
+      for (const c of defaultCampeoes as any[]) {
+        await client.execute({
+          sql: `INSERT INTO campeoes (temporada, campeao, vice, deck_campeao, data, foto_campeao, url_deck, imagem_deck, observacao_deck) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+          args: [
+            c.Temporada || c.temporada || "Temporada",
+            c.Campeao || c.campeao || "",
+            c.Vice || c.vice || "",
+            c.DeckCampeao || c.deckCampeao || "",
+            c.Data || c.data || "",
+            c.FotoCampeao || c.fotoCampeao || null,
+            c.URLDeck || c.urlDeck || null,
+            c.ImagemDeck || c.imagemDeck || null,
+            c.ObservacaoDeck || c.observacaoDeck || null,
+          ],
+        });
       }
+    }
 
-      // 5. Scores Antigos
-      const countScores = await client.execute("SELECT COUNT(*) as cnt FROM scores_antigos;");
-      const numScores = Number(countScores.rows[0]?.cnt || 0);
-      if (numScores === 0) {
-        const scFile = path.join(dataDir, "scores_antigos.json");
-        if (fs.existsSync(scFile)) {
-          const scData = JSON.parse(fs.readFileSync(scFile, "utf-8"));
-          for (const s of scData) {
-            await client.execute({
-              sql: `INSERT INTO scores_antigos (temporada, data_fechamento, pos, jogador, categoria, pontos, deck) VALUES (?, ?, ?, ?, ?, ?, ?);`,
-              args: [
-                s.temporada || "",
-                s.dataFechamento || "",
-                Number(s.pos) || 1,
-                s.jogador || "",
-                s.categoria || "ME",
-                String(s.pontos || "0"),
-                s.deck || "",
-              ],
-            });
-          }
-        }
+    // 5. Scores Antigos
+    const countScores = await client.execute("SELECT COUNT(*) as cnt FROM scores_antigos;");
+    const numScores = Number(countScores.rows[0]?.cnt || 0);
+    if (numScores === 0 && Array.isArray(defaultScoresAntigos)) {
+      for (const s of defaultScoresAntigos as any[]) {
+        await client.execute({
+          sql: `INSERT INTO scores_antigos (temporada, data_fechamento, pos, jogador, categoria, pontos, deck) VALUES (?, ?, ?, ?, ?, ?, ?);`,
+          args: [
+            s.temporada || "",
+            s.dataFechamento || "",
+            Number(s.pos) || 1,
+            s.jogador || "",
+            s.categoria || "ME",
+            String(s.pontos || "0"),
+            s.deck || "",
+          ],
+        });
       }
+    }
 
-      // 6. Ranking Consolidado
-      const countRanking = await client.execute("SELECT COUNT(*) as cnt FROM ranking_consolidado;");
-      const numRanking = Number(countRanking.rows[0]?.cnt || 0);
-      if (numRanking === 0) {
-        const rFile = path.join(dataDir, "ranking.tdf");
-        if (fs.existsSync(rFile)) {
-          const rLines = fs.readFileSync(rFile, "utf-8").split(/\r?\n/).filter(Boolean);
-          const rRows = rLines.slice(1);
-          for (const row of rRows) {
-            const cols = row.split("\t");
-            if (cols.length < 12) continue;
-            const [
-              _pos,
-              id,
-              jogador,
-              categoria,
-              pontos,
-              vitorias,
-              empates,
-              derrotas,
-              podios,
-              mediaColocacao,
-              participacoes,
-              historicoColocacoes,
-            ] = cols;
-
-            await client.execute({
-              sql: `INSERT INTO ranking_consolidado (temporada, jogador_id, jogador_nome, categoria, pontos, vitorias, empates, derrotas, podios, media_colocacao, participacoes, historico_colocacoes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-              args: [
-                5,
-                id ? id.trim() : "",
-                jogador ? jogador.trim() : "",
-                categoria ? categoria.trim() : "Master",
-                Number(pontos) || 0,
-                Number(vitorias) || 0,
-                Number(empates) || 0,
-                Number(derrotas) || 0,
-                Number(podios) || 0,
-                Number(mediaColocacao) || 0,
-                Number(participacoes) || 0,
-                historicoColocacoes ? historicoColocacoes.trim() : "",
-              ],
-            });
-          }
-        }
+    // 6. Galeria
+    const countGal = await client.execute("SELECT COUNT(*) as cnt FROM galeria;");
+    const numGal = Number(countGal.rows[0]?.cnt || 0);
+    if (numGal === 0 && Array.isArray(defaultGaleria)) {
+      for (const g of defaultGaleria as any[]) {
+        if (!g.urlImagem) continue;
+        await client.execute({
+          sql: `INSERT INTO galeria (titulo, descricao, url_imagem, data) VALUES (?, ?, ?, ?);`,
+          args: [g.titulo || "Foto do Evento", g.descricao || null, g.urlImagem, g.data || null],
+        });
       }
+    }
 
-      // 7. Etapas & Resultados
-      const countEtapas = await client.execute("SELECT COUNT(*) as cnt FROM etapas;");
-      const numEtapas = Number(countEtapas.rows[0]?.cnt || 0);
-      if (numEtapas === 0) {
-        const eFile = path.join(dataDir, "etapas.json");
-        const etapasDir = path.join(dataDir, "etapas");
-        if (fs.existsSync(eFile)) {
-          const eData = JSON.parse(fs.readFileSync(eFile, "utf-8"));
-          for (let eIdx = 0; eIdx < eData.length; eIdx++) {
-            const etapa = eData[eIdx];
-            if (!etapa.data) continue;
-            const mult = Number(etapa.multiplicador) || 1.0;
-            const etapaRes = await client.execute({
-              sql: `INSERT INTO etapas (data, tipo, multiplicador, temporada, status) VALUES (?, ?, ?, ?, 'concluida') RETURNING id;`,
-              args: [etapa.data, etapa.tipo || "Liga", mult, etapa.temporada || 5],
-            });
-            const etapaId = etapaRes.rows[0]?.id ? Number(etapaRes.rows[0].id) : eIdx + 1;
-
-            const tdfPath = path.join(etapasDir, `${etapa.data}.tdf`);
-            if (fs.existsSync(tdfPath)) {
-              const tdfLines = fs.readFileSync(tdfPath, "utf-8").split(/\r?\n/).filter(Boolean);
-              const tdfRows = tdfLines.slice(1);
-              for (let rIdx = 0; rIdx < tdfRows.length; rIdx++) {
-                const cols = tdfRows[rIdx].split("\t");
-                if (cols.length < 5) continue;
-                const [pos, id, jogador, categoria, pontos, vitorias, empates, derrotas] = cols;
-                await client.execute({
-                  sql: `INSERT INTO etapa_resultados (etapa_id, etapa_data, jogador_id, jogador_nome, categoria, colocacao, pontos, vitorias, empates, derrotas)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-                  args: [
-                    etapaId,
-                    etapa.data,
-                    id ? id.trim() : null,
-                    jogador ? jogador.trim() : "",
-                    categoria ? categoria.trim() : "Master",
-                    Number(pos) || rIdx + 1,
-                    Number(pontos) || 0,
-                    Number(vitorias) || 0,
-                    Number(empates) || 0,
-                    Number(derrotas) || 0,
-                  ],
-                });
-              }
-            }
-          }
-        }
+    // 7. Etapas
+    const countEtapas = await client.execute("SELECT COUNT(*) as cnt FROM etapas;");
+    const numEtapas = Number(countEtapas.rows[0]?.cnt || 0);
+    if (numEtapas === 0 && Array.isArray(defaultEtapas)) {
+      for (let eIdx = 0; eIdx < defaultEtapas.length; eIdx++) {
+        const etapa: any = defaultEtapas[eIdx];
+        if (!etapa.data) continue;
+        const mult = Number(etapa.multiplicador) || 1.0;
+        await client.execute({
+          sql: `INSERT INTO etapas (data, tipo, multiplicador, temporada, status) VALUES (?, ?, ?, ?, 'concluida');`,
+          args: [etapa.data, etapa.tipo || "Liga", mult, etapa.temporada || 5],
+        });
       }
     }
   } catch (seedErr) {
