@@ -242,7 +242,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
             <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-rose-300">Déficit: +{murcha.deficit}</span>
-                <span className="text-slate-400 font-medium tabular-nums">{murcha.participations} et. ({murcha.losses}D vs {murcha.wins}V)</span>
+                <span className="text-slate-300 font-bold tabular-nums">{murcha.participations} etapas ({murcha.losses}D - {murcha.wins}V)</span>
               </div>
               <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all">
                 <span>Ver classificação e detalhes</span>
@@ -590,11 +590,17 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                               </div>
                             </div>
 
-                            <div className="text-right shrink-0">
-                              <span className="font-black text-sm sm:text-base text-rose-400 tabular-nums">
-                                +{p.deficit}
-                              </span>
-                              <span className="block text-[9px] font-semibold text-slate-400">DÉFICIT</span>
+                            <div className="text-right shrink-0 flex items-center gap-2 sm:gap-3">
+                              <div className="text-right">
+                                <span className="font-black text-sm sm:text-base text-rose-400 tabular-nums">
+                                  +{p.deficit}
+                                </span>
+                                <span className="block text-[9px] font-semibold text-slate-400">DÉFICIT</span>
+                              </div>
+                              <div className="rounded-xl bg-white/5 px-2.5 py-1 border border-white/10 text-center min-w-[50px]">
+                                <span className="font-black text-xs sm:text-sm text-slate-200 tabular-nums">{p.participations}</span>
+                                <span className="block text-[8px] font-bold text-slate-400">ETAPAS</span>
+                              </div>
                             </div>
                           </div>
                         );
