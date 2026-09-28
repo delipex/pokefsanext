@@ -235,14 +235,14 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
               </div>
 
               <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
-                Maior déficit de derrotas (+{murcha.deficit}) e persistência nas etapas.
+                Maior taxa proporcional de derrotas ({murcha.lossRate}%) e menor aproveitamento ({murcha.aproveitamento}%).
               </p>
             </div>
 
             <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-rose-300">Déficit: +{murcha.deficit}</span>
-                <span className="text-slate-400 font-medium tabular-nums">Cartel: {murcha.losses}D vs {murcha.wins}V</span>
+                <span className="font-bold text-rose-300">Taxa Derrotas: {murcha.lossRate}%</span>
+                <span className="text-slate-400 font-medium tabular-nums">{murcha.losses}D vs {murcha.wins}V ({murcha.participations} et.)</span>
               </div>
               <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all">
                 <span>Ver classificação e detalhes</span>
@@ -543,17 +543,17 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                     </div>
                     <div>
                       <h3 className="text-xl font-black text-white">Pokébola Murcha</h3>
-                      <p className="text-xs text-rose-400 font-bold">Classificação de Resiliência (Déficit D - V)</p>
+                      <p className="text-xs text-rose-400 font-bold">Classificação por Proporção de Derrotas & Aproveitamento</p>
                     </div>
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    Troféu de resiliência e persistência aos guerreiros que acumularam o <strong>maior déficit de derrotas</strong> mas seguiram firmes prestigiando a liga!
+                    Troféu de resiliência concedido aos guerreiros com a <strong>maior proporção de derrotas</strong> sobre o total de partidas disputadas (mínimo de 2 etapas), que seguem firmes prestigiando a liga!
                   </p>
 
                   <div className="space-y-2 pt-2">
                     <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400 px-1">
-                      Ranking de Resiliência:
+                      Ranking de Resiliência & Proporção de Derrotas:
                     </h4>
                     <div className="rounded-2xl border border-white/10 bg-slate-900/80 overflow-hidden divide-y divide-white/5">
                       {murchaRanking.map((p, idx) => {
@@ -585,16 +585,16 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                                   {p.player}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
-                                  {p.participations} etapas • {p.losses} derrotas vs {p.wins} vitórias
+                                  {p.participations} etapas • {p.losses}D vs {p.wins}V • {p.mediaDerrotas} D/etapa
                                 </span>
                               </div>
                             </div>
 
                             <div className="text-right shrink-0">
                               <span className="font-black text-sm sm:text-base text-rose-400 tabular-nums">
-                                +{p.deficit}
+                                {p.lossRate}%
                               </span>
-                              <span className="block text-[9px] font-semibold text-slate-400">DÉFICIT</span>
+                              <span className="block text-[9px] font-semibold text-slate-400">DERROTAS</span>
                             </div>
                           </div>
                         );

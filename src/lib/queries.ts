@@ -768,14 +768,25 @@ export async function getSeasonAwards() {
     }
 
     // 3. DITTO PLAYER (Maior número de decks diferentes jogados no metagame)
+    // Normalização rigorosa por nome de jogador canônico para não separar por maiúsculas/minúsculas
+    const canonicalPlayerNameMap = new Map<string, string>();
+    ranking.forEach((r) => {
+      canonicalPlayerNameMap.set(r.jogadorNome.toLowerCase().trim(), r.jogadorNome.trim());
+      if (r.jogadorId) {
+        canonicalPlayerNameMap.set(r.jogadorId.trim(), r.jogadorNome.trim());
+      }
+    });
+
     const playerDecksMap: Record<string, Set<string>> = {};
     for (const entry of metaEntries) {
-      const pName = entry.jogadorNome?.trim();
+      const rawName = entry.jogadorNome?.trim();
       const dName = entry.deckNome?.trim();
-      if (!pName || !dName || dName.toLowerCase() === "outros") continue;
+      if (!rawName || !dName || dName.toLowerCase() === "outros" || dName.toLowerCase() === "sem deck registrado" || dName.toLowerCase() === "não registrado") continue;
 
-      if (!playerDecksMap[pName]) playerDecksMap[pName] = new Set();
-      playerDecksMap[pName].add(dName.toLowerCase());
+      const canonicalName = canonicalPlayerNameMap.get(rawName.toLowerCase()) || rawName;
+
+      if (!playerDecksMap[canonicalName]) playerDecksMap[canonicalName] = new Set();
+      playerDecksMap[canonicalName].add(dName.toLowerCase());
     }
 
     const dittoCandidates = Object.entries(playerDecksMap)
@@ -804,38 +815,41 @@ export async function getSeasonAwards() {
         return a.mediaColocacao - b.mediaColocacao;
       });
 
-    // 4. POKÉBOLA MURCHA (Maior déficit D - V, mín 2 etapas)
-    let murchaCandidates = ranking
-      .filter((r) => r.participacoes >= 2 && r.derrotas > r.vitorias)
+    // 4. POKÉBOLA MURCHA (Maior Proporção de Derrotas e Menor Aproveitamento, mín 2 etapas)
+    const murchaCandidates = ranking
+      .filter((r) => r.participacoes >= 2)
       .map((r) => {
+        const totalPartidas = r.vitorias + r.derrotas + r.empates;
+        const winRate = totalPartidas > 0 ? (r.vitorias / totalPartidas) * 100 : 0;
+        const lossRate = totalPartidas > 0 ? (r.derrotas / totalPartidas) * 100 : 0;
+        const mediaDerrotasEtapa = r.participacoes > 0 ? r.derrotas / r.participacoes : 0;
+        const aproveitamento = totalPartidas > 0 ? ((r.vitorias * 3 + r.empates) / (totalPartidas * 3)) * 100 : 0;
         const deficit = r.derrotas - r.vitorias;
+
         return {
           player: r.jogadorNome,
           id: r.jogadorId,
           deficit,
           wins: r.vitorias,
+          draws: r.empates,
           losses: r.derrotas,
           participations: r.participacoes,
+          totalPartidas,
+          winRate: Number(winRate.toFixed(1)),
+          lossRate: Number(lossRate.toFixed(1)),
+          mediaDerrotas: Number(mediaDerrotasEtapa.toFixed(2)),
+          aproveitamento: Number(aproveitamento.toFixed(1)),
         };
       })
       .sort((a, b) => {
-        if (b.deficit !== a.deficit) return b.deficit - a.deficit;
-        return b.participations - a.participations;
+        // 1º Maior taxa de derrota (% de partidas perdidas)
+        if (b.lossRate !== a.lossRate) return b.lossRate - a.lossRate;
+        // 2º Menor taxa de aproveitamento
+        if (a.aproveitamento !== b.aproveitamento) return a.aproveitamento - b.aproveitamento;
+        // 3º Maior média de derrotas por etapa
+        if (b.mediaDerrotas !== a.mediaDerrotas) return b.mediaDerrotas - a.mediaDerrotas;
+        return b.losses - a.losses;
       });
-
-    if (murchaCandidates.length === 0) {
-      murchaCandidates = ranking
-        .filter((r) => r.participacoes >= 2)
-        .map((r) => ({
-          player: r.jogadorNome,
-          id: r.jogadorId,
-          deficit: r.derrotas - r.vitorias,
-          wins: r.vitorias,
-          losses: r.derrotas,
-          participations: r.participacoes,
-        }))
-        .sort((a, b) => b.deficit - a.deficit);
-    }
 
     return {
       gold: goldCandidates[0] || null,
