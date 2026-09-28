@@ -80,16 +80,12 @@ export async function POST(req: Request) {
     });
 
     // 4. Atualizar configuração para a nova temporada
-    await db
-      .insert(configuracoes)
-      .values({
-        chave: "temporadaAtual",
-        valor: String(nextSeason),
-      })
-      .onConflictDoUpdate({
-        target: configuracoes.chave,
-        set: { valor: String(nextSeason) },
-      });
+    const existingConfig = await db.select().from(configuracoes).where(eq(configuracoes.chave, "temporadaAtual"));
+    if (existingConfig.length > 0) {
+      await db.update(configuracoes).set({ valor: String(nextSeason) }).where(eq(configuracoes.chave, "temporadaAtual"));
+    } else {
+      await db.insert(configuracoes).values({ chave: "temporadaAtual", valor: String(nextSeason) });
+    }
 
     // 5. Resetar ranking consolidado da temporada atual (se solicitado)
     if (resetCurrentRankings) {

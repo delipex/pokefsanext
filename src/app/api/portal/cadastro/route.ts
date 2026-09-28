@@ -169,22 +169,11 @@ export async function POST(req: Request) {
     const hashedPin = hashPin(cleanPin);
 
     // 8. Persistência Atômica no Banco de Dados
-    await db
-      .insert(jogadores)
-      .values({
-        id: cleanId,
-        nome: cleanName,
-        categoria,
-        whatsapp: cleanPhone,
-        dataNascimento: dataNascimento ? String(dataNascimento).trim() : null,
-        cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
-        pinHash: hashedPin,
-        status: "ativo",
-        ativo: true,
-      })
-      .onConflictDoUpdate({
-        target: jogadores.id,
-        set: {
+    const existingPlayer = await db.select().from(jogadores).where(eq(jogadores.id, cleanId));
+    if (existingPlayer.length > 0) {
+      await db
+        .update(jogadores)
+        .set({
           nome: cleanName,
           categoria,
           whatsapp: cleanPhone,
@@ -193,8 +182,23 @@ export async function POST(req: Request) {
           pinHash: hashedPin,
           status: "ativo",
           ativo: true,
-        },
-      });
+        })
+        .where(eq(jogadores.id, cleanId));
+    } else {
+      await db
+        .insert(jogadores)
+        .values({
+          id: cleanId,
+          nome: cleanName,
+          categoria,
+          whatsapp: cleanPhone,
+          dataNascimento: dataNascimento ? String(dataNascimento).trim() : null,
+          cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
+          pinHash: hashedPin,
+          status: "ativo",
+          ativo: true,
+        });
+    }
 
     // 8.1 Sincronização redundante com jogadores.json se o sistema de arquivos for gravável
     try {

@@ -76,47 +76,57 @@ export async function POST(req: Request) {
     const cleanName = String(nome).trim();
     const validCat = ["Master", "Senior", "Junior"].includes(categoria) ? categoria : "Master";
 
-    await db
-      .insert(jogadores)
-      .values({
-        id: cleanId,
-        nome: cleanName,
-        categoria: validCat,
-        whatsapp: whatsapp ? String(whatsapp).trim() : null,
-        dataNascimento: dataNascimento ? String(dataNascimento).trim() : null,
-        cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
-        status: "ativo",
-        ativo: true,
-      })
-      .onConflictDoUpdate({
-        target: jogadores.id,
-        set: {
+    const existing = await db
+      .select()
+      .from(jogadores)
+      .where(eq(jogadores.id, cleanId));
+
+    if (existing.length > 0) {
+      await db
+        .update(jogadores)
+        .set({
+          nome: cleanName,
+          categoria: validCat,
+          whatsapp: whatsapp !== undefined ? (whatsapp ? String(whatsapp).trim() : null) : existing[0].whatsapp,
+          dataNascimento: dataNascimento !== undefined ? (dataNascimento ? String(dataNascimento).trim() : null) : existing[0].dataNascimento,
+          cidade: cidade !== undefined ? (cidade ? String(cidade).trim() : "Feira de Santana - BA") : (existing[0].cidade || "Feira de Santana - BA"),
+          ativo: true,
+        })
+        .where(eq(jogadores.id, cleanId));
+    } else {
+      await db
+        .insert(jogadores)
+        .values({
+          id: cleanId,
           nome: cleanName,
           categoria: validCat,
           whatsapp: whatsapp ? String(whatsapp).trim() : null,
           dataNascimento: dataNascimento ? String(dataNascimento).trim() : null,
           cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
+          status: "ativo",
           ativo: true,
-        },
-      });
+        });
+    }
 
-    syncJogadoresJson((list) => {
-      const idx = list.findIndex((j: any) => String(j.id || j.ID || "").trim() === cleanId);
-      const item = {
-        id: cleanId,
-        jogador: cleanName,
-        categoria: validCat,
-        whatsapp: whatsapp ? String(whatsapp).trim() : undefined,
-        dataNascimento: dataNascimento ? String(dataNascimento).trim() : undefined,
-        cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
-      };
-      if (idx >= 0) {
-        list[idx] = { ...list[idx], ...item };
-      } else {
-        list.push(item);
-      }
-      return list;
-    });
+    try {
+      syncJogadoresJson((list) => {
+        const idx = list.findIndex((j: any) => String(j.id || j.ID || "").trim() === cleanId);
+        const item = {
+          id: cleanId,
+          jogador: cleanName,
+          categoria: validCat,
+          whatsapp: whatsapp ? String(whatsapp).trim() : undefined,
+          dataNascimento: dataNascimento ? String(dataNascimento).trim() : undefined,
+          cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
+        };
+        if (idx >= 0) {
+          list[idx] = { ...list[idx], ...item };
+        } else {
+          list.push(item);
+        }
+        return list;
+      });
+    } catch {}
 
     revalidatePath("/");
     revalidatePath("/ranking");
@@ -125,7 +135,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, message: "Jogador salvo com sucesso no banco de dados!" });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Erro ao salvar jogador:", error);
+    return NextResponse.json({ error: error.message || "Erro ao salvar jogador" }, { status: 500 });
   }
 }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { configuracoes } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
 import { getConfigMap, clearFileCache } from "@/lib/queries";
 import fs from "fs";
@@ -13,7 +14,9 @@ async function syncConfigJson() {
 
     const p1 = path.join(process.cwd(), "src", "data", "config.json");
     if (fs.existsSync(p1)) {
-      fs.writeFileSync(p1, JSON.stringify(configMap, null, 4), "utf-8");
+      try {
+        fs.writeFileSync(p1, JSON.stringify(configMap, null, 4), "utf-8");
+      } catch {}
     }
 
     const p2 = path.resolve(process.cwd(), "..", "LigaAtlântica", "config.json");
@@ -47,18 +50,13 @@ export async function POST(req: Request) {
     if (body.configs && typeof body.configs === "object") {
       const entries = Object.entries(body.configs);
       for (const [chave, valor] of entries) {
-        await db
-          .insert(configuracoes)
-          .values({
-            chave,
-            valor: typeof valor === "object" ? JSON.stringify(valor) : String(valor),
-          })
-          .onConflictDoUpdate({
-            target: configuracoes.chave,
-            set: {
-              valor: typeof valor === "object" ? JSON.stringify(valor) : String(valor),
-            },
-          });
+        const strVal = typeof valor === "object" ? JSON.stringify(valor) : String(valor);
+        const existing = await db.select().from(configuracoes).where(eq(configuracoes.chave, chave));
+        if (existing.length > 0) {
+          await db.update(configuracoes).set({ valor: strVal }).where(eq(configuracoes.chave, chave));
+        } else {
+          await db.insert(configuracoes).values({ chave, valor: strVal });
+        }
       }
 
       await syncConfigJson();
@@ -81,18 +79,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Chave é obrigatória" }, { status: 400 });
     }
 
-    await db
-      .insert(configuracoes)
-      .values({
-        chave,
-        valor: typeof valor === "object" ? JSON.stringify(valor) : String(valor),
-      })
-      .onConflictDoUpdate({
-        target: configuracoes.chave,
-        set: {
-          valor: typeof valor === "object" ? JSON.stringify(valor) : String(valor),
-        },
-      });
+    const strVal = typeof valor === "object" ? JSON.stringify(valor) : String(valor);
+    const existing = await db.select().from(configuracoes).where(eq(configuracoes.chave, chave));
+    if (existing.length > 0) {
+      await db.update(configuracoes).set({ valor: strVal }).where(eq(configuracoes.chave, chave));
+    } else {
+      await db.insert(configuracoes).values({ chave, valor: strVal });
+    }
 
     await syncConfigJson();
 

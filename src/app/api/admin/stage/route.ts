@@ -19,7 +19,9 @@ async function syncEtapasJson() {
     }));
 
     const p1 = path.join(process.cwd(), "src", "data", "etapas.json");
-    fs.writeFileSync(p1, JSON.stringify(mapped, null, 2), "utf-8");
+    try {
+      fs.writeFileSync(p1, JSON.stringify(mapped, null, 2), "utf-8");
+    } catch {}
 
     const p2 = path.resolve(process.cwd(), "..", "LigaAtlântica", "etapas.json");
     if (fs.existsSync(p2)) {

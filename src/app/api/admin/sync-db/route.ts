@@ -45,20 +45,13 @@ export async function POST() {
     await ensureTables();
 
     // 1. Configurações
+    await db.delete(configuracoes);
     const configs = readDataFile<Record<string, any>>("config.json", {});
     for (const [chave, valor] of Object.entries(configs)) {
-      await db
-        .insert(configuracoes)
-        .values({
-          chave,
-          valor: typeof valor === "object" ? JSON.stringify(valor) : String(valor),
-        })
-        .onConflictDoUpdate({
-          target: configuracoes.chave,
-          set: {
-            valor: typeof valor === "object" ? JSON.stringify(valor) : String(valor),
-          },
-        });
+      await db.insert(configuracoes).values({
+        chave,
+        valor: typeof valor === "object" ? JSON.stringify(valor) : String(valor),
+      });
     }
 
     // 2. Decks (com upsert por nome)
@@ -80,33 +73,32 @@ export async function POST() {
     }
 
     // 3. Jogadores (com leitura segura de jogador/Jogador/nome e auto-ID)
+    await db.delete(jogadores);
     const rawJogadores = readDataFile<any[]>("jogadores.json", []);
+    const seenPlayerIds = new Set<string>();
     for (let i = 0; i < rawJogadores.length; i++) {
       const j = rawJogadores[i];
       const nome = String(j.jogador || j.Jogador || j.nome || "").trim();
       if (!nome) continue;
       const rawId = String(j.id || j.ID || "").trim();
       const id = rawId || `sem-id-${i + 1}`;
+      if (seenPlayerIds.has(id)) continue;
+      seenPlayerIds.add(id);
       const cat = ["Master", "Senior", "Junior"].includes(j.categoria || j.Categoria)
         ? (j.categoria || j.Categoria)
         : "Master";
 
-      await db
-        .insert(jogadores)
-        .values({
-          id,
-          nome,
-          categoria: cat,
-          ativo: true,
-        })
-        .onConflictDoUpdate({
-          target: jogadores.id,
-          set: {
-            nome,
-            categoria: cat,
-            ativo: true,
-          },
-        });
+      await db.insert(jogadores).values({
+        id,
+        nome,
+        categoria: cat,
+        whatsapp: j.whatsapp ? String(j.whatsapp).trim() : null,
+        dataNascimento: j.dataNascimento ? String(j.dataNascimento).trim() : null,
+        cidade: j.cidade ? String(j.cidade).trim() : "Feira de Santana - BA",
+        pinHash: j.pinHash || null,
+        status: "ativo",
+        ativo: true,
+      });
     }
 
     // 4. Campeões (limpa antes para impedir duplicação a cada clique)
@@ -164,17 +156,14 @@ export async function POST() {
     const rawScores = readDataFile<any[]>("scores_antigos.json", []);
     await db.delete(scoresAntigos);
     for (const s of rawScores) {
-      await db
-        .insert(scoresAntigos)
-        .values({
-          temporada: String(s.temporada || "1"),
-          pos: Number(s.pos) || 1,
-          jogador: s.jogador,
-          categoria: s.categoria || "ME",
-          pontos: String(s.pontos || "0"),
-          deck: s.deck || "Desconhecido",
-        })
-        .onConflictDoNothing();
+      await db.insert(scoresAntigos).values({
+        temporada: String(s.temporada || "1"),
+        pos: Number(s.pos) || 1,
+        jogador: s.jogador,
+        categoria: s.categoria || "ME",
+        pontos: String(s.pontos || "0"),
+        deck: s.deck || "Desconhecido",
+      });
     }
 
     // 7. Ranking Consolidado a partir de ranking.tdf

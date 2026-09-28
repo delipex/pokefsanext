@@ -465,7 +465,7 @@ export function AdminDashboard({
   }, [parsedRows, players, resolvedNamesMap]);
 
   // Ação rápida: Cadastrar jogador não resolvido
-  const handleQuickRegisterPlayer = async (p: ParsedPlayerRow) => {
+  const handleQuickRegisterPlayer = async (p: ParsedPlayerRow): Promise<boolean> => {
     const idToRegister = p.id || String(Date.now()).slice(-7);
     try {
       const res = await fetch("/api/admin/players", {
@@ -478,13 +478,22 @@ export function AdminDashboard({
         }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         const newEntry = { id: idToRegister, nome: p.jogador, categoria: p.categoria || "Master" };
         setPlayers((prev) => [...prev.filter((item) => item.id !== idToRegister), newEntry]);
         setResolvedNamesMap((prev) => ({ ...prev, [p.jogador]: p.jogador }));
+        setPublishMessage(`✅ Atleta "${p.jogador}" cadastrado com sucesso!`);
+        return true;
+      } else {
+        setPublishMessage(`❌ Erro ao cadastrar "${p.jogador}": ${data.error || "Falha no servidor"}`);
+        return false;
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao cadastrar jogador rapidamente:", err);
+      setPublishMessage(`❌ Erro de conexão ao cadastrar "${p.jogador}": ${err.message}`);
+      return false;
     }
   };
 
@@ -492,11 +501,18 @@ export function AdminDashboard({
   const handleQuickRegisterAllPlayers = async () => {
     if (unresolvedPlayers.length === 0) return;
     setIsRegisteringAll(true);
+    setPublishMessage("");
     try {
+      let successCount = 0;
       for (const p of unresolvedPlayers) {
-        await handleQuickRegisterPlayer(p);
+        const ok = await handleQuickRegisterPlayer(p);
+        if (ok) successCount++;
       }
-      setPublishMessage(`✅ Todos os ${unresolvedPlayers.length} atletas foram cadastrados no banco com sucesso!`);
+      if (successCount === unresolvedPlayers.length) {
+        setPublishMessage(`✅ Todos os ${successCount} atletas foram cadastrados no banco com sucesso!`);
+      } else {
+        setPublishMessage(`⚠️ ${successCount} de ${unresolvedPlayers.length} atletas cadastrados. Verifique se restou algum.`);
+      }
     } catch (err: any) {
       setPublishMessage(`❌ Erro ao cadastrar atletas em lote: ${err.message}`);
     } finally {
