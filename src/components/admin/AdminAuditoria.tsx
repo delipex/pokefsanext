@@ -12,14 +12,23 @@ import {
   ChevronRight,
   Database,
   Search,
+  Sparkles,
+  Link as LinkIcon,
+  Check,
 } from "lucide-react";
 
 export function AdminAuditoria() {
   const [loading, setLoading] = useState(true);
   const [auditData, setAuditData] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [filterView, setFilterView] = useState<"all" | "warn">("all");
   const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({});
+
+  // Quick fix state
+  const [selectedFixDecks, setSelectedFixDecks] = useState<Record<string, string>>({});
+  const [fixingPlayerKey, setFixingPlayerKey] = useState<string | null>(null);
+  const [isAutoFixing, setIsAutoFixing] = useState(false);
 
   const runAudit = async () => {
     setLoading(true);
@@ -58,6 +67,64 @@ export function AdminAuditoria() {
     return dateStr;
   };
 
+  const catalogDecks: any[] = auditData?.catalogDecks || [];
+
+  // Handler para vincular/corrigir deck individual
+  const handleFixPlayerDeck = async (etapaData: string, jogadorNome: string, defaultDeck?: string) => {
+    const key = `${etapaData}_${jogadorNome}`;
+    const targetDeck = selectedFixDecks[key] || defaultDeck || (catalogDecks[0]?.nome || "");
+    if (!targetDeck) return;
+
+    setFixingPlayerKey(key);
+    setFeedback(null);
+
+    try {
+      const res = await fetch("/api/admin/audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "fix_deck",
+          etapaData,
+          jogadorNome,
+          novoDeckNome: targetDeck,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Erro ao corrigir deck.");
+      }
+      setFeedback({ text: data.message || "Deck corrigido com sucesso!", type: "success" });
+      await runAudit();
+    } catch (err: any) {
+      setFeedback({ text: err.message || "Falha ao corrigir deck.", type: "error" });
+    } finally {
+      setFixingPlayerKey(null);
+    }
+  };
+
+  // Handler para Auto-Corrigir Sinônimos
+  const handleAutoFixSynonyms = async () => {
+    setIsAutoFixing(true);
+    setFeedback(null);
+    try {
+      const res = await fetch("/api/admin/audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "auto_fix_synonyms" }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Erro ao auto-corrigir sinônimos.");
+      }
+      setFeedback({ text: data.message, type: "success" });
+      await runAudit();
+    } catch (err: any) {
+      setFeedback({ text: err.message || "Falha ao executar auto-correção.", type: "error" });
+    } finally {
+      setIsAutoFixing(false);
+    }
+  };
+
   const stagesList = auditData?.stages || [];
   const filteredStages = stagesList.filter((s: any) => {
     if (filterView === "warn") {
@@ -81,16 +148,47 @@ export function AdminAuditoria() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={runAudit}
-            disabled={loading}
-            className="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-lg"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            <span>{loading ? "Auditando..." : "Atualizar Diagnóstico"}</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleAutoFixSynonyms}
+              disabled={isAutoFixing || loading}
+              className="px-3.5 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-lg"
+              title="Detecta e corrige automaticamente variações comuns de digitação no catálogo oficial"
+            >
+              <Sparkles className={`h-4 w-4 ${isAutoFixing ? "animate-spin" : ""}`} />
+              <span>{isAutoFixing ? "Corrigindo..." : "Auto-Corrigir Sinônimos"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={runAudit}
+              disabled={loading}
+              className="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-lg"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <span>{loading ? "Auditando..." : "Atualizar Diagnóstico"}</span>
+            </button>
+          </div>
         </div>
+
+        {/* Feedback Alert */}
+        {feedback && (
+          <div
+            className={`p-4 mb-4 rounded-xl flex items-center gap-3 text-xs font-bold border ${
+              feedback.type === "success"
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+            }`}
+          >
+            {feedback.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400" />
+            )}
+            <span>{feedback.text}</span>
+          </div>
+        )}
 
         {/* Status / Loading / Erro */}
         {loading && (
@@ -279,7 +377,7 @@ export function AdminAuditoria() {
                     {/* Detalhes Expandidos da Etapa */}
                     {isExpanded && (
                       <div className="p-4 border-t border-white/10 bg-slate-950/60 space-y-3">
-                        <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+                        <div className="overflow-x-auto max-h-[360px] overflow-y-auto">
                           <table className="w-full text-left text-xs text-slate-300 border-collapse">
                             <thead>
                               <tr className="border-b border-white/10 text-slate-400 uppercase font-bold">
@@ -289,46 +387,93 @@ export function AdminAuditoria() {
                                 <th className="py-2 px-3 text-center">V-E-D</th>
                                 <th className="py-2 px-3 text-center">Pontos</th>
                                 <th className="py-2 px-3">Deck</th>
-                                <th className="py-2 px-3">Diagnóstico</th>
+                                <th className="py-2 px-3">Diagnóstico / Ação Rápida</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                              {stg.players.map((p: any, idx: number) => (
-                                <tr
-                                  key={idx}
-                                  className={p.hasIssues ? "bg-amber-500/[0.04]" : ""}
-                                >
-                                  <td className="py-2 px-3 text-center font-bold text-amber-400">
-                                    #{p.colocacao}
-                                  </td>
-                                  <td className="py-2 px-3 font-semibold text-white">
-                                    {p.jogadorNome}
-                                  </td>
-                                  <td className="py-2 px-3 text-slate-400 font-mono">
-                                    {p.jogadorId || "--"}
-                                  </td>
-                                  <td className="py-2 px-3 text-center font-mono text-slate-300">
-                                    {p.record}
-                                  </td>
-                                  <td className="py-2 px-3 text-center font-bold text-emerald-400">
-                                    {p.pontos} {stg.multiplicador > 1 ? <span className="text-[10px] text-amber-300 font-normal block">({p.pontosLiga} na Liga)</span> : null}
-                                  </td>
-                                  <td className="py-2 px-3 text-slate-300">
-                                    {p.deckNome}
-                                  </td>
-                                  <td className="py-2 px-3">
-                                    {p.hasIssues ? (
-                                      <div className="space-y-0.5 text-amber-300">
-                                        {p.issues.map((iss: string, iIdx: number) => (
-                                          <div key={iIdx}>⚠️ {iss}</div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <span className="text-emerald-400">✓ OK</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
+                              {stg.players.map((p: any, idx: number) => {
+                                const playerKey = `${stg.data}_${p.jogadorNome}`;
+                                const isFixing = fixingPlayerKey === playerKey;
+                                const defaultVal = p.suggestedDeck || catalogDecks[0]?.nome || "";
+                                const selectedVal = selectedFixDecks[playerKey] || defaultVal;
+
+                                return (
+                                  <tr
+                                    key={idx}
+                                    className={p.hasIssues ? "bg-amber-500/[0.04]" : ""}
+                                  >
+                                    <td className="py-2.5 px-3 text-center font-bold text-amber-400">
+                                      #{p.colocacao}
+                                    </td>
+                                    <td className="py-2.5 px-3 font-semibold text-white">
+                                      {p.jogadorNome}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-slate-400 font-mono">
+                                      {p.jogadorId || "--"}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-center font-mono text-slate-300">
+                                      {p.record}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-center font-bold text-emerald-400">
+                                      {p.pontos} {stg.multiplicador > 1 ? <span className="text-[10px] text-amber-300 font-normal block">({p.pontosLiga} na Liga)</span> : null}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-slate-300 font-medium">
+                                      {p.deckNome}
+                                    </td>
+                                    <td className="py-2.5 px-3">
+                                      {p.hasIssues ? (
+                                        <div className="space-y-2">
+                                          <div className="space-y-0.5 text-amber-300">
+                                            {p.issues.map((iss: string, iIdx: number) => (
+                                              <div key={iIdx} className="flex items-center gap-1">
+                                                <span>⚠️ {iss}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+
+                                          {/* Ferramenta de Correção com 1 Clique quando deck não catalogado */}
+                                          {p.isUnregisteredDeck && catalogDecks.length > 0 && (
+                                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                              <select
+                                                value={selectedVal}
+                                                onChange={(e) =>
+                                                  setSelectedFixDecks((prev) => ({
+                                                    ...prev,
+                                                    [playerKey]: e.target.value,
+                                                  }))
+                                                }
+                                                className="bg-slate-900 border border-amber-500/40 text-white rounded-lg px-2 py-1 text-[11px] font-medium focus:outline-none focus:border-amber-400 max-w-[180px]"
+                                              >
+                                                {catalogDecks.map((d: any) => (
+                                                  <option key={d.id || d.nome} value={d.nome}>
+                                                    {d.nome} {d.nome === p.suggestedDeck ? "✨ (Sugerido)" : ""}
+                                                  </option>
+                                                ))}
+                                              </select>
+
+                                              <button
+                                                type="button"
+                                                disabled={isFixing}
+                                                onClick={() => handleFixPlayerDeck(stg.data, p.jogadorNome, p.suggestedDeck)}
+                                                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                              >
+                                                {isFixing ? (
+                                                  <RefreshCw className="h-3 w-3 animate-spin" />
+                                                ) : (
+                                                  <Check className="h-3 w-3" />
+                                                )}
+                                                <span>{isFixing ? "Salvando..." : "Vincular / Corrigir"}</span>
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <span className="text-emerald-400 font-semibold">✓ OK</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>

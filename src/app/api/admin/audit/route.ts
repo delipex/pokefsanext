@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { etapas, etapaResultados, rankingConsolidado, jogadores, decks, configuracoes } from "@/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { etapas, etapaResultados, rankingConsolidado, jogadores, decks, configuracoes, metagame } from "@/db/schema";
+import { eq, asc, and, or, sql } from "drizzle-orm";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { findMatchingCatalogDeck, DECK_ALIASES } from "@/lib/deck-normalizer";
+import { recalculateRankingConsolidado } from "@/lib/recalculate-ranking";
+import { clearFileCache } from "@/lib/queries";
+import fs from "fs";
+import path from "path";
 
 export async function GET() {
   try {
@@ -82,11 +88,20 @@ export async function GET() {
           pIssues.push(`Jogador sem POP ID registrado ou não cadastrado no banco`);
         }
 
-        // Deck check
+        // Deck check com detecção inteligente
+        let suggestedDeck: string | null = null;
+        let isUnregisteredDeck = false;
+
         const hasDeck = row.deckNome && row.deckNome !== "Não registrado" && row.deckNome !== "Sem deck registrado";
         if (hasDeck) {
           stageDecksFilled++;
           if (!registeredDeckNames.has(row.deckNome!.toLowerCase())) {
+            isUnregisteredDeck = true;
+            // Procura correspondência inteligente sugerida
+            const matchRes = findMatchingCatalogDeck(row.deckNome!, allDecks);
+            if (matchRes.matchedDeck) {
+              suggestedDeck = matchRes.matchedDeck;
+            }
             pIssues.push(`Deck "${row.deckNome}" não encontrado no catálogo global de decks`);
             totalUnregisteredDecks++;
           }
@@ -108,6 +123,8 @@ export async function GET() {
           esperado: expectedStagePoints,
           record: `${row.vitorias}-${row.empates}-${row.derrotas}`,
           deckNome: row.deckNome || "Sem deck",
+          isUnregisteredDeck,
+          suggestedDeck,
           issues: pIssues,
           hasIssues: pIssues.length > 0,
         });
@@ -142,6 +159,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
+      catalogDecks: allDecks.map((d) => ({ id: d.id, nome: d.nome, tipoEnergia: d.tipoEnergia })),
       metrics: {
         totalStages: allEtapas.length,
         totalParticipations,
@@ -156,6 +174,149 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error("Erro na auditoria:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    await ensureDatabaseSchema();
+    const body = await req.json();
+    const { action, etapaData, jogadorNome, novoDeckNome } = body;
+
+    if (action === "fix_deck") {
+      if (!etapaData || !jogadorNome || !novoDeckNome) {
+        return NextResponse.json({ error: "Parâmetros incompletos para correção de deck." }, { status: 400 });
+      }
+
+      const cleanDeck = String(novoDeckNome).trim();
+      const cleanDate = String(etapaData).trim();
+      const cleanPlayer = String(jogadorNome).trim();
+      const normPlayer = cleanPlayer.toLowerCase();
+
+      // 1. Atualizar etapa_resultados
+      await db
+        .update(etapaResultados)
+        .set({ deckNome: cleanDeck })
+        .where(
+          and(
+            eq(etapaResultados.etapaData, cleanDate),
+            or(
+              eq(etapaResultados.jogadorNome, cleanPlayer),
+              eq(sql`lower(trim(${etapaResultados.jogadorNome}))`, normPlayer)
+            )
+          )
+        );
+
+      // 2. Atualizar tabela metagame
+      await db
+        .delete(metagame)
+        .where(
+          and(
+            eq(metagame.etapaData, cleanDate),
+            or(
+              eq(metagame.jogadorNome, cleanPlayer),
+              eq(sql`lower(trim(${metagame.jogadorNome}))`, normPlayer)
+            )
+          )
+        );
+
+      await db.insert(metagame).values({
+        etapaData: cleanDate,
+        sessionCode: `${cleanDate}-Liga`,
+        jogadorNome: cleanPlayer,
+        deckNome: cleanDeck,
+      });
+
+      // 3. Atualizar metagame.json físico
+      try {
+        const metaPath = path.join(process.cwd(), "src", "data", "metagame.json");
+        if (fs.existsSync(metaPath)) {
+          const raw = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+          if (!raw[cleanDate]) raw[cleanDate] = { sessionCode: `${cleanDate}-Liga`, decks: {} };
+          if (!raw[cleanDate].decks) raw[cleanDate].decks = {};
+          raw[cleanDate].decks[cleanPlayer] = cleanDeck;
+          fs.writeFileSync(metaPath, JSON.stringify(raw, null, 4), "utf-8");
+
+          const legacyMetaPath = path.resolve(process.cwd(), "..", "LigaAtlântica", "metagame.json");
+          if (fs.existsSync(legacyMetaPath)) {
+            try {
+              fs.writeFileSync(legacyMetaPath, JSON.stringify(raw, null, 4), "utf-8");
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.warn("Aviso ao sincronizar metagame.json:", err);
+      }
+
+      clearFileCache();
+      await recalculateRankingConsolidado();
+
+      revalidatePath("/");
+      revalidatePath("/ranking");
+      revalidatePath("/metagame");
+      revalidatePath("/admin");
+
+      return NextResponse.json({
+        success: true,
+        message: `Deck de ${cleanPlayer} na etapa de ${cleanDate} corrigido para "${cleanDeck}" com sucesso!`,
+      });
+    }
+
+    if (action === "auto_fix_synonyms") {
+      const allDecksList = await db.select().from(decks);
+      const allRes = await db.select().from(etapaResultados);
+      let fixedCount = 0;
+
+      for (const row of allRes) {
+        if (!row.deckNome) continue;
+        const match = findMatchingCatalogDeck(row.deckNome, allDecksList);
+        if (match.matchedDeck && match.matchedDeck !== row.deckNome) {
+          // Atualiza banco
+          await db
+            .update(etapaResultados)
+            .set({ deckNome: match.matchedDeck })
+            .where(eq(etapaResultados.id, row.id));
+
+          // Atualiza metagame
+          await db
+            .delete(metagame)
+            .where(
+              and(
+                eq(metagame.etapaData, row.etapaData),
+                eq(metagame.jogadorNome, row.jogadorNome)
+              )
+            );
+          await db.insert(metagame).values({
+            etapaData: row.etapaData,
+            sessionCode: `${row.etapaData}-Liga`,
+            jogadorNome: row.jogadorNome,
+            deckNome: match.matchedDeck,
+          });
+
+          fixedCount++;
+        }
+      }
+
+      if (fixedCount > 0) {
+        clearFileCache();
+        await recalculateRankingConsolidado();
+        revalidatePath("/");
+        revalidatePath("/ranking");
+        revalidatePath("/metagame");
+        revalidatePath("/admin");
+      }
+
+      return NextResponse.json({
+        success: true,
+        fixedCount,
+        message: `Auto-correção concluída! ${fixedCount} divergências de nomes de decks foram normalizadas.`,
+      });
+    }
+
+    return NextResponse.json({ error: "Ação não suportada." }, { status: 400 });
+  } catch (error: any) {
+    console.error("Erro na ação de auditoria:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

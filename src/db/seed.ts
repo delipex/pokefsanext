@@ -14,6 +14,7 @@ import {
 } from "./schema";
 import fs from "fs";
 import path from "path";
+import { parseTDFContent } from "../lib/tdf-parser";
 
 async function seed() {
   console.log("🌱 Iniciando o seed do banco de dados...");
@@ -144,40 +145,31 @@ async function seed() {
 
       const etapaId = insertedEtapa?.id;
 
-      const tdfFile = path.join(etapasFolder, `${e.data}.tdf`);
-      if (fs.existsSync(tdfFile)) {
-        const lines = fs.readFileSync(tdfFile, "utf-8").split(/\r?\n/).filter(Boolean);
-        const rows = lines.slice(1);
+      // Buscar arquivo TDF em pokefsanext ou LigaAtlântica
+      const tdfFile1 = path.join(etapasFolder, `${e.data}.tdf`);
+      const tdfFile2 = path.join(process.cwd(), "src", "data", "etapas", `${e.data}.tdf`);
+      const actualTdf = fs.existsSync(tdfFile1) ? tdfFile1 : fs.existsSync(tdfFile2) ? tdfFile2 : null;
 
-        for (const row of rows) {
-          const cols = row.split("\t");
-          if (cols.length < 5) continue;
+      if (actualTdf) {
+        const rawTdf = fs.readFileSync(actualTdf, "utf-8");
+        const parsed = parseTDFContent(rawTdf, path.basename(actualTdf));
 
-          const [
-            pos,
-            id,
-            jogador,
-            categoria,
-            pontos,
-            vitorias,
-            empates,
-            derrotas,
-          ] = cols;
-
-          const deckNome = findDeckInMeta(e.data, jogador.trim());
+        for (const p of parsed.jogadores) {
+          const deckNome = findDeckInMeta(e.data, p.jogador.trim());
 
           await db.insert(etapaResultados).values({
             etapaId,
             etapaData: e.data,
-            jogadorId: id ? id.trim() : null,
-            jogadorNome: jogador.trim(),
-            categoria: categoria ? categoria.trim() : "Master",
-            colocacao: Number(pos) || 99,
-            pontos: Number(pontos) || 0,
-            vitorias: Number(vitorias) || 0,
-            empates: Number(empates) || 0,
-            derrotas: Number(derrotas) || 0,
+            jogadorId: p.id ? p.id.trim() : null,
+            jogadorNome: p.jogador.trim(),
+            categoria: p.categoria || "Master",
+            colocacao: p.colocacao || 99,
+            pontos: p.pontos || 0,
+            vitorias: p.vitorias || 0,
+            empates: p.empates || 0,
+            derrotas: p.derrotas || 0,
             deckNome: deckNome || null,
+            dropou: Boolean(p.isDnf),
           });
         }
       }

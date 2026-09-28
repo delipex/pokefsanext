@@ -66,8 +66,8 @@ export async function POST(req: Request) {
       });
     }
 
-    if (!data || !resultados || !Array.isArray(resultados)) {
-      return NextResponse.json({ error: "Dados da etapa inválidos" }, { status: 400 });
+    if (!data || !resultados || !Array.isArray(resultados) || resultados.length === 0) {
+      return NextResponse.json({ error: "A etapa precisa conter resultados e participantes válidos do arquivo TDF para ser publicada." }, { status: 400 });
     }
 
     // 0. Obter a temporada ativa das configurações
@@ -115,6 +115,8 @@ export async function POST(req: Request) {
     await db.delete(metagame).where(eq(metagame.etapaData, cleanData));
 
     // 3. Inserir os resultados da etapa e auto-cadastrar jogadores se necessário
+    const tdfRows: string[] = ["Pos\tID\tJogador\tCategoria\tPontos\tVitorias\tEmpates\tDerrotas"];
+
     for (const res of resultados) {
       const deckName = res.deckNome && res.deckNome !== "Não registrado" && res.deckNome !== "Sem deck registrado" ? res.deckNome.trim() : null;
       const jogadorNome = String(res.jogador || "").trim();
@@ -160,6 +162,24 @@ export async function POST(req: Request) {
           deckNome: deckName,
         });
       }
+
+      tdfRows.push(
+        `${res.colocacao}\t${jogadorId || ""}\t${jogadorNome}\t${res.categoria || "Master"}\t${res.pontos || 0}\t${res.vitorias || 0}\t${res.empates || 0}\t${res.derrotas || 0}`
+      );
+    }
+
+    // Gravar backup do arquivo TDF em disco
+    try {
+      const tdfContent = tdfRows.join("\n");
+      const f1 = path.join(process.cwd(), "src", "data", "etapas", `${cleanData}.tdf`);
+      fs.writeFileSync(f1, tdfContent, "utf-8");
+
+      const f2 = path.resolve(process.cwd(), "..", "LigaAtlântica", "etapas", `${cleanData}.tdf`);
+      if (fs.existsSync(path.dirname(f2))) {
+        fs.writeFileSync(f2, tdfContent, "utf-8");
+      }
+    } catch (e) {
+      console.warn("Aviso ao salvar backup do TDF em disco:", e);
     }
 
     // 4. Recalcular o ranking consolidado da temporada

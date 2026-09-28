@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     const cleanId = String(request.jogadorId || "").trim();
     const cleanName = String(request.jogadorNome || "").trim();
     const cleanDate = String(request.etapaData || "").trim();
-    const cleanDeck = String(request.deckNome || "").trim();
+    const cleanDeck = String(body.mappedDeckNome || request.deckNome || "").trim();
     const lowerName = cleanName.toLowerCase();
 
     // 1. Atualizar resultado da partida em etapa_resultados (case-insensitive + ID)

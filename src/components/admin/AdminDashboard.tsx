@@ -110,6 +110,15 @@ export function AdminDashboard({
     "tdf" | "etapas" | "jogadores" | "decks" | "metagame" | "inscricoes" | "temporadas" | "calendario" | "config"
   >("tdf");
 
+  const formatDateBR = (dateStr: string) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  };
+
   // Sistema de Notificações Toast Global do Admin
   const [toasts, setToasts] = useState<AdminToast[]>([]);
 
@@ -167,11 +176,12 @@ export function AdminDashboard({
 
   // Estado da aba TDF
   const [stageDate, setStageDate] = useState(new Date().toISOString().split("T")[0]);
-  const [stageType, setStageType] = useState("Liga");
+  const [stageType, setStageType] = useState("Sessão de Liga");
   const [customStageTitle, setCustomStageTitle] = useState("");
   const [multiplier, setMultiplier] = useState(1.0);
   const [isMultiplierUnlocked, setIsMultiplierUnlocked] = useState(false);
   const [parsedRows, setParsedRows] = useState<(ParsedPlayerRow & { deckNome?: string })[]>([]);
+  const [detectedInfo, setDetectedInfo] = useState<{ date: string | null; name: string | null } | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState("");
   const [resolvedNamesMap, setResolvedNamesMap] = useState<Record<string, string>>({});
@@ -407,16 +417,16 @@ export function AdminDashboard({
   // Mudança do tipo de evento com multiplicador automático
   const handleEventTypeSelect = (type: string) => {
     setStageType(type);
-    if (type === "Liga") {
+    if (type === "Sessão de Liga" || type === "Liga") {
       setMultiplier(1.0);
       setIsMultiplierUnlocked(false);
-    } else if (type === "Challenge") {
+    } else if (type === "League Challenge" || type === "Challenge") {
       setMultiplier(1.5);
       setIsMultiplierUnlocked(false);
-    } else if (type === "Cup") {
+    } else if (type === "League Cup" || type === "Cup") {
       setMultiplier(1.5);
       setIsMultiplierUnlocked(false);
-    } else if (type === "Especial") {
+    } else if (type === "Sessão Especial" || type === "Especial") {
       setIsMultiplierUnlocked(true);
       // Se estava travado em 1.5x de Cup/Challenge, reinicia em 1.0x para o organizador customizar
       if (multiplier === 1.5) {
@@ -448,13 +458,66 @@ export function AdminDashboard({
           detectedDate = parsed.dataTorneio;
         }
 
+        if (parsed.detectedType) {
+          setStageType(parsed.detectedType);
+        }
+
+        if (parsed.detectedMultiplier !== undefined) {
+          setMultiplier(parsed.detectedMultiplier);
+          if (parsed.detectedMultiplier !== 1.0) {
+            setIsMultiplierUnlocked(true);
+          }
+        }
+
+        if (parsed.detectedSubtitle) {
+          setCustomStageTitle(parsed.detectedSubtitle);
+        }
+
         if (Array.isArray(parsed.jogadores) && parsed.jogadores.length > 0) {
+          // Mapeamento inteligente de decks conhecidos dos atletas para auto-preenchimento
+          const playerKnownDeckMap = new Map<string, string>();
+
+          // 1. Deck ativo cadastrado no perfil do atleta
+          initialPlayers?.forEach((p) => {
+            if (p.deckAtivoNome) {
+              if (p.id) playerKnownDeckMap.set(String(p.id).trim(), p.deckAtivoNome);
+              if (p.nome) playerKnownDeckMap.set(p.nome.trim().toLowerCase(), p.deckAtivoNome);
+            }
+          });
+
+          // 2. Decklists enviadas recentemente no portal
+          initialDecklists?.forEach((dl) => {
+            if (dl.deckNome) {
+              if (dl.jogadorId) playerKnownDeckMap.set(String(dl.jogadorId).trim(), dl.deckNome);
+              if (dl.jogadorNome) playerKnownDeckMap.set(dl.jogadorNome.trim().toLowerCase(), dl.deckNome);
+            }
+          });
+
+          // 3. Último deck utilizado em etapas anteriores
+          initialEtapas?.forEach((etp) => {
+            etp.resultados?.forEach((r: any) => {
+              if (r.deckNome && r.deckNome !== "Não registrado" && r.deckNome !== "Sem deck registrado") {
+                if (r.jogadorId) playerKnownDeckMap.set(String(r.jogadorId).trim(), r.deckNome);
+                if (r.jogadorNome) playerKnownDeckMap.set(r.jogadorNome.trim().toLowerCase(), r.deckNome);
+              }
+            });
+          });
+
           combinedPlayers = combinedPlayers.concat(
-            parsed.jogadores.map((j) => ({
-              ...j,
-              jogador: j.jogador || `Jogador ${j.id || ""}`.trim(),
-              deckNome: "Não registrado",
-            }))
+            parsed.jogadores.map((j) => {
+              const cleanId = j.id ? String(j.id).trim() : "";
+              const cleanName = (j.jogador || `Jogador ${cleanId}`).trim().toLowerCase();
+              const autoDetectedDeck =
+                (cleanId && playerKnownDeckMap.get(cleanId)) ||
+                playerKnownDeckMap.get(cleanName) ||
+                "Não registrado";
+
+              return {
+                ...j,
+                jogador: j.jogador || `Jogador ${j.id || ""}`.trim(),
+                deckNome: autoDetectedDeck,
+              };
+            })
           );
         }
       }
@@ -467,6 +530,11 @@ export function AdminDashboard({
       if (detectedDate) {
         setStageDate(detectedDate);
       }
+
+      setDetectedInfo({
+        date: detectedDate,
+        name: tournamentName,
+      });
 
       // Ordenação Estrita Oficial:
       // 1. Pontos DESC -> 2. Vitórias DESC -> 3. OMW DESC -> 4. Colocação ASC -> 5. Nome ASC
@@ -622,8 +690,8 @@ export function AdminDashboard({
 
     try {
       let finalEventName = stageType;
-      if (stageType === "Especial") {
-        finalEventName = customStageTitle.trim() ? `Especial (${customStageTitle.trim()})` : "Sessão Especial";
+      if (stageType === "Sessão Especial" || stageType === "Especial") {
+        finalEventName = customStageTitle.trim() ? `Sessão Especial (${customStageTitle.trim()})` : "Sessão Especial";
       } else if (stageType === "Personalizado") {
         finalEventName = customStageTitle.trim() || "Personalizado";
       }
@@ -1604,23 +1672,23 @@ export function AdminDashboard({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <button
                   type="button"
-                  onClick={() => handleEventTypeSelect("Liga")}
+                  onClick={() => handleEventTypeSelect("Sessão de Liga")}
                   className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all cursor-pointer ${
-                    stageType === "Liga"
+                    stageType === "Sessão de Liga" || stageType === "Liga"
                       ? "border-blue-500 bg-blue-600/20 text-white shadow-lg shadow-blue-500/20"
                       : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
                   }`}
                 >
                   <Flame className="h-5 w-5 mb-1 text-blue-400" />
-                  <span className="text-xs font-black text-white">Etapa Regular</span>
+                  <span className="text-xs font-black text-white">Sessão de Liga</span>
                   <span className="text-[10px] text-blue-300 font-semibold">1.0x (Padrão)</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => handleEventTypeSelect("Challenge")}
+                  onClick={() => handleEventTypeSelect("League Challenge")}
                   className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all cursor-pointer ${
-                    stageType === "Challenge"
+                    stageType === "League Challenge" || stageType === "Challenge"
                       ? "border-amber-500 bg-amber-600/20 text-white shadow-lg shadow-amber-500/20"
                       : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
                   }`}
@@ -1632,9 +1700,9 @@ export function AdminDashboard({
 
                 <button
                   type="button"
-                  onClick={() => handleEventTypeSelect("Cup")}
+                  onClick={() => handleEventTypeSelect("League Cup")}
                   className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all cursor-pointer ${
-                    stageType === "Cup"
+                    stageType === "League Cup" || stageType === "Cup"
                       ? "border-yellow-500 bg-yellow-600/20 text-white shadow-lg shadow-yellow-500/20"
                       : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
                   }`}
@@ -1646,9 +1714,9 @@ export function AdminDashboard({
 
                 <button
                   type="button"
-                  onClick={() => handleEventTypeSelect("Especial")}
+                  onClick={() => handleEventTypeSelect("Sessão Especial")}
                   className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all cursor-pointer ${
-                    stageType === "Especial"
+                    stageType === "Sessão Especial" || stageType === "Especial"
                       ? "border-purple-500 bg-purple-600/20 text-white shadow-lg shadow-purple-500/20"
                       : "border-white/10 bg-slate-800/60 text-slate-400 hover:bg-slate-800"
                   }`}
@@ -1656,7 +1724,7 @@ export function AdminDashboard({
                   <Sparkles className="h-5 w-5 mb-1 text-purple-400" />
                   <span className="text-xs font-black text-white">Sessão Especial</span>
                   <span className="text-[10px] text-purple-300 font-semibold">
-                    {stageType === "Especial" ? `${multiplier}x (Ajustável)` : "Livre / Ajustável"}
+                    {stageType === "Sessão Especial" || stageType === "Especial" ? `${multiplier}x (Ajustável)` : "Livre / Ajustável"}
                   </span>
                 </button>
               </div>
@@ -1664,6 +1732,16 @@ export function AdminDashboard({
 
             {/* Configurações da Etapa & Modificador de Multiplicador */}
             <div className="space-y-4">
+              {detectedInfo && (
+                <div className="flex items-center gap-2.5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold shadow-inner">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span>
+                    Informações identificadas do arquivo TDF: <strong>Data {formatDateBR(stageDate)}</strong>
+                    {detectedInfo.name ? ` • Torneio: "${detectedInfo.name}"` : ""}
+                  </span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
@@ -1677,8 +1755,8 @@ export function AdminDashboard({
                   />
                 </div>
 
-                {/* Subtítulo / Nome Especial se for Especial ou Personalizado */}
-                {(stageType === "Especial" || stageType === "Personalizado") && (
+                {/* Subtítulo / Nome Especial se for Sessão Especial ou Personalizado */}
+                {(stageType === "Sessão Especial" || stageType === "Especial" || stageType === "Personalizado") && (
                   <div>
                     <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                       <Sparkles className="h-3.5 w-3.5 text-purple-400" />
@@ -1688,26 +1766,26 @@ export function AdminDashboard({
                       type="text"
                       value={customStageTitle}
                       onChange={(e) => setCustomStageTitle(e.target.value)}
-                      placeholder="Ex: Formato Retrô, Torneio Comemorativo..."
+                      placeholder="Ex: TBT / Retrô, Off-Meta, etc."
                       className="w-full rounded-xl border border-purple-500/30 bg-purple-950/20 py-2.5 px-3 text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-purple-400"
                     />
                   </div>
                 )}
 
                 {/* Bloco do Multiplicador */}
-                <div className={stageType !== "Especial" && stageType !== "Personalizado" ? "sm:col-span-1" : ""}>
+                <div className={stageType !== "Sessão Especial" && stageType !== "Especial" && stageType !== "Personalizado" ? "sm:col-span-1" : ""}>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
                       Multiplicador de Pontos:
                     </label>
-                    {(stageType === "Especial" || isMultiplierUnlocked) && (
+                    {(stageType === "Sessão Especial" || stageType === "Especial" || isMultiplierUnlocked) && (
                       <span className="text-[10px] font-bold text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-full border border-purple-500/30">
                         ✨ Modificador Livre
                       </span>
                     )}
                   </div>
 
-                  {stageType === "Especial" || isMultiplierUnlocked ? (
+                  {stageType === "Sessão Especial" || stageType === "Especial" || isMultiplierUnlocked ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <button

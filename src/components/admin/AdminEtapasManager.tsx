@@ -337,28 +337,32 @@ export function AdminEtapasManager({ etapas, onEtapasUpdated }: AdminEtapasManag
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
                   {[
-                    { label: "Liga", sub: "1.0x", mult: 1.0 },
-                    { label: "Challenge", sub: "1.5x", mult: 1.5 },
-                    { label: "Cup", sub: "1.5x", mult: 1.5 },
-                    { label: "Especial", sub: "Livre", mult: editMultiplier },
+                    { label: "Sessão de Liga", sub: "1.0x", mult: 1.0 },
+                    { label: "League Challenge", sub: "1.5x", mult: 1.5 },
+                    { label: "League Cup", sub: "1.5x", mult: 1.5 },
+                    { label: "Sessão Especial", sub: "Livre", mult: editMultiplier },
                   ].map((cat) => (
                     <button
                       key={cat.label}
                       type="button"
                       onClick={() => {
                         setEditTipo(cat.label);
-                        if (cat.label !== "Especial") {
+                        if (cat.label !== "Sessão Especial") {
                           setEditMultiplier(cat.mult);
                         }
                       }}
                       className={`p-2 rounded-xl text-center border text-xs font-bold transition-all cursor-pointer ${
-                        editTipo.toLowerCase().includes(cat.label.toLowerCase())
+                        editTipo.toLowerCase().includes(cat.label.toLowerCase()) ||
+                        (cat.label === "Sessão de Liga" && editTipo.toLowerCase() === "liga") ||
+                        (cat.label === "League Challenge" && editTipo.toLowerCase() === "challenge") ||
+                        (cat.label === "League Cup" && editTipo.toLowerCase() === "cup") ||
+                        (cat.label === "Sessão Especial" && editTipo.toLowerCase() === "especial")
                           ? "bg-purple-600/30 border-purple-500 text-white shadow-md shadow-purple-500/20"
                           : "bg-slate-900 border-white/10 text-slate-400 hover:bg-slate-800"
                       }`}
                     >
-                      <div>{cat.label}</div>
-                      <div className="text-[10px] text-purple-300/80 font-normal">{cat.sub}</div>
+                      <div className="leading-tight">{cat.label}</div>
+                      <div className="text-[10px] text-purple-300/80 font-normal mt-0.5">{cat.sub}</div>
                     </button>
                   ))}
                 </div>
@@ -366,7 +370,7 @@ export function AdminEtapasManager({ etapas, onEtapasUpdated }: AdminEtapasManag
                   type="text"
                   value={editTipo}
                   onChange={(e) => setEditTipo(e.target.value)}
-                  placeholder="Nome customizado (Ex: Especial (Retrô))"
+                  placeholder="Nome customizado (Ex: Sessão Especial (Retrô))"
                   className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-purple-400"
                 />
               </div>

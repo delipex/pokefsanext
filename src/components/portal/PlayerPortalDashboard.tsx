@@ -71,6 +71,7 @@ export function PlayerPortalDashboard({
   const [selectedDeck, setSelectedDeck] = useState(
     submittedDecklist?.deckNome || player.deckAtivoNome || (allDecks[0]?.nome || "")
   );
+  const [customDecklistName, setCustomDecklistName] = useState("");
   const [decklistText, setDecklistText] = useState(
     submittedDecklist?.decklistRaw || player.decklistTexto || ""
   );
@@ -88,6 +89,7 @@ export function PlayerPortalDashboard({
   const [localRequests, setLocalRequests] = useState<any[]>(deckRequests || []);
   const [selectedStageForDeck, setSelectedStageForDeck] = useState<string | null>(null);
   const [requestDeckName, setRequestDeckName] = useState<string>(allDecks[0]?.nome || "");
+  const [customRequestDeckName, setCustomRequestDeckName] = useState("");
   const [isSendingRequest, setIsSendingRequest] = useState(false);
   const [requestFeedback, setRequestFeedback] = useState("");
 
@@ -109,7 +111,14 @@ export function PlayerPortalDashboard({
     setSubmitMessage("");
     setSubmitErrors([]);
 
-    const foundDeck = allDecks.find((d) => d.nome.toLowerCase() === selectedDeck.toLowerCase());
+    const effectiveDeckName = (selectedDeck === "__custom__" ? customDecklistName : selectedDeck).trim();
+    if (!effectiveDeckName) {
+      setSubmitMessage("❌ Por favor, digite o nome do deck.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const foundDeck = allDecks.find((d) => d.nome.toLowerCase() === effectiveDeckName.toLowerCase());
     const tipoEnergia = foundDeck?.tipoEnergia || "colorless";
 
     try {
@@ -117,7 +126,7 @@ export function PlayerPortalDashboard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          deckNome: selectedDeck,
+          deckNome: effectiveDeckName,
           decklistRaw: decklistText,
           tipoEnergia,
         }),
@@ -150,7 +159,8 @@ export function PlayerPortalDashboard({
   // Enviar solicitação de deck jogado na etapa (Envio Posterior)
   const handleSubmitDeckRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStageForDeck || !requestDeckName) return;
+    const effectiveDeckName = (requestDeckName === "__custom__" ? customRequestDeckName : requestDeckName).trim();
+    if (!selectedStageForDeck || !effectiveDeckName) return;
 
     setIsSendingRequest(true);
     setRequestFeedback("");
@@ -161,7 +171,7 @@ export function PlayerPortalDashboard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           etapaData: selectedStageForDeck,
-          deckNome: requestDeckName,
+          deckNome: effectiveDeckName,
         }),
       });
 
@@ -171,20 +181,20 @@ export function PlayerPortalDashboard({
           ...prev.filter((item) => item.etapaData !== selectedStageForDeck),
           {
             etapaData: selectedStageForDeck,
-            deckNome: requestDeckName,
+            deckNome: effectiveDeckName,
             status: "pendente",
           },
         ]);
-        setRequestFeedback("✅ Solicitação enviada! O organizador validará o deck.");
+        setRequestFeedback("✅ Solicitação enviada! A gestão da Liga validará o deck informado.");
         setTimeout(() => {
           setSelectedStageForDeck(null);
-          setRequestFeedback("");
+          setCustomRequestDeckName("");
         }, 1500);
       } else {
-        setRequestFeedback(`❌ Erro: ${data.error || "Não foi possível enviar."}`);
+        setRequestFeedback(`❌ Erro: ${data.error || "Não foi possível enviar a solicitação."}`);
       }
     } catch (err: any) {
-      setRequestFeedback(`❌ Erro: ${err.message}`);
+      setRequestFeedback(`❌ Falha de comunicação: ${err.message}`);
     } finally {
       setIsSendingRequest(false);
     }
@@ -882,12 +892,33 @@ export function PlayerPortalDashboard({
                   onChange={(e) => setSelectedDeck(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-slate-950 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500"
                 >
-                  {allDecks.map((d) => (
-                    <option key={d.id} value={d.nome}>
-                      {d.nome} ({d.tipoEnergia})
-                    </option>
-                  ))}
+                  <optgroup label="Decks Oficiais Catalogados">
+                    {allDecks.map((d) => (
+                      <option key={d.id} value={d.nome}>
+                        {d.nome} ({d.tipoEnergia})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Personalizado">
+                    <option value="__custom__">➕ Outro (Digitar novo deck...)</option>
+                  </optgroup>
                 </select>
+
+                {selectedDeck === "__custom__" && (
+                  <div className="space-y-1 pt-1.5">
+                    <input
+                      type="text"
+                      placeholder="Digite o nome do seu deck (Ex: Mega Tyranitar Rogue)..."
+                      value={customDecklistName}
+                      onChange={(e) => setCustomDecklistName(e.target.value)}
+                      className="w-full rounded-xl border border-amber-500/40 bg-slate-900 py-2 px-3 text-xs font-semibold text-white focus:outline-none focus:border-amber-400 placeholder-slate-500"
+                      required
+                    />
+                    <p className="text-[11px] text-amber-300/80">
+                      ⭐ Decks personalizados passarão pela auditoria e validação da gestão da Liga.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -1114,12 +1145,34 @@ export function PlayerPortalDashboard({
                   onChange={(e) => setRequestDeckName(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-slate-950 py-2.5 px-3 text-xs font-bold text-white focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
-                  {allDecks.map((d) => (
-                    <option key={d.id} value={d.nome}>
-                      {d.nome} ({d.tipoEnergia})
-                    </option>
-                  ))}
+                  <optgroup label="Decks Oficiais Catalogados">
+                    {allDecks.map((d) => (
+                      <option key={d.id} value={d.nome}>
+                        {d.nome} ({d.tipoEnergia})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Personalizado">
+                    <option value="__custom__">➕ Outro (Digitar novo deck...)</option>
+                  </optgroup>
                 </select>
+
+                {requestDeckName === "__custom__" && (
+                  <div className="space-y-1 pt-2">
+                    <input
+                      type="text"
+                      placeholder="Digite o nome do seu deck (Ex: Mega Tyranitar Rogue)..."
+                      value={customRequestDeckName}
+                      onChange={(e) => setCustomRequestDeckName(e.target.value)}
+                      className="w-full rounded-xl border border-amber-500/40 bg-slate-900 py-2 px-3 text-xs font-semibold text-white focus:outline-none focus:border-amber-400 placeholder-slate-500"
+                      required
+                    />
+                    <p className="text-[11px] text-amber-300/80">
+                      ⭐ O nome digitado será revisado e validado pela gestão da Liga.
+                    </p>
+                  </div>
+                )}
+
                 <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
                   <HelpCircle className="h-3 w-3" />
                   Sua escolha será enviada para conferência e validação do organizador da Liga.

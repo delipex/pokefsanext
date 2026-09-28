@@ -21,14 +21,18 @@ export interface ParsedTDFResult {
   nomeTorneio: string | null;
   dataTorneio: string | null;
   jogadores: ParsedPlayerRow[];
+  detectedType?: string;
+  detectedMultiplier?: number;
+  detectedSubtitle?: string;
 }
 
 /**
- * Normaliza datas nos formatos ISO (AAAA-MM-DD), TOM (MM/DD/AAAA) ou BR (DD/MM/AAAA)
+ * Normaliza datas nos formatos ISO (AAAA-MM-DD), TOM (MM/DD/AAAA ou MM/DD/YYYY HH:MM:SS) ou BR (DD/MM/AAAA)
  */
 export function parseTDFDate(dateStr?: string | null): string | null {
   if (!dateStr || typeof dateStr !== "string") return null;
-  const clean = dateStr.trim();
+  // Limpar horário se presente (ex: "09/24/2026 18:49:40" -> "09/24/2026")
+  const clean = dateStr.trim().split(" ")[0].trim();
 
   // 1. ISO AAAA-MM-DD
   const isoMatch = clean.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
@@ -39,7 +43,7 @@ export function parseTDFDate(dateStr?: string | null): string | null {
     return `${y}-${m}-${d}`;
   }
 
-  // 2. Formatos com barras (MM/DD/AAAA ou DD/MM/AAAA)
+  // 2. Formatos com barras ou hífens (MM/DD/AAAA ou DD/MM/AAAA)
   const parts = clean.split(/[/.-]/);
   if (parts.length === 3) {
     const p1 = parseInt(parts[0], 10);
@@ -97,12 +101,67 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
   const nameMatch = xmlText.match(/<name>(.*?)<\/name>/i);
   if (nameMatch) tournamentName = nameMatch[1].trim();
 
+  // 1. Tentar <startdate>
   const dateMatch = xmlText.match(/<startdate>(.*?)<\/startdate>/i);
-  if (dateMatch) tournamentDate = parseTDFDate(dateMatch[1]);
+  if (dateMatch && dateMatch[1]?.trim()) {
+    tournamentDate = parseTDFDate(dateMatch[1]);
+  }
 
+  // 2. Fallback: extrair das timestamps de rounds (<starttime> ou <pairtime>)
+  if (!tournamentDate) {
+    const roundTimeMatch = xmlText.match(/<(?:starttime|pairtime|creationdate)>(.*?)<\//i);
+    if (roundTimeMatch && roundTimeMatch[1]?.trim()) {
+      tournamentDate = parseTDFDate(roundTimeMatch[1]);
+    }
+  }
+
+  // 3. Fallback: extrair do nome do arquivo
   if (!tournamentDate && fileName) {
     const fnDateMatch = fileName.match(/(\d{4}[-_]\d{2}[-_]\d{2})/);
-    if (fnDateMatch) tournamentDate = fnDateMatch[1].replace(/_/g, "-");
+    if (fnDateMatch) {
+      tournamentDate = fnDateMatch[1].replace(/_/g, "-");
+    } else {
+      // Formato DDMMYY (ex: S1T5 090726 ou 240926)
+      const ddmmyyMatch = fileName.match(/(\d{2})(\d{2})(\d{2})/);
+      if (ddmmyyMatch) {
+        const d = ddmmyyMatch[1];
+        const m = ddmmyyMatch[2];
+        const y = `20${ddmmyyMatch[3]}`;
+        tournamentDate = `${y}-${m}-${d}`;
+      }
+    }
+  }
+
+  // Detecção inteligente de tipo e multiplicador baseado no nome do torneio
+  // Tipos oficiais: "Sessão de Liga", "League Challenge", "League Cup", "Sessão Especial"
+  let detectedType = "Sessão de Liga";
+  let detectedMultiplier = 1.0;
+  let detectedSubtitle: string | undefined = undefined;
+
+  if (tournamentName) {
+    const upperName = tournamentName.toUpperCase();
+    if (upperName.includes("TBT")) {
+      detectedType = "Sessão Especial";
+      detectedMultiplier = 0.5;
+      detectedSubtitle = "Sessão TBT";
+    } else if (upperName.includes("CHALLENGE") || upperName.includes("LEAGUE CHALLENGE")) {
+      detectedType = "League Challenge";
+      detectedMultiplier = 1.5;
+    } else if (upperName.includes("CUP") || upperName.includes("LEAGUE CUP")) {
+      detectedType = "League Cup";
+      detectedMultiplier = 1.5;
+    } else if (upperName.includes("OFFMETA") || upperName.includes("OFF-META")) {
+      detectedType = "Sessão Especial";
+      detectedMultiplier = 1.0;
+      detectedSubtitle = "Off-Meta";
+    } else if (upperName.includes("ESPECIAL") || upperName.includes("SESSAO ESPECIAL") || upperName.includes("WORLD") || upperName.includes("SPECIAL")) {
+      detectedType = "Sessão Especial";
+      detectedMultiplier = 1.5;
+      detectedSubtitle = "Sessão Especial";
+    } else {
+      detectedType = "Sessão de Liga";
+      detectedMultiplier = 1.0;
+    }
   }
 
   // 1. Mapear jogadores cadastrados estritamente dentro do bloco <players>...</players>
@@ -291,6 +350,9 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     nomeTorneio: tournamentName,
     dataTorneio: tournamentDate,
     jogadores: playersResult,
+    detectedType,
+    detectedMultiplier,
+    detectedSubtitle,
   };
 }
 
