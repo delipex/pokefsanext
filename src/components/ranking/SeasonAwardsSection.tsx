@@ -235,14 +235,14 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
               </div>
 
               <p className="text-xs text-slate-400 font-normal line-clamp-2 leading-relaxed">
-                Maior volume de derrotas ({murcha.losses}D), menos vitórias ({murcha.wins}V) e alta presença em etapas ({murcha.participations} et.).
+                Maior volume de derrotas ({murcha.losses}D), déficit (+{murcha.deficit}) e menos vitórias ({murcha.wins}V) em {murcha.participations} etapas.
               </p>
             </div>
 
             <div className="mt-4 pt-3 border-t border-white/[0.04] space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-rose-300">{murcha.losses} Derrotas</span>
-                <span className="text-slate-300 font-bold tabular-nums">{murcha.wins} vitórias • {murcha.participations} etapas</span>
+                <span className="font-bold text-rose-300">Déficit: +{murcha.deficit} ({murcha.losses}D - {murcha.wins}V)</span>
+                <span className="text-slate-300 font-bold tabular-nums">{murcha.participations} etapas</span>
               </div>
               <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all">
                 <span>Ver classificação e detalhes</span>
@@ -585,7 +585,7 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                                   {p.player}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
-                                  {p.participations} etapas • {p.wins} vitórias ({p.winRate}% win rate)
+                                  {p.participations} etapas • {p.losses}D vs {p.wins}V ({p.winRate}% win rate)
                                 </span>
                               </div>
                             </div>
@@ -593,9 +593,9 @@ export function SeasonAwardsSection({ awards }: SeasonAwardsSectionProps) {
                             <div className="text-right shrink-0 flex items-center gap-2 sm:gap-3">
                               <div className="text-right">
                                 <span className="font-black text-sm sm:text-base text-rose-400 tabular-nums">
-                                  {p.losses}
+                                  +{p.deficit}
                                 </span>
-                                <span className="block text-[9px] font-semibold text-slate-400">DERROTAS</span>
+                                <span className="block text-[9px] font-semibold text-slate-400">DÉFICIT</span>
                               </div>
                               <div className="rounded-xl bg-white/5 px-2.5 py-1 border border-white/10 text-center min-w-[50px]">
                                 <span className="font-black text-xs sm:text-sm text-slate-200 tabular-nums">{p.participations}</span>
