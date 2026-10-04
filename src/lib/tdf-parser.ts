@@ -229,10 +229,21 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
         statsMap.get(p2)!.e++;
       }
     } else if (singleP) {
-      // Byes no TOM: vitória automática de 3 pontos
-      if (statsMap.has(singleP)) {
-        statsMap.get(singleP)!.v++;
-        statsMap.get(singleP)!.byes++;
+      if (outcome === 5 || outcome === 1) {
+        // Bye Oficial Play! Pokémon / TOM: vitória automática de 3 pontos
+        if (statsMap.has(singleP)) {
+          statsMap.get(singleP)!.v++;
+          statsMap.get(singleP)!.byes++;
+        }
+      } else if (outcome === 8) {
+        // Late Entry / Late Penalty no TOM: penalidade de 0 pontos (derrota)
+        if (statsMap.has(singleP)) {
+          statsMap.get(singleP)!.d++;
+        }
+      } else {
+        if (statsMap.has(singleP)) {
+          statsMap.get(singleP)!.d++;
+        }
       }
     }
   }
@@ -244,8 +255,7 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     const st = statsMap.get(id) || { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 };
     const winsReal = st.v - st.byes;
     const scoreReal = winsReal * 1.0 + st.e * 0.5;
-    const matchesCount = st.realMatches > 0 ? st.realMatches : Math.max(1, totalRounds - st.byes);
-    const rawRate = matchesCount > 0 ? scoreReal / matchesCount : 0.25;
+    const rawRate = totalRounds > 0 ? scoreReal / totalRounds : 0.25;
     mwpMap.set(id, Math.max(0.25, rawRate));
   });
 
