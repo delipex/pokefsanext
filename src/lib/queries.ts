@@ -215,6 +215,7 @@ export async function getRanking(categoria?: string) {
       .orderBy(
         desc(rankingConsolidado.pontos),
         desc(rankingConsolidado.podios),
+        desc(rankingConsolidado.vitorias),
         asc(rankingConsolidado.mediaColocacao),
         asc(rankingConsolidado.jogadorNome)
       );
