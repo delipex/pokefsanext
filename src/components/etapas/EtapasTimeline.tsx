@@ -48,6 +48,16 @@ interface EtapasTimelineProps {
   allDecks?: DeckItemInfo[];
 }
 
+function maskPlayerId(id?: string | null): string {
+  if (!id) return "";
+  const clean = String(id).trim();
+  if (!clean || clean === "—" || clean === "null") return "";
+  if (clean.length <= 4) return clean;
+  const first4 = clean.slice(0, 4);
+  const asterisks = "*".repeat(Math.max(1, clean.length - 4));
+  return `${first4}${asterisks}`;
+}
+
 export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
   const [selectedEtapa, setSelectedEtapa] = useState<EtapaSummaryItem | null>(null);
   const [inspectingPlayer, setInspectingPlayer] = useState<PlayerModalData | null>(null);
@@ -299,9 +309,16 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
                             )}
                           </td>
                           <td className="px-3 py-2.5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-white">{res.jogadorNome}</span>
-                              <CategoryBadge category={res.categoria} size="sm" />
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-white">{res.jogadorNome}</span>
+                                <CategoryBadge category={res.categoria} size="sm" />
+                              </div>
+                              {res.jogadorId && res.jogadorId !== "—" && (
+                                <span className="text-[10px] text-slate-500/50 font-light tracking-wider select-none leading-tight mt-0.5">
+                                  {maskPlayerId(res.jogadorId)}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-3 py-2.5">

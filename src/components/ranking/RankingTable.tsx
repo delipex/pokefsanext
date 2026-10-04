@@ -85,6 +85,16 @@ function renderDeckBadge(deckNome?: string | null, allDecks: DeckItemInfo[] = []
   );
 }
 
+function maskPlayerId(id?: string | null): string {
+  if (!id) return "";
+  const clean = String(id).trim();
+  if (!clean || clean === "—" || clean === "null") return "";
+  if (clean.length <= 4) return clean;
+  const first4 = clean.slice(0, 4);
+  const asterisks = "*".repeat(Math.max(1, clean.length - 4));
+  return `${first4}${asterisks}`;
+}
+
 function formatDateBR(dateStr: string) {
   if (!dateStr) return "";
   const parts = dateStr.split("-");
@@ -401,12 +411,19 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
                       {/* TREINADOR + TAG DE CATEGORIA + ÚLTIMO DECK */}
                       <td className="px-3 sm:px-6 py-3.5 sm:py-4">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors">
-                            {player.jogadorNome}
-                          </span>
-                          <CategoryBadge category={player.categoria} />
-                          {player.ultimoDeck && renderDeckBadge(player.ultimoDeck, allDecks)}
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors">
+                              {player.jogadorNome}
+                            </span>
+                            <CategoryBadge category={player.categoria} />
+                            {player.ultimoDeck && renderDeckBadge(player.ultimoDeck, allDecks)}
+                          </div>
+                          {player.jogadorId && player.jogadorId !== "—" && (
+                            <span className="text-[10px] text-slate-500/50 font-light tracking-wider select-none leading-tight mt-0.5">
+                              {maskPlayerId(player.jogadorId)}
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -487,12 +504,19 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
                       {/* TREINADOR + TAG DE CATEGORIA + DECK BADGE */}
                       <td className="px-3 sm:px-6 py-3.5 sm:py-4">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors">
-                            {result.jogadorNome}
-                          </span>
-                          <CategoryBadge category={result.categoria} />
-                          {result.deckNome && renderDeckBadge(result.deckNome, allDecks)}
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors">
+                              {result.jogadorNome}
+                            </span>
+                            <CategoryBadge category={result.categoria} />
+                            {result.deckNome && renderDeckBadge(result.deckNome, allDecks)}
+                          </div>
+                          {result.jogadorId && result.jogadorId !== "—" && (
+                            <span className="text-[10px] text-slate-500/50 font-light tracking-wider select-none leading-tight mt-0.5">
+                              {maskPlayerId(result.jogadorId)}
+                            </span>
+                          )}
                         </div>
                       </td>
 

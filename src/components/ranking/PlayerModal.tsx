@@ -72,6 +72,16 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
       })()
     : "";
 
+  const maskPlayerId = (id?: string | null) => {
+    if (!id) return "";
+    const clean = String(id).trim();
+    if (!clean || clean === "—" || clean === "null") return "";
+    if (clean.length <= 4) return clean;
+    const first4 = clean.slice(0, 4);
+    const asterisks = "*".repeat(Math.max(1, clean.length - 4));
+    return `${first4}${asterisks}`;
+  };
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -150,6 +160,11 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
                   </span>
                 )}
               </div>
+              {player.jogadorId && player.jogadorId !== "—" && (
+                <span className="text-[10px] text-slate-400/60 font-light tracking-wider select-none leading-tight mt-0.5 block">
+                  ID: {maskPlayerId(player.jogadorId)}
+                </span>
+              )}
 
               {/* Deck em Destaque */}
               {isStageView && sc?.deckNome ? (
