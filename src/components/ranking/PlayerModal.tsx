@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trophy, Award, TrendingUp, Calendar, Zap, Swords, Medal } from "lucide-react";
+import { X, Trophy, Award, TrendingUp, Calendar, Zap, Swords, Medal, Calculator, CheckCircle2 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { CategoryBadge } from "../ui/CategoryBadge";
 
@@ -13,6 +13,22 @@ export interface StageContextData {
   colocacao: number;
   pontos: number;
   basePontos?: number;
+  vitorias: number;
+  empates: number;
+  derrotas: number;
+  deckNome?: string | null;
+  deckEnergia?: string | null;
+  deckIcone?: string | null;
+}
+
+export interface StageHistoryItem {
+  numeroEtapa: number;
+  data: string;
+  tipo: string;
+  multiplicador: number;
+  colocacao: number;
+  pontosBase: number;
+  pontosFinais: number;
   vitorias: number;
   empates: number;
   derrotas: number;
@@ -38,6 +54,7 @@ export interface PlayerModalData {
   ultimoDeckEnergia?: string | null;
   ultimoDeckIcone?: string | null;
   stageContext?: StageContextData | null;
+  stageHistory?: StageHistoryItem[] | null;
 }
 
 interface PlayerModalProps {
@@ -344,46 +361,145 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
             </div>
           )}
 
-          {/* Histórico Etapa por Etapa */}
-          <div className="mt-5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-2.5">
-              <Calendar className="h-3.5 w-3.5 text-blue-400" />
-              Histórico de Colocações na Temporada
-            </h4>
-            <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
-              {etapasArray.map((colocacao, idx) => {
-                const num = Number(colocacao);
-                const isPodium = !isNaN(num) && num > 0 && num <= 4;
-                const isAbsent = colocacao === "-" || !colocacao;
-                const isCurrentStage = isStageView && sc?.numeroEtapa === idx + 1;
+          {/* Seção de Contabilidade de Pontos Etapa a Etapa (Extrato Oficial e Auditável) */}
+          <div className="mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400">
+                  <Calculator className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                    Contabilidade Oficial de Pontos
+                  </h4>
+                  <p className="text-[10px] text-slate-400">
+                    Extrato de pontuação auditado etapa a etapa
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-lg bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 text-xs font-black text-amber-300 tabular-nums">
+                {player.pontos} PTS TOTAL
+              </span>
+            </div>
 
-                return (
-                  <motion.div
-                    key={idx}
-                    whileHover={{ scale: 1.12, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`flex flex-col items-center justify-center h-10 w-10 rounded-lg text-xs font-bold border transition-all cursor-default ${
-                      isCurrentStage
-                        ? "bg-amber-400 text-slate-950 border-amber-300 ring-2 ring-amber-400 shadow-md shadow-amber-400/30"
-                        : isPodium
-                        ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40 shadow-sm shadow-yellow-500/20"
-                        : isAbsent
-                        ? "bg-slate-800/30 text-slate-500 border-white/5 font-normal"
-                        : "bg-slate-800 text-slate-200 border-white/10"
-                    }`}
-                    title={`Etapa #${idx + 1}: ${isAbsent ? "Não participou" : `${colocacao}º Lugar`}`}
-                  >
-                    <span
-                      className={`text-[9px] font-medium leading-none ${
-                        isCurrentStage ? "text-slate-950 font-black" : "text-slate-400"
+            {player.stageHistory && player.stageHistory.length > 0 ? (
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                {player.stageHistory.map((item, idx) => {
+                  const isPremier = item.multiplicador > 1.0;
+                  const [year, month, day] = item.data.split("-");
+                  const formattedDate = day && month && year ? `${day}/${month}/${year}` : item.data;
+                  const isPodium = item.colocacao <= 4;
+                  const isCurrentStage = isStageView && sc?.numeroEtapa === item.numeroEtapa;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-center justify-between gap-2.5 rounded-xl border p-2.5 text-xs transition-colors ${
+                        isCurrentStage
+                          ? "border-amber-400 bg-amber-500/15 ring-1 ring-amber-400/40"
+                          : isPremier
+                          ? "border-amber-500/30 bg-amber-500/[0.04]"
+                          : "border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03]"
                       }`}
                     >
-                      E{idx + 1}
-                    </span>
-                    <span className="leading-none mt-0.5">{isAbsent ? "—" : `${colocacao}º`}</span>
-                  </motion.div>
-                );
-              })}
+                      {/* Lado Esquerdo: Etapa + Data + Deck */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-black text-white text-[11px]">
+                            Etapa #{item.numeroEtapa}
+                          </span>
+                          <span className="text-[10px] text-slate-500">•</span>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {formattedDate}
+                          </span>
+                          {isPremier && (
+                            <span className="rounded-md bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.2 text-[9px] font-black uppercase text-amber-300">
+                              {item.multiplicador}x PREMIER
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-1 flex items-center gap-2 flex-wrap">
+                          {item.deckNome ? (
+                            <div className="flex items-center gap-1">
+                              <EnergyBadge energyRaw={item.deckEnergia || ""} size="sm" showLabel={false} />
+                              <span className="text-[11px] text-slate-300 font-semibold truncate">
+                                {item.deckNome}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-slate-500 italic">Sem deck</span>
+                          )}
+                          <span className="text-slate-600 text-[10px]">•</span>
+                          <span className={`text-[10px] font-bold ${isPodium ? "text-amber-400" : "text-slate-400"}`}>
+                            {item.colocacao === 1 ? "🥇 1º" : item.colocacao === 2 ? "🥈 2º" : item.colocacao === 3 ? "🥉 3º" : `${item.colocacao}º`}
+                          </span>
+                          <span className="text-slate-600 text-[10px]">•</span>
+                          <span className="text-[10px] text-slate-400 tabular-nums">
+                            ({item.vitorias}V - {item.empates}E - {item.derrotas}D)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Lado Direito: Cálculo dos Pontos */}
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-black text-[#ffcb05] tabular-nums block">
+                          +{item.pontosFinais} PTS
+                        </span>
+                        {isPremier ? (
+                          <span className="text-[9px] text-amber-300/80 font-mono block">
+                            {item.pontosBase} &times; {item.multiplicador}x
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-slate-500 font-mono block">
+                            ({item.pontosBase} pts TOM)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                {etapasArray.map((colocacao, idx) => {
+                  const num = Number(colocacao);
+                  const isPodium = !isNaN(num) && num > 0 && num <= 4;
+                  const isAbsent = colocacao === "-" || !colocacao;
+                  const isCurrentStage = isStageView && sc?.numeroEtapa === idx + 1;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex flex-col items-center justify-center h-10 w-10 rounded-lg text-xs font-bold border ${
+                        isCurrentStage
+                          ? "bg-amber-400 text-slate-950 border-amber-300 ring-2 ring-amber-400 shadow-md shadow-amber-400/30"
+                          : isPodium
+                          ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40 shadow-sm shadow-yellow-500/20"
+                          : isAbsent
+                          ? "bg-slate-800/30 text-slate-500 border-white/5 font-normal"
+                          : "bg-slate-800 text-slate-200 border-white/10"
+                      }`}
+                      title={`Etapa #${idx + 1}: ${isAbsent ? "Não participou" : `${colocacao}º Lugar`}`}
+                    >
+                      <span className={`text-[9px] font-medium leading-none ${isCurrentStage ? "text-slate-950 font-black" : "text-slate-400"}`}>
+                        E{idx + 1}
+                      </span>
+                      <span className="leading-none mt-0.5">{isAbsent ? "—" : `${colocacao}º`}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Rodapé da Auditoria */}
+            <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400">
+              <span className="flex items-center gap-1 text-emerald-400 font-medium">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Súmula oficial Play! Pokémon (TOM)
+              </span>
+              <span className="tabular-nums">
+                Presenças: <strong className="text-white">{player.participacoes} etapas</strong>
+              </span>
             </div>
           </div>
 

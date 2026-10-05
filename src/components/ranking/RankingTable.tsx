@@ -188,6 +188,56 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
   const categories = ["TODOS", "ME", "SE", "JR"];
 
+  // Helper para obter a contabilidade detalhada etapa a etapa do jogador
+  const getPlayerStageHistory = (player: { jogadorId?: string | null; jogadorNome: string }) => {
+    if (!etapas || etapas.length === 0) return [];
+    const sortedEtapas = [...etapas].sort((a, b) => a.data.localeCompare(b.data));
+    const history = [];
+
+    for (let idx = 0; idx < sortedEtapas.length; idx++) {
+      const etapa = sortedEtapas[idx];
+      const match = etapa.resultados.find(
+        (r) =>
+          (player.jogadorId && r.jogadorId && r.jogadorId === player.jogadorId) ||
+          r.jogadorNome.toLowerCase().trim() === player.jogadorNome.toLowerCase().trim()
+      );
+      if (match) {
+        const mult = etapa.multiplicador ? Number(etapa.multiplicador) : 1.0;
+        const basePts = Number(match.pontos) || 0;
+        const finalPts = Number((basePts * mult).toFixed(1));
+        const foundDeck = allDecks.find(
+          (d) => d.nome.toLowerCase() === (match.deckNome || "").toLowerCase()
+        );
+
+        history.push({
+          numeroEtapa: etapa.numeroEtapa || idx + 1,
+          data: etapa.data,
+          tipo: etapa.tipo || "Liga",
+          multiplicador: mult,
+          colocacao: match.colocacao,
+          pontosBase: basePts,
+          pontosFinais: finalPts,
+          vitorias: match.vitorias || 0,
+          empates: match.empates || 0,
+          derrotas: match.derrotas || 0,
+          deckNome: match.deckNome || null,
+          deckEnergia: foundDeck?.tipoEnergia || "colorless",
+          deckIcone: foundDeck?.icone || null,
+        });
+      }
+    }
+    return history;
+  };
+
+  const handleOpenGeneralPlayerModal = (player: PlayerModalData) => {
+    const history = getPlayerStageHistory(player);
+    setSelectedPlayer({
+      ...player,
+      stageHistory: history,
+      stageContext: null,
+    });
+  };
+
   // Helper para abrir modal a partir do resultado da etapa
   const handleOpenStagePlayerModal = (result: StageResult) => {
     const generalPlayer = initialPlayers.find(
@@ -198,6 +248,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
     const mult = currentStage?.multiplicador ? Number(currentStage.multiplicador) : 1.0;
     const etapaPts = Number((result.pontos * mult).toFixed(1));
+    const history = getPlayerStageHistory(result);
 
     const stageContext = {
       etapaData: result.etapaData,
@@ -218,6 +269,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
     if (generalPlayer) {
       setSelectedPlayer({
         ...generalPlayer,
+        stageHistory: history,
         stageContext,
       });
     } else {
@@ -235,6 +287,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
         historicoColocacoes: `${result.colocacao}`,
         ultimoDeck: result.deckNome,
         ultimoDeckEnergia: getDeckEnergy(result.deckNome),
+        stageHistory: history,
         stageContext,
       });
     }
@@ -401,7 +454,7 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
                   return (
                     <tr
                       key={player.jogadorId || player.posicaoOficial || index}
-                      onClick={() => setSelectedPlayer(player)}
+                      onClick={() => handleOpenGeneralPlayerModal(player)}
                       className="group cursor-pointer transition-all duration-150 hover:bg-white/[0.06] hover:shadow-[inset_4px_0_0_0_#ffcb05] even:bg-black/15"
                     >
                       {/* POS */}

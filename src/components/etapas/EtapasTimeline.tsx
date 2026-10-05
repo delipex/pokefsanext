@@ -64,6 +64,45 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
 
   if (!etapas || etapas.length === 0) return null;
 
+  const getPlayerStageHistory = (player: { jogadorId?: string | null; jogadorNome: string }) => {
+    const sortedEtapas = [...etapas].sort((a, b) => a.data.localeCompare(b.data));
+    const history = [];
+
+    for (let idx = 0; idx < sortedEtapas.length; idx++) {
+      const etapa = sortedEtapas[idx];
+      const match = etapa.resultados.find(
+        (r) =>
+          (player.jogadorId && r.jogadorId && r.jogadorId === player.jogadorId) ||
+          r.jogadorNome.toLowerCase().trim() === player.jogadorNome.toLowerCase().trim()
+      );
+      if (match) {
+        const mult = etapa.multiplicador ? Number(etapa.multiplicador) : 1.0;
+        const basePts = Number(match.pontos) || 0;
+        const finalPts = Number((basePts * mult).toFixed(1));
+        const foundDeck = allDecks.find(
+          (d) => d.nome.toLowerCase() === (match.deckNome || "").toLowerCase()
+        );
+
+        history.push({
+          numeroEtapa: etapa.numeroEtapa || idx + 1,
+          data: etapa.data,
+          tipo: etapa.tipo || "Liga",
+          multiplicador: mult,
+          colocacao: match.colocacao,
+          pontosBase: basePts,
+          pontosFinais: finalPts,
+          vitorias: match.vitorias || 0,
+          empates: match.empates || 0,
+          derrotas: match.derrotas || 0,
+          deckNome: match.deckNome || null,
+          deckEnergia: foundDeck?.tipoEnergia || "colorless",
+          deckIcone: foundDeck?.icone || null,
+        });
+      }
+    }
+    return history;
+  };
+
   const renderDeckBadge = (deckNome?: string | null) => {
     if (!deckNome) return <span className="text-slate-500 text-[11px] italic">-</span>;
     const deck = allDecks.find((d) => d.nome.toLowerCase() === deckNome.toLowerCase());
@@ -261,6 +300,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
                             const mult = selectedEtapa.multiplicador ? Number(selectedEtapa.multiplicador) : 1.0;
                             const etapaPts = Number((res.pontos * mult).toFixed(1));
                             const foundDeck = allDecks.find((d) => d.nome.toLowerCase() === (res.deckNome || "").toLowerCase());
+                            const history = getPlayerStageHistory(res);
                             setInspectingPlayer({
                               jogadorNome: res.jogadorNome,
                               jogadorId: res.jogadorId || "—",
@@ -271,10 +311,11 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
                               derrotas: res.derrotas,
                               podios: res.colocacao <= 4 ? 1 : 0,
                               mediaColocacao: res.colocacao,
-                              participacoes: 1,
+                              participacoes: history.length || 1,
                               historicoColocacoes: `${res.colocacao}`,
                               ultimoDeck: res.deckNome,
                               ultimoDeckEnergia: foundDeck?.tipoEnergia || "colorless",
+                              stageHistory: history,
                               stageContext: {
                                 etapaData: selectedEtapa.data,
                                 numeroEtapa: selectedEtapa.numeroEtapa,
