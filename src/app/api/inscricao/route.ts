@@ -1,20 +1,23 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { jogadorDecklists, jogadores, configuracoes, calendario } from "@/db/schema";
+import { client } from "@/db/index";
+import { jogadorDecklists, jogadores, configuracoes } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import {
   parseAndValidateDecklist,
   sanitizeText,
   validatePopId,
   validatePlayerName,
-  validateWhatsApp,
   checkRateLimit,
 } from "@/lib/security";
+import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { inferDeckEnergy } from "@/lib/deck-normalizer";
 import { revalidatePath } from "next/cache";
 
 // GET: Retorna as configurações do torneio ativo e total de inscritos
 export async function GET() {
   try {
+    await ensureDatabaseSchema();
     const configRows = await db.select().from(configuracoes);
     const configMap: Record<string, any> = {};
     for (const row of configRows) {
@@ -31,14 +34,21 @@ export async function GET() {
     const eventName = configMap.premierNome || "Torneio Oficial";
 
     // Contagem de inscritos para este evento específico
-    const allDecklists = await db
-      .select()
-      .from(jogadorDecklists)
-      .orderBy(desc(jogadorDecklists.createdAt));
+    let allDecklists: any[] = [];
+    try {
+      allDecklists = await db
+        .select()
+        .from(jogadorDecklists)
+        .orderBy(desc(jogadorDecklists.createdAt));
+    } catch {
+      const res = await client.execute("SELECT * FROM jogador_decklists ORDER BY created_at DESC;");
+      allDecklists = res.rows as any[];
+    }
 
     const enrolledList = allDecklists.filter((d) => {
-      if (eventDate && d.etapaData === eventDate) return true;
-      if (eventName && d.eventoNome?.toLowerCase().includes(eventName.toLowerCase())) return true;
+      if (eventDate && (d.etapaData === eventDate || d.etapa_data === eventDate)) return true;
+      const dEventName = d.eventoNome || d.evento_nome || "";
+      if (eventName && dEventName.toLowerCase().includes(eventName.toLowerCase())) return true;
       return false;
     });
 
@@ -61,9 +71,11 @@ export async function GET() {
 // POST: Submissão de inscrição pública com validação de 60 cartas e geração de protocolo
 export async function POST(req: Request) {
   try {
+    await ensureDatabaseSchema();
+
     // 1. Rate Limiting por IP
     const ip = req.headers.get("x-forwarded-for") || "anonymous";
-    if (!checkRateLimit(ip, 12, 60000)) {
+    if (!checkRateLimit(ip, 15, 60000)) {
       return NextResponse.json(
         { error: "Muitas tentativas em sequência. Por favor, aguarde um momento antes de enviar novamente." },
         { status: 429 }
@@ -74,9 +86,7 @@ export async function POST(req: Request) {
     const {
       jogadorNome,
       jogadorId,
-      anoNascimento,
       categoria,
-      whatsapp,
       deckNome,
       tipoEnergia,
       decklistRaw,
@@ -149,51 +159,87 @@ export async function POST(req: Request) {
     const finalEventDate = etapaData || configMap.premierData || now.toISOString().split("T")[0];
     const finalCategory = categoria || "Master";
     const finalDeckNome = sanitizeText(deckNome) || "A definir";
-    const finalTipoEnergia = tipoEnergia || "colorless";
 
-    // 5. Inserção na Tabela de Decklists / Inscrições
-    const [inserted] = await db
-      .insert(jogadorDecklists)
-      .values({
-        protocolo,
-        jogadorId: popVal.cleanId,
-        jogadorNome: nameVal.cleanName!,
-        categoria: finalCategory,
-        eventoNome: finalEventName,
-        etapaData: finalEventDate,
-        deckNome: finalDeckNome,
-        tipoEnergia: finalTipoEnergia,
-        decklistRaw: rawDecklistText || (limitlessUrl ? `Link: ${limitlessUrl}` : ""),
-        totalCartas: totalCartas || (rawDecklistText ? 60 : 0),
-        validada: isValidDeck,
-        statusPix: "Pendente",
-      })
-      .returning();
+    // Auto-detecta energia inteligente caso o usuário não tenha selecionado ou seja genérica
+    const finalTipoEnergia =
+      tipoEnergia && tipoEnergia !== "auto"
+        ? tipoEnergia
+        : inferDeckEnergy(finalDeckNome, rawDecklistText);
+
+    // 5. Inserção na Tabela de Decklists / Inscrições (com proteção contra discrepâncias de esquema)
+    let insertedItem: any = null;
+    try {
+      const [inserted] = await db
+        .insert(jogadorDecklists)
+        .values({
+          protocolo,
+          jogadorId: popVal.cleanId,
+          jogadorNome: nameVal.cleanName!,
+          categoria: finalCategory,
+          eventoNome: finalEventName,
+          etapaData: finalEventDate,
+          deckNome: finalDeckNome,
+          tipoEnergia: finalTipoEnergia,
+          decklistRaw: rawDecklistText || (limitlessUrl ? `Link: ${limitlessUrl}` : ""),
+          totalCartas: totalCartas || (rawDecklistText ? 60 : 0),
+          validada: isValidDeck,
+          statusPix: "Pendente",
+        })
+        .returning();
+      insertedItem = inserted;
+    } catch (drizzleErr) {
+      // Fallback robusto via client direto SQL do Turso
+      const res = await client.execute({
+        sql: `INSERT INTO jogador_decklists (
+          protocolo, jogador_id, jogador_nome, categoria, evento_nome, etapa_data,
+          deck_nome, tipo_energia, decklist_raw, total_cartas, validada, status_pix, cards_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]') RETURNING *;`,
+        args: [
+          protocolo,
+          popVal.cleanId,
+          nameVal.cleanName!,
+          finalCategory,
+          finalEventName,
+          finalEventDate,
+          finalDeckNome,
+          finalTipoEnergia,
+          rawDecklistText || (limitlessUrl ? `Link: ${limitlessUrl}` : ""),
+          totalCartas || (rawDecklistText ? 60 : 0),
+          isValidDeck ? 1 : 0,
+          "Pendente",
+        ],
+      });
+      insertedItem = res.rows[0] || { protocolo, jogadorNome: nameVal.cleanName };
+    }
 
     // 6. Atualização/Registro do Atleta na Tabela de Jogadores (se não existir)
-    const existingPlayer = await db
-      .select()
-      .from(jogadores)
-      .where(eq(jogadores.id, popVal.cleanId!))
-      .limit(1);
+    try {
+      const existingPlayer = await db
+        .select()
+        .from(jogadores)
+        .where(eq(jogadores.id, popVal.cleanId!))
+        .limit(1);
 
-    if (existingPlayer.length === 0) {
-      await db.insert(jogadores).values({
-        id: popVal.cleanId!,
-        nome: nameVal.cleanName!,
-        categoria: finalCategory,
-        ativo: true,
-        deckAtivoNome: finalDeckNome,
-        decklistTexto: rawDecklistText,
-      });
-    } else {
-      await db
-        .update(jogadores)
-        .set({
+      if (existingPlayer.length === 0) {
+        await db.insert(jogadores).values({
+          id: popVal.cleanId!,
+          nome: nameVal.cleanName!,
+          categoria: finalCategory,
+          ativo: true,
           deckAtivoNome: finalDeckNome,
-          decklistTexto: rawDecklistText || existingPlayer[0].decklistTexto,
-        })
-        .where(eq(jogadores.id, popVal.cleanId!));
+          decklistTexto: rawDecklistText,
+        });
+      } else {
+        await db
+          .update(jogadores)
+          .set({
+            deckAtivoNome: finalDeckNome,
+            decklistTexto: rawDecklistText || existingPlayer[0].decklistTexto,
+          })
+          .where(eq(jogadores.id, popVal.cleanId!));
+      }
+    } catch {
+      // Silencioso se der warning no perfil do jogador
     }
 
     // 7. Montar Link Direto do WhatsApp para Envio do Comprovante
@@ -221,11 +267,12 @@ export async function POST(req: Request) {
     revalidatePath("/");
     revalidatePath("/admin");
     revalidatePath("/portal");
+    revalidatePath("/calendario");
 
     return NextResponse.json({
       success: true,
       protocolo,
-      item: inserted,
+      item: insertedItem,
       waUrl,
       chavePix: configMap.premierPix || "",
       titularPix: configMap.premierTitular || "",

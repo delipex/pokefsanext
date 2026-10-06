@@ -180,14 +180,20 @@ export async function ensureDatabaseSchema() {
     );`,
     `CREATE TABLE IF NOT EXISTS jogador_decklists (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      jogador_nome TEXT NOT NULL,
+      protocolo TEXT,
       jogador_id TEXT,
-      categoria TEXT NOT NULL,
+      jogador_nome TEXT NOT NULL,
+      categoria TEXT DEFAULT 'Master',
+      evento_nome TEXT,
+      etapa_data TEXT NOT NULL,
       deck_nome TEXT NOT NULL,
-      decklist_raw TEXT NOT NULL,
-      cards_json TEXT NOT NULL,
-      etapa_data TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      tipo_energia TEXT DEFAULT 'colorless',
+      decklist_raw TEXT DEFAULT '',
+      cards_json TEXT DEFAULT '[]',
+      total_cartas INTEGER DEFAULT 60,
+      validada INTEGER DEFAULT 0,
+      status_pix TEXT DEFAULT 'Pendente',
+      created_at TEXT DEFAULT (datetime('now'))
     );`,
     `CREATE TABLE IF NOT EXISTS solicitacoes_decks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -242,7 +248,19 @@ export async function ensureDatabaseSchema() {
     `ALTER TABLE campeoes ADD COLUMN url_deck TEXT;`,
     `ALTER TABLE campeoes ADD COLUMN imagem_deck TEXT;`,
     `ALTER TABLE campeoes ADD COLUMN observacao_deck TEXT;`,
+    `ALTER TABLE jogador_decklists ADD COLUMN protocolo TEXT;`,
+    `ALTER TABLE jogador_decklists ADD COLUMN jogador_id TEXT;`,
+    `ALTER TABLE jogador_decklists ADD COLUMN categoria TEXT DEFAULT 'Master';`,
+    `ALTER TABLE jogador_decklists ADD COLUMN evento_nome TEXT;`,
+    `ALTER TABLE jogador_decklists ADD COLUMN etapa_data TEXT;`,
+    `ALTER TABLE jogador_decklists ADD COLUMN tipo_energia TEXT DEFAULT 'colorless';`,
+    `ALTER TABLE jogador_decklists ADD COLUMN decklist_raw TEXT DEFAULT '';`,
+    `ALTER TABLE jogador_decklists ADD COLUMN cards_json TEXT DEFAULT '[]';`,
+    `ALTER TABLE jogador_decklists ADD COLUMN total_cartas INTEGER DEFAULT 60;`,
+    `ALTER TABLE jogador_decklists ADD COLUMN validada INTEGER DEFAULT 0;`,
+    `ALTER TABLE jogador_decklists ADD COLUMN status_pix TEXT DEFAULT 'Pendente';`,
   ];
+
 
   for (const alterSql of alterStatements) {
     try {

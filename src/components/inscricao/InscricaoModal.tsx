@@ -30,17 +30,19 @@ import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
 
 const ENERGY_OPTIONS = [
-  { id: "lightning", label: "Elétrica", bg: "bg-amber-500/20 text-amber-300 border-amber-500/40" },
-  { id: "fire", label: "Fogo", bg: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
-  { id: "water", label: "Água", bg: "bg-blue-500/20 text-blue-300 border-blue-500/40" },
-  { id: "grass", label: "Planta", bg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
-  { id: "psychic", label: "Psíquica", bg: "bg-purple-500/20 text-purple-300 border-purple-500/40" },
-  { id: "darkness", label: "Escuridão", bg: "bg-slate-500/20 text-slate-300 border-slate-500/40" },
-  { id: "dragon", label: "Dragão", bg: "bg-amber-600/20 text-amber-400 border-amber-600/40" },
-  { id: "metal", label: "Metálica", bg: "bg-slate-400/20 text-slate-200 border-slate-400/40" },
-  { id: "fighting", label: "Luta", bg: "bg-orange-500/20 text-orange-300 border-orange-500/40" },
-  { id: "colorless", label: "Incolor", bg: "bg-zinc-500/20 text-zinc-300 border-zinc-500/40" },
+  { id: "auto", label: "⚡ Automático / Multi-Energia (Recomendado)", bg: "bg-blue-500/20 text-blue-300 border-blue-500/40" },
+  { id: "colorless", label: "Incolor / Basic Box (Caixa Básica)", bg: "bg-zinc-500/20 text-zinc-300 border-zinc-500/40" },
+  { id: "grass", label: "Planta (Grass)", bg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
+  { id: "fire", label: "Fogo (Fire)", bg: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
+  { id: "water", label: "Água (Water)", bg: "bg-blue-500/20 text-blue-300 border-blue-500/40" },
+  { id: "lightning", label: "Elétrica (Lightning)", bg: "bg-amber-500/20 text-amber-300 border-amber-500/40" },
+  { id: "psychic", label: "Psíquica (Psychic)", bg: "bg-purple-500/20 text-purple-300 border-purple-500/40" },
+  { id: "fighting", label: "Luta (Fighting)", bg: "bg-orange-500/20 text-orange-300 border-orange-500/40" },
+  { id: "darkness", label: "Escuridão (Darkness)", bg: "bg-slate-500/20 text-slate-300 border-slate-500/40" },
+  { id: "metal", label: "Metálica (Metal)", bg: "bg-slate-400/20 text-slate-200 border-slate-400/40" },
+  { id: "dragon", label: "Dragão (Dragon)", bg: "bg-amber-600/20 text-amber-400 border-amber-600/40" },
 ];
+
 
 interface InscricaoModalProps {
   initialConfig?: Record<string, any>;
@@ -61,8 +63,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   const [categoria, setCategoria] = useState<"Master" | "Senior" | "Junior">("Master");
   const [whatsapp, setWhatsapp] = useState("");
   const [deckNome, setDeckNome] = useState("");
-  const [tipoEnergia, setTipoEnergia] = useState("lightning");
+  const [tipoEnergia, setTipoEnergia] = useState("auto");
   const [decklistRaw, setDecklistRaw] = useState("");
+
   const [limitlessUrl, setLimitlessUrl] = useState("");
 
   // UI / Submission State
@@ -563,7 +566,10 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-300">Tipo de Energia Principal</label>
+                      <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                        <span>Identidade / Energia</span>
+                        <span className="text-[10px] text-slate-400 font-normal">Auto-detectada</span>
+                      </label>
                       <select
                         value={tipoEnergia}
                         onChange={(e) => setTipoEnergia(e.target.value)}
@@ -577,6 +583,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                       </select>
                     </div>
                   </div>
+
 
                   {/* Decklist de 60 Cartas (Textarea + Card Counter) */}
                   <div className="space-y-1.5">
