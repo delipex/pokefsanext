@@ -193,7 +193,7 @@ export function AdminInscricoesPremier({
       const res = await fetch("/api/admin/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ configs: payload }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Erro ao salvar configurações");

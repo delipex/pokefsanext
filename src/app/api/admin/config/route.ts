@@ -46,11 +46,20 @@ export async function POST(req: Request) {
     await ensureDatabaseSchema();
     const body = await req.json();
 
-    // Se vier um objeto com múltiplas configs: { configs: { chave: valor, ... } }
-    if (body.configs && typeof body.configs === "object") {
-      const entries = Object.entries(body.configs);
+    // Caso 1: Objeto com múltiplas configs explícito { configs: { chave: valor, ... } }
+    // OU Caso 2: Objeto plano com múltiplas chaves sem campo 'chave'
+    const isMultiConfig = Boolean(
+      (body.configs && typeof body.configs === "object") ||
+      (typeof body === "object" && body !== null && !body.chave && Object.keys(body).length > 0)
+    );
+
+    if (isMultiConfig) {
+      const configObj = (body.configs && typeof body.configs === "object") ? body.configs : body;
+      const entries = Object.entries(configObj);
+
       for (const [chave, valor] of entries) {
-        const strVal = typeof valor === "object" ? JSON.stringify(valor) : String(valor);
+        if (!chave) continue;
+        const strVal = typeof valor === "object" ? JSON.stringify(valor) : String(valor ?? "");
         const existing = await db.select().from(configuracoes).where(eq(configuracoes.chave, chave));
         if (existing.length > 0) {
           await db.update(configuracoes).set({ valor: strVal }).where(eq(configuracoes.chave, chave));
@@ -79,7 +88,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Chave é obrigatória" }, { status: 400 });
     }
 
-    const strVal = typeof valor === "object" ? JSON.stringify(valor) : String(valor);
+    const strVal = typeof valor === "object" ? JSON.stringify(valor) : String(valor ?? "");
     const existing = await db.select().from(configuracoes).where(eq(configuracoes.chave, chave));
     if (existing.length > 0) {
       await db.update(configuracoes).set({ valor: strVal }).where(eq(configuracoes.chave, chave));
