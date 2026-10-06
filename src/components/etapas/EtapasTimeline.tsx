@@ -152,7 +152,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
                     </span>
                     {isPremier ? (
                       <span className="rounded-full bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 text-[10px] font-black uppercase text-amber-300 shadow-sm shadow-amber-500/20">
-                        PREMIER {etapa.multiplicador}x
+                        {etapa.tipo} ({etapa.multiplicador}x)
                       </span>
                     ) : (
                       <span className="rounded-full bg-blue-500/15 border border-blue-500/30 px-2.5 py-0.5 text-[10px] font-bold text-blue-300">

@@ -185,25 +185,19 @@ export function AdminInscricoesPremier({
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  // Atualizar da planilha do Google Sheets via Webhook
-  const handleSyncGoogleSheets = async () => {
-    if (!premierWebhook) {
-      setFeedback({ text: "Insira a URL do Webhook do Google Sheets acima para sincronizar.", type: "error" });
-      return;
-    }
+  // Recarregar inscrições diretamente do banco de dados (Turso SQLite)
+  const handleRefreshDecklists = async () => {
     setIsUpdatingFromSheets(true);
     setFeedback(null);
     try {
-      const res = await fetch(premierWebhook);
+      const res = await fetch("/api/admin/decklists");
       const data = await res.json();
       if (Array.isArray(data)) {
         setDecklists(data);
-        setFeedback({ text: `${data.length} inscrições sincronizadas da planilha com sucesso!`, type: "success" });
-      } else {
-        setFeedback({ text: "Planilha consultada. Nenhuma inscrição pendente.", type: "success" });
+        setFeedback({ text: `${data.length} inscrições atualizadas do banco de dados com sucesso!`, type: "success" });
       }
     } catch (err: any) {
-      setFeedback({ text: "Erro ao consultar webhook do Google Sheets. Verifique a URL.", type: "error" });
+      setFeedback({ text: "Erro ao consultar banco de dados de inscrições.", type: "error" });
     } finally {
       setIsUpdatingFromSheets(false);
     }
@@ -371,7 +365,7 @@ export function AdminInscricoesPremier({
             <div>
               <h3 className="text-base font-bold text-amber-300 flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                <span>Personalização & Controle de Inscrições (Premier)</span>
+                <span>Personalização & Controle de Inscrições</span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
                 Personalize o banner, regras, taxa PIX, vagas, formato e requisitos de decklist exibidos aos jogadores.
@@ -678,26 +672,6 @@ export function AdminInscricoesPremier({
               />
             </div>
 
-            {/* Linha 8: Webhook Google Sheets */}
-            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-emerald-500/20 space-y-1">
-              <div className="flex items-center justify-between">
-                <label className="text-emerald-400 font-bold text-xs flex items-center gap-1.5">
-                  <span>📊 URL do Webhook do Google Sheets (Banco de Inscrições)</span>
-                </label>
-                <span className="text-[10px] text-slate-500 font-mono">Apps Script Web App</span>
-              </div>
-              <input
-                type="url"
-                value={premierWebhook}
-                onChange={(e) => setPremierWebhook(e.target.value)}
-                placeholder="https://script.google.com/macros/s/.../exec"
-                className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white font-mono text-xs"
-              />
-              <p className="text-[11px] text-slate-400">
-                As inscrições feitas pelo formulário do site serão salvas automaticamente na aba <code>Inscricoes</code> da sua planilha.
-              </p>
-            </div>
-
             {/* Link Direto Compartilhável */}
             <div className="p-3.5 rounded-xl bg-slate-950/60 border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div className="flex-1">
@@ -727,7 +701,7 @@ export function AdminInscricoesPremier({
                 disabled={isSavingConfig}
                 className="px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-400/20 disabled:opacity-50"
               >
-                {isSavingConfig ? <RefreshCw className="h-4 w-4 animate-spin" /> : <span>💾 Salvar Configurações do Premier</span>}
+                {isSavingConfig ? <RefreshCw className="h-4 w-4 animate-spin" /> : <span>💾 Salvar Configurações de Inscrição</span>}
               </button>
             </div>
           </form>
@@ -763,17 +737,17 @@ export function AdminInscricoesPremier({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleSyncGoogleSheets}
+              onClick={handleRefreshDecklists}
               disabled={isUpdatingFromSheets}
-              className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md"
+              className="px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isUpdatingFromSheets ? "animate-spin" : ""}`} />
-              <span>{isUpdatingFromSheets ? "Atualizando..." : "🔄 Atualizar Planilha"}</span>
+              <span>{isUpdatingFromSheets ? "Recarregando..." : "🔄 Recarregar Inscrições"}</span>
             </button>
             <button
               type="button"
               onClick={handleCopyToTOM}
-              className="px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+              className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
             >
               {copiedTom ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
               <span>{copiedTom ? "Copiado para o TOM!" : "📋 Copiar para o TOM"}</span>
@@ -834,9 +808,7 @@ export function AdminInscricoesPremier({
           <div className="text-center py-12 text-slate-400 border border-white/5 rounded-xl bg-slate-950/40">
             <p className="text-sm font-semibold">Nenhuma inscrição encontrada.</p>
             <p className="text-xs text-slate-500 mt-1">
-              {!premierWebhook
-                ? "Configure o Webhook do Google Sheets ou cadastre uma inscrição manual pelo botão acima."
-                : "Aguardando novos envios no formulário do site."}
+              Cadastre uma nova inscrição pelo botão acima ou aguarde os envios dos jogadores pelo site.
             </p>
           </div>
         ) : (
