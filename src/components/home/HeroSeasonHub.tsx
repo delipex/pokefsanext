@@ -80,6 +80,8 @@ export interface HeroSeasonHubProps {
   } | null;
   exibirPodio?: boolean;
   exibirProximoEvento?: boolean;
+  premierAbertas?: boolean;
+  premierConfig?: Record<string, any>;
 }
 
 // Helper para formatar a data do evento
@@ -104,9 +106,19 @@ export function HeroSeasonHub({
   nextEvent,
   exibirPodio = true,
   exibirProximoEvento = true,
+  premierAbertas = false,
+  premierConfig,
 }: HeroSeasonHubProps) {
   const router = useRouter();
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerModalData | null>(null);
+
+  const handleOpenInscricao = () => {
+    if (typeof window !== "undefined") {
+      window.location.hash = "inscricao";
+      window.dispatchEvent(new CustomEvent("open-inscricao-modal"));
+    }
+  };
+
 
   // Countdown timer state
   const [isLive, setIsLive] = useState(false);
@@ -207,7 +219,15 @@ export function HeroSeasonHub({
         label: "🟢 Acontecendo Hoje!",
       };
     }
+    if (premierAbertas) {
+      return {
+        badgeClass: "bg-emerald-500/20 border-emerald-400/50 text-emerald-300 shadow-md shadow-emerald-500/25 animate-pulse",
+        dotClass: "bg-emerald-400 animate-ping",
+        label: "⚡ Inscrições Abertas!",
+      };
+    }
     const combined = `${stageType} ${eventTitle}`.toLowerCase();
+
     if (combined.includes("cup")) {
       return {
         badgeClass: "bg-purple-500/15 border-purple-500/35 text-purple-300 shadow-sm shadow-purple-500/20",
@@ -520,17 +540,16 @@ export function HeroSeasonHub({
                   <ExternalLink className="h-3 w-3 shrink-0 text-slate-400" />
                 </a>
 
-                {nextEvent?.linkInscricao ? (
-                  <motion.a
+                {premierAbertas || nextEvent?.linkInscricao ? (
+                  <motion.button
                     whileTap={{ scale: 0.94 }}
                     whileHover={{ scale: 1.02 }}
-                    href={nextEvent.linkInscricao}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all shrink-0"
+                    onClick={handleOpenInscricao}
+                    className="rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/30 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 animate-pulse"
                   >
-                    Inscrever-se
-                  </motion.a>
+                    <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                    <span>⚡ Fazer Inscrição</span>
+                  </motion.button>
                 ) : (
                   <motion.div whileTap={{ scale: 0.94 }} whileHover={{ scale: 1.02 }}>
                     <Link
@@ -545,6 +564,7 @@ export function HeroSeasonHub({
             </div>
           </div>
         )}
+
       </div>
 
       {/* Modal de Detalhes do Jogador */}

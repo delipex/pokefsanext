@@ -12,12 +12,20 @@ interface NavbarProps {
   temporada?: number;
   statusTemporada?: string;
   exibirPortal?: boolean;
+  premierAbertas?: boolean;
 }
 
-export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal = true }: NavbarProps) {
+export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal = true, premierAbertas = false }: NavbarProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loggedInAthlete, setLoggedInAthlete] = useState<{ popId: string; nome: string } | null>(null);
+
+  const handleOpenInscricao = () => {
+    if (typeof window !== "undefined") {
+      window.location.hash = "inscricao";
+      window.dispatchEvent(new CustomEvent("open-inscricao-modal"));
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -87,8 +95,21 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal 
           })}
         </nav>
 
-        {/* Controles da Direita: Botão de Login do Atleta & Alternador de Tema */}
-        <div className="flex items-center gap-2.5 sm:gap-3.5">
+        {/* Controles da Direita: Botão de Inscrição + Login do Atleta & Alternador de Tema */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Botão de Inscrição Aberta se Torneio Ativo */}
+          {premierAbertas && (
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleOpenInscricao}
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/20 hover:bg-emerald-500/30 px-3.5 py-2 text-xs font-black text-emerald-300 shadow-sm shadow-emerald-500/20 transition-all cursor-pointer animate-pulse"
+            >
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              <span>⚡ Inscrições Abertas</span>
+            </motion.button>
+          )}
+
           {/* Botão de Login do Atleta / Perfil com Feedback iOS */}
           {exibirPortal && (
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
@@ -144,6 +165,20 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal 
             className="overflow-hidden border-b border-white/10 bg-[#090e1a]/95 px-5 py-5 lg:hidden backdrop-blur-2xl shadow-2xl"
           >
             <div className="flex flex-col gap-2.5">
+              {premierAbertas && (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleOpenInscricao();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600/30 border border-emerald-400/40 py-3 text-sm font-black text-emerald-300 shadow-lg shadow-emerald-900/30 cursor-pointer"
+                >
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span>⚡ Inscrições Abertas</span>
+                </motion.button>
+              )}
+
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
@@ -206,3 +241,4 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal 
     </header>
   );
 }
+

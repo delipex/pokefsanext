@@ -172,8 +172,11 @@ export default async function HomePage() {
           nextEvent={nextEvent}
           exibirPodio={exibirPodio}
           exibirProximoEvento={exibirProximoEvento}
+          premierAbertas={config.premierAbertas === "true" || config.premierAbertas === true}
+          premierConfig={config}
         />
       )}
+
 
       {/* 3. Premiações Projetadas da Temporada (Bento Quad) */}
       {exibirPremiacoes && <SeasonAwardsSection awards={awards} />}
