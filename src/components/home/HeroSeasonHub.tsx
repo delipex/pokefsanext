@@ -209,6 +209,38 @@ export function HeroSeasonHub({
   const eventLocation = nextEvent?.local || "Livraria Atlântica";
   const eventMapUrl = nextEvent?.linkMaps || nextEvent?.linkLocal || "https://maps.google.com";
   const stageType = nextEvent?.tipo || "Standard";
+  const normalizeDateToISO = (dt?: string | null) => {
+
+    if (!dt) return "";
+    const clean = String(dt).trim().replace(/\//g, "-");
+    const parts = clean.split("-");
+    if (parts.length === 3) {
+      if (parts[0].length === 2 && parts[2].length === 4) {
+        return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+      }
+      if (parts[0].length === 4) {
+        return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`;
+      }
+    }
+    return dt;
+  };
+
+  const nextDateISO = normalizeDateToISO(nextEvent?.data);
+  const premierDateISO = normalizeDateToISO(premierConfig?.premierData);
+
+  const isNextEventThePremierEvent = Boolean(
+    premierAbertas &&
+    (
+      (premierDateISO && nextDateISO && premierDateISO === nextDateISO) ||
+      (premierConfig?.premierNome && nextEvent?.evento && (
+        nextEvent.evento.toLowerCase().trim() === premierConfig.premierNome.toLowerCase().trim() ||
+        nextEvent.evento.toLowerCase().includes(premierConfig.premierNome.toLowerCase())
+      ))
+    )
+  );
+
+  const hasDirectRegistrationLink = Boolean(nextEvent?.linkInscricao && nextEvent.linkInscricao.trim() !== "");
+  const isRegistrationOpenForThisCard = isNextEventThePremierEvent || hasDirectRegistrationLink;
 
   // Tag inteligente de destaque para eventos especiais (Cup, Challenge, etc.)
   const getEventTagConfig = () => {
@@ -219,7 +251,7 @@ export function HeroSeasonHub({
         label: "🟢 Acontecendo Hoje!",
       };
     }
-    if (premierAbertas) {
+    if (isRegistrationOpenForThisCard) {
       return {
         badgeClass: "bg-emerald-500/20 border-emerald-400/50 text-emerald-300 shadow-md shadow-emerald-500/25 animate-pulse",
         dotClass: "bg-emerald-400 animate-ping",
@@ -227,6 +259,7 @@ export function HeroSeasonHub({
       };
     }
     const combined = `${stageType} ${eventTitle}`.toLowerCase();
+
 
     if (combined.includes("cup")) {
       return {
@@ -327,13 +360,61 @@ export function HeroSeasonHub({
       : "w-full";
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-4">
+      {/* Banner de Destaque Dedicado para Torneio Especial com Inscrições Abertas (se o próximo evento imediato for outra sessão) */}
+      {premierAbertas && !isNextEventThePremierEvent && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-3xl border border-emerald-500/30 bg-emerald-950/40 p-4 sm:p-5 backdrop-blur-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl shadow-emerald-950/30"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="h-11 w-11 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0 shadow-inner">
+              <Trophy className="h-6 w-6 text-amber-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/25 border border-emerald-400/50 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-300 tracking-wider">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" /> Inscrições Abertas
+                </span>
+                <h3 className="text-sm sm:text-base font-black text-white">
+                  {premierConfig?.premierNome || "Torneio Especial Oficial"}
+                </h3>
+              </div>
+              <div className="text-xs text-slate-300 mt-1 flex items-center gap-2 flex-wrap font-medium">
+                <span>📅 {formatEventDate(premierConfig?.premierData)}</span>
+                <span>•</span>
+                <span>⏰ {premierConfig?.premierHorario || "14:00"}</span>
+                <span>•</span>
+                <span>📍 {premierConfig?.premierLocal || "Livraria Atlântica"}</span>
+                {premierConfig?.premierValor && (
+                  <>
+                    <span>•</span>
+                    <span className="font-bold text-emerald-300">R$ {premierConfig.premierValor}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={handleOpenInscricao}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-5 py-2.5 text-xs sm:text-sm font-black text-white shadow-lg shadow-emerald-600/30 cursor-pointer shrink-0 animate-pulse"
+          >
+            <Sparkles className="h-4 w-4 text-amber-300" />
+            <span>Fazer Inscrição Online</span>
+          </motion.button>
+        </motion.div>
+      )}
+
       <div className={`grid ${gridClass} gap-4 sm:gap-6 items-stretch`}>
         {/* =========================================================
             COLUNA 1: PÓDIO DA TEMPORADA ATUAL (Se ativo)
            ========================================================= */}
         {exibirPodio && (
           <div className={`${podiumColClass} flex flex-col space-y-2`}>
+
             {/* Header da Coluna */}
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
@@ -540,16 +621,30 @@ export function HeroSeasonHub({
                   <ExternalLink className="h-3 w-3 shrink-0 text-slate-400" />
                 </a>
 
-                {premierAbertas || nextEvent?.linkInscricao ? (
-                  <motion.button
-                    whileTap={{ scale: 0.94 }}
-                    whileHover={{ scale: 1.02 }}
-                    onClick={handleOpenInscricao}
-                    className="rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/30 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 animate-pulse"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                    <span>⚡ Fazer Inscrição</span>
-                  </motion.button>
+                {isRegistrationOpenForThisCard ? (
+                  nextEvent?.linkInscricao && nextEvent.linkInscricao !== "#inscricao" && !nextEvent.linkInscricao.startsWith("/") ? (
+                    <motion.a
+                      whileTap={{ scale: 0.94 }}
+                      whileHover={{ scale: 1.02 }}
+                      href={nextEvent.linkInscricao}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/30 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 animate-pulse"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                      <span>⚡ Fazer Inscrição</span>
+                    </motion.a>
+                  ) : (
+                    <motion.button
+                      whileTap={{ scale: 0.94 }}
+                      whileHover={{ scale: 1.02 }}
+                      onClick={handleOpenInscricao}
+                      className="rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/30 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 animate-pulse"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                      <span>⚡ Fazer Inscrição</span>
+                    </motion.button>
+                  )
                 ) : (
                   <motion.div whileTap={{ scale: 0.94 }} whileHover={{ scale: 1.02 }}>
                     <Link
@@ -560,6 +655,7 @@ export function HeroSeasonHub({
                     </Link>
                   </motion.div>
                 )}
+
               </div>
             </div>
           </div>
