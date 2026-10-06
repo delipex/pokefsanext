@@ -33,6 +33,22 @@ interface AdminInscricoesPremierProps {
   onConfigUpdated?: (newConfig: Record<string, any>) => void;
 }
 
+// Helper para normalizar data DD-MM-YYYY ou DD/MM/YYYY para o formato ISO YYYY-MM-DD aceito pelo input date
+const normalizeDateToISO = (dt?: string) => {
+  if (!dt) return "";
+  const clean = String(dt).trim().replace(/\//g, "-");
+  const parts = clean.split("-");
+  if (parts.length === 3) {
+    if (parts[0].length === 2 && parts[2].length === 4) {
+      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+    }
+    if (parts[0].length === 4) {
+      return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`;
+    }
+  }
+  return dt;
+};
+
 export function AdminInscricoesPremier({
   initialConfig,
   initialCalendar = [],
@@ -56,7 +72,7 @@ export function AdminInscricoesPremier({
     initialConfig.premierSubtitulo || "Valendo 15 Championship Points (CP) + Premiação em Boosters"
   );
   const [premierData, setPremierData] = useState(
-    initialConfig.premierData || new Date().toISOString().split("T")[0]
+    initialConfig.premierData ? normalizeDateToISO(initialConfig.premierData) : new Date().toISOString().split("T")[0]
   );
   const [premierHorario, setPremierHorario] = useState(
     initialConfig.premierHorario || "Check-in às 13:30 • Rodada 1 às 14:00"
@@ -117,19 +133,30 @@ export function AdminInscricoesPremier({
   const directLink = typeof window !== "undefined" ? `${window.location.origin}/#inscricao` : "https://pokefsanext.vercel.app/#inscricao";
 
   // Preenchimento automático ao selecionar evento do calendário
-  const handleSelectCalendarEvent = (calIdStr: string) => {
-    if (!calIdStr) return;
-    const cal = initialCalendar.find((c) => String(c.id) === calIdStr);
+  const handleSelectCalendarEvent = (calKey: string) => {
+    if (!calKey) return;
+    const cal = initialCalendar.find((c, idx) => String(c.id ?? idx) === calKey || `${c.data}_${c.evento}` === calKey);
     if (!cal) return;
 
     setPremierNome(cal.evento || "");
-    setPremierData(cal.data || "");
+    setPremierData(normalizeDateToISO(cal.data));
     setPremierLocal(cal.local || "Livraria Atlântica +");
-    setPremierHorario(cal.horario ? `Check-in às ${cal.horario}` : "");
+    
+    if (cal.horario) {
+      const hClean = cal.horario.trim();
+      setPremierHorario(hClean.toLowerCase().includes("check-in") ? hClean : `Check-in às ${hClean}`);
+    }
+
+    if (cal.descricao) {
+      setPremierSubtitulo(cal.descricao);
+    }
+
     if (cal.evento?.toLowerCase().includes("challenge")) {
       setPremierTipo("Challenge");
+      setPremierMultiplicador("1.5");
     } else if (cal.evento?.toLowerCase().includes("cup")) {
       setPremierTipo("Cup");
+      setPremierMultiplicador("1.5");
     } else {
       setPremierTipo("Especial");
     }
@@ -412,8 +439,8 @@ export function AdminInscricoesPremier({
                 className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-400/50"
               >
                 <option value="">-- Selecione um evento do calendário para vincular --</option>
-                {initialCalendar.map((cal) => (
-                  <option key={cal.id} value={cal.id}>
+                {initialCalendar.map((cal, idx) => (
+                  <option key={cal.id ?? idx} value={String(cal.id ?? idx)}>
                     {cal.data} • {cal.evento} ({cal.local})
                   </option>
                 ))}
