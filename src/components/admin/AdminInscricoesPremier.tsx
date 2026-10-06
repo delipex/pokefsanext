@@ -378,10 +378,10 @@ export function AdminInscricoesPremier({
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-amber-400" />
-              <span>Gestão de Inscrições & Decklists (Premier Events)</span>
+              <span>Gestão de Inscrições & Decklists</span>
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Gerencie, personalize o formulário online e valide o envio de listas de 60 cartas de League Cups e League Challenges.
+              Gerencie, personalize o formulário online e valide o envio de listas de 60 cartas dos torneios oficiais.
             </p>
           </div>
 
@@ -392,7 +392,7 @@ export function AdminInscricoesPremier({
               className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-400/10"
             >
               <Plus className="h-4 w-4" />
-              <span>Cadastrar / Importar Lista</span>
+              <span>Cadastrar Inscrição Manual</span>
             </button>
             <button
               type="button"

@@ -226,7 +226,7 @@ export function HeroSeasonHub({
       return {
         badgeClass: "bg-blue-500/15 border-blue-500/35 text-blue-300 shadow-sm shadow-blue-500/20",
         dotClass: "bg-blue-400 animate-pulse",
-        label: "🌟 Evento Premier Especial",
+        label: "🌟 Evento Especial",
       };
     }
     return {

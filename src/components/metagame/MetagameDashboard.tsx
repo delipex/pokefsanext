@@ -248,10 +248,10 @@ export function MetagameDashboard({
               {stagesForSelect.map((stage) => {
                 const stageNum = chronologicalStages.findIndex((s) => s.data === stage.data) + 1;
                 const formatted = formatDateBR(stage.data);
-                const isPremier = stage.multiplicador > 1.0;
+                const hasMultiplier = stage.multiplicador !== undefined && Number(stage.multiplicador) !== 1.0;
                 return (
                   <option key={stage.data} value={stage.data} className="bg-slate-900 text-white">
-                    Etapa #{stageNum} • {formatted} ({stage.tipo}{isPremier ? ` • ${stage.multiplicador}x` : ""})
+                    Etapa #{stageNum} • {formatted} ({stage.tipo}{hasMultiplier ? ` • ${stage.multiplicador}x` : ""})
                   </option>
                 );
               })}
