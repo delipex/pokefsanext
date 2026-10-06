@@ -287,17 +287,19 @@ export function AdminInscricoesPremier({
     }
   };
 
-  // Eventos disponíveis a partir das inscrições e do calendário
+  // Eventos disponíveis a partir das inscrições salvas no banco (apenas os que realmente possuem inscrições ou estão ativos)
   const availableEvents = useMemo(() => {
     const events = new Set<string>();
     decklists.forEach((d) => {
-      if (d.eventoNome) events.add(d.eventoNome.trim());
+      if (d.eventoNome && d.eventoNome.trim()) {
+        events.add(d.eventoNome.trim());
+      }
     });
-    initialCalendar.forEach((c) => {
-      if (c.evento) events.add(c.evento.trim());
-    });
+    if (premierNome && premierNome.trim() && premierAbertas) {
+      events.add(premierNome.trim());
+    }
     return Array.from(events);
-  }, [decklists, initialCalendar]);
+  }, [decklists, premierNome, premierAbertas]);
 
   // Filtragem da lista
   const filteredList = useMemo(() => {
@@ -756,18 +758,18 @@ export function AdminInscricoesPremier({
               type="button"
               onClick={handleRefreshDecklists}
               disabled={isUpdatingFromSheets}
-              className="px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md"
+              className="px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md transition-all"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isUpdatingFromSheets ? "animate-spin" : ""}`} />
-              <span>{isUpdatingFromSheets ? "Recarregando..." : "🔄 Recarregar Inscrições"}</span>
+              <span>{isUpdatingFromSheets ? "Atualizando..." : "Atualizar"}</span>
             </button>
             <button
               type="button"
               onClick={handleCopyToTOM}
-              className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md"
+              className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md transition-all"
             >
               {copiedTom ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-              <span>{copiedTom ? "Copiado para o TOM!" : "📋 Copiar para o TOM"}</span>
+              <span>{copiedTom ? "Copiado!" : "Copiar p/ TOM"}</span>
             </button>
           </div>
         </div>
@@ -779,12 +781,12 @@ export function AdminInscricoesPremier({
             onChange={(e) => setSelectedEventFilter(e.target.value)}
             className="bg-slate-900 border border-amber-400/40 rounded-xl px-3 py-2 text-xs text-amber-300 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
-            <option value="all">🏆 Todos os Eventos ({decklists.length})</option>
+            <option value="all">Todos os Eventos ({decklists.length})</option>
             {availableEvents.map((evt) => {
               const count = decklists.filter((d) => d.eventoNome?.trim() === evt.trim()).length;
               return (
                 <option key={evt} value={evt}>
-                  📅 {evt} ({count})
+                  {evt} ({count})
                 </option>
               );
             })}
