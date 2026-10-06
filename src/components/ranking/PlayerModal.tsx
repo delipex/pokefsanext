@@ -145,36 +145,41 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
     if (!colocacao) return null;
     if (colocacao === 1) {
       return (
-        <span className="flex items-center gap-1 rounded-xl bg-gradient-to-r from-amber-500/25 to-yellow-500/25 border border-amber-400/60 px-2.5 py-1 text-xs font-black text-amber-300 shadow-sm shadow-amber-500/20 shrink-0">
-          <span className="text-base leading-none">🥇</span> 1º Lugar
-        </span>
+        <div className="flex items-baseline gap-1 shrink-0 px-2.5 py-1 rounded-xl bg-amber-400/15 border border-amber-400/40">
+          <span className="text-base sm:text-lg font-black text-amber-400 tabular-nums leading-none">1º</span>
+          <span className="text-[10px] font-bold text-amber-400/80 uppercase">Lugar</span>
+        </div>
       );
     }
     if (colocacao === 2) {
       return (
-        <span className="flex items-center gap-1 rounded-xl bg-slate-300/20 border border-slate-300/40 px-2.5 py-1 text-xs font-black text-slate-100 shadow-sm shrink-0">
-          <span className="text-base leading-none">🥈</span> 2º Lugar
-        </span>
+        <div className="flex items-baseline gap-1 shrink-0 px-2.5 py-1 rounded-xl bg-slate-300/15 border border-slate-300/40">
+          <span className="text-base sm:text-lg font-black text-slate-200 tabular-nums leading-none">2º</span>
+          <span className="text-[10px] font-bold text-slate-300/80 uppercase">Lugar</span>
+        </div>
       );
     }
     if (colocacao === 3) {
       return (
-        <span className="flex items-center gap-1 rounded-xl bg-amber-700/30 border border-amber-600/40 px-2.5 py-1 text-xs font-black text-amber-400 shadow-sm shrink-0">
-          <span className="text-base leading-none">🥉</span> 3º Lugar
-        </span>
+        <div className="flex items-baseline gap-1 shrink-0 px-2.5 py-1 rounded-xl bg-amber-600/15 border border-amber-600/40">
+          <span className="text-base sm:text-lg font-black text-amber-500 tabular-nums leading-none">3º</span>
+          <span className="text-[10px] font-bold text-amber-500/80 uppercase">Lugar</span>
+        </div>
       );
     }
     if (colocacao === 4) {
       return (
-        <span className="flex items-center gap-1 rounded-xl bg-blue-500/20 border border-blue-500/40 px-2.5 py-1 text-xs font-black text-blue-300 shadow-sm shrink-0">
-          <span className="text-xs leading-none">🎖️</span> 4º Lugar
-        </span>
+        <div className="flex items-baseline gap-1 shrink-0 px-2.5 py-1 rounded-xl bg-blue-500/15 border border-blue-500/40">
+          <span className="text-base sm:text-lg font-black text-blue-400 tabular-nums leading-none">4º</span>
+          <span className="text-[10px] font-bold text-blue-400/80 uppercase">Lugar</span>
+        </div>
       );
     }
     return (
-      <span className="flex items-center justify-center rounded-xl bg-slate-800/90 border border-white/10 px-2.5 py-1 text-xs font-extrabold text-slate-300 shrink-0 tabular-nums">
-        #{colocacao}º Lugar
-      </span>
+      <div className="flex items-baseline gap-1 shrink-0 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-white/10">
+        <span className="text-sm sm:text-base font-bold text-slate-300 tabular-nums leading-none">{colocacao}º</span>
+        <span className="text-[10px] font-medium text-slate-400 uppercase">Lugar</span>
+      </div>
     );
   };
 
@@ -319,24 +324,24 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
                       isSelected
                         ? "bg-amber-400 text-slate-950 border-amber-300 font-black shadow-lg shadow-amber-400/30 scale-105 z-10 ring-2 ring-amber-400/70"
                         : isP1
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
+                        ? "bg-amber-400/15 text-amber-300 border-amber-400/40 hover:bg-amber-400/25"
                         : isP2
-                        ? "bg-slate-300/20 text-slate-100 border-slate-300/40 hover:bg-slate-300/30"
+                        ? "bg-slate-300/15 text-slate-200 border-slate-300/40 hover:bg-slate-300/25"
                         : isP3
-                        ? "bg-amber-700/30 text-amber-400 border-amber-600/40 hover:bg-amber-700/40"
+                        ? "bg-amber-600/15 text-amber-500 border-amber-600/40 hover:bg-amber-600/25"
                         : isP4
-                        ? "bg-blue-500/20 text-blue-300 border-blue-500/40 hover:bg-blue-500/30"
+                        ? "bg-blue-500/15 text-blue-300 border-blue-500/40 hover:bg-blue-500/25"
                         : !isAbsent
-                        ? "bg-slate-800/90 text-slate-200 border-white/10 hover:bg-slate-700/80 hover:border-white/20"
+                        ? "bg-slate-800/80 text-slate-400 border-white/10 hover:bg-slate-700/80 hover:border-white/20"
                         : "bg-slate-900/40 text-slate-600 border-white/5 hover:border-white/10"
                     }`}
                     title={`Etapa #${stg.numeroEtapa}: ${isAbsent ? "Não participou" : `${stg.colocacao}º Lugar (+${stg.pontosFinais} PTS)`}`}
                   >
-                    <span className={`text-[8px] leading-none ${isSelected ? "text-slate-950 font-bold" : "text-slate-400"}`}>
+                    <span className={`text-[8px] leading-none ${isSelected ? "text-slate-950 font-bold" : "text-slate-500"}`}>
                       E{stg.numeroEtapa}
                     </span>
-                    <span className="leading-none mt-0.5 text-[10px] font-extrabold">
-                      {isAbsent ? "—" : isP1 ? "🥇" : isP2 ? "🥈" : isP3 ? "🥉" : `${stg.colocacao}º`}
+                    <span className="leading-none mt-0.5 text-[11px] font-extrabold tabular-nums">
+                      {isAbsent ? "—" : `${stg.colocacao}º`}
                     </span>
                   </button>
                 );
