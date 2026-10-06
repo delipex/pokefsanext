@@ -3336,12 +3336,14 @@ export function AdminDashboard({
         </div>
       )}
 
-      {/* ABA INSCRIÇÕES & DECKLISTS PREMIER */}
+      {/* ABA INSCRIÇÕES & DECKLISTS */}
       {activeTab === "inscricoes" && (
         <AdminInscricoesPremier
           initialConfig={initialConfig}
           initialCalendar={calendarEvents}
           initialDecklists={decklists}
+          initialPlayers={players}
+          initialDecks={decks}
         />
       )}
 

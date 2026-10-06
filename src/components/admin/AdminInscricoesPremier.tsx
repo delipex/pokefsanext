@@ -28,6 +28,8 @@ interface AdminInscricoesPremierProps {
   initialConfig: Record<string, any>;
   initialCalendar?: any[];
   initialDecklists?: any[];
+  initialPlayers?: any[];
+  initialDecks?: any[];
   onConfigUpdated?: (newConfig: Record<string, any>) => void;
 }
 
@@ -35,9 +37,11 @@ export function AdminInscricoesPremier({
   initialConfig,
   initialCalendar = [],
   initialDecklists = [],
+  initialPlayers = [],
+  initialDecks = [],
   onConfigUpdated,
 }: AdminInscricoesPremierProps) {
-  // Configurações do Torneio Premier
+  // Configurações do Torneio
   const [premierAbertas, setPremierAbertas] = useState(
     initialConfig.premierAbertas === "true" || initialConfig.premierAbertas === true
   );
@@ -80,14 +84,12 @@ export function AdminInscricoesPremier({
     initialConfig.premierObs ||
       "Traga sua decklist impressa ou envie diretamente pelo formulário online até as 13:45. Formato Standard (Padrão)."
   );
-  const [premierWebhook, setPremierWebhook] = useState(
-    initialConfig.premierWebhook || ""
-  );
 
   // Estados de Inscrições / Decklists
   const [decklists, setDecklists] = useState<any[]>(initialDecklists);
   const [subtab, setSubtab] = useState<"online" | "archived">("online");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
   const [selectedArchivedStage, setSelectedArchivedStage] = useState("all");
@@ -157,7 +159,7 @@ export function AdminInscricoesPremier({
       premierBanner,
       premierTema,
       premierObs,
-      premierWebhook,
+      premierWebhook: "",
     };
 
     try {
@@ -169,7 +171,7 @@ export function AdminInscricoesPremier({
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Erro ao salvar configurações");
 
-      setFeedback({ text: "Configurações do Torneio Premier salvas com sucesso!", type: "success" });
+      setFeedback({ text: "Configurações de Inscrição salvas com sucesso!", type: "success" });
       onConfigUpdated?.(payload);
     } catch (err: any) {
       setFeedback({ text: err.message || "Falha ao salvar", type: "error" });
@@ -285,6 +287,18 @@ export function AdminInscricoesPremier({
     }
   };
 
+  // Eventos disponíveis a partir das inscrições e do calendário
+  const availableEvents = useMemo(() => {
+    const events = new Set<string>();
+    decklists.forEach((d) => {
+      if (d.eventoNome) events.add(d.eventoNome.trim());
+    });
+    initialCalendar.forEach((c) => {
+      if (c.evento) events.add(c.evento.trim());
+    });
+    return Array.from(events);
+  }, [decklists, initialCalendar]);
+
   // Filtragem da lista
   const filteredList = useMemo(() => {
     return decklists.filter((item) => {
@@ -298,13 +312,16 @@ export function AdminInscricoesPremier({
 
       const matchCategory = !categoryFilter || item.categoria === categoryFilter;
       const matchPayment = !paymentFilter || item.statusPix === paymentFilter;
+      const matchEvent =
+        selectedEventFilter === "all" ||
+        (item.eventoNome && item.eventoNome.trim().toLowerCase() === selectedEventFilter.trim().toLowerCase());
 
-      return matchSearch && matchCategory && matchPayment;
+      return matchSearch && matchCategory && matchPayment && matchEvent;
     });
-  }, [decklists, searchQuery, categoryFilter, paymentFilter]);
+  }, [decklists, searchQuery, categoryFilter, paymentFilter, selectedEventFilter]);
 
-  const confirmedCount = decklists.filter((d) => d.statusPix === "Confirmado").length;
-  const pendingCount = decklists.filter((d) => d.statusPix !== "Confirmado").length;
+  const confirmedCount = filteredList.filter((d) => d.statusPix === "Confirmado").length;
+  const pendingCount = filteredList.filter((d) => d.statusPix !== "Confirmado").length;
 
   return (
     <div className="space-y-6">
@@ -755,8 +772,24 @@ export function AdminInscricoesPremier({
           </div>
         </div>
 
-        {/* Filtros da Tabela */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        {/* Filtros da Tabela com Seletor de Evento */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+          <select
+            value={selectedEventFilter}
+            onChange={(e) => setSelectedEventFilter(e.target.value)}
+            className="bg-slate-900 border border-amber-400/40 rounded-xl px-3 py-2 text-xs text-amber-300 font-bold focus:outline-none focus:ring-2 focus:ring-amber-400"
+          >
+            <option value="all">🏆 Todos os Eventos ({decklists.length})</option>
+            {availableEvents.map((evt) => {
+              const count = decklists.filter((d) => d.eventoNome?.trim() === evt.trim()).length;
+              return (
+                <option key={evt} value={evt}>
+                  📅 {evt} ({count})
+                </option>
+              );
+            })}
+          </select>
+
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
             <input
@@ -818,6 +851,7 @@ export function AdminInscricoesPremier({
                 <tr className="border-b border-white/10 text-slate-400 uppercase font-bold bg-slate-900/60">
                   <th className="py-3 px-3 w-24">Protocolo</th>
                   <th className="py-3 px-4">Treinador / POP ID</th>
+                  <th className="py-3 px-3">Evento</th>
                   <th className="py-3 px-3 text-center w-20">Categoria</th>
                   <th className="py-3 px-4">Baralho / Arquétipo</th>
                   <th className="py-3 px-3 text-center w-24">Lista</th>
@@ -839,6 +873,14 @@ export function AdminInscricoesPremier({
                         <div className="font-bold text-white text-sm">{item.jogadorNome}</div>
                         {item.jogadorId && (
                           <div className="text-[11px] text-slate-400 font-mono">ID: {item.jogadorId}</div>
+                        )}
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="font-semibold text-amber-300 text-xs truncate max-w-[140px]">
+                          {item.eventoNome || premierNome}
+                        </div>
+                        {item.etapaData && (
+                          <div className="text-[10px] text-slate-400">{item.etapaData}</div>
                         )}
                       </td>
                       <td className="py-3 px-3 text-center">
@@ -968,6 +1010,42 @@ export function AdminInscricoesPremier({
             </div>
 
             <form onSubmit={handleSaveManualRegistration} className="space-y-3 text-xs">
+              {/* Seletor Rápido de Atleta do Banco */}
+              {initialPlayers.length > 0 && (
+                <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <label className="block text-blue-300 font-bold mb-1">
+                    👤 Vincular a um Atleta Cadastrado no Banco (Opcional):
+                  </label>
+                  <select
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      if (!selectedId) return;
+                      const p = initialPlayers.find((pl) => String(pl.id || pl.ID) === selectedId);
+                      if (p) {
+                        setManualForm({
+                          ...manualForm,
+                          jogadorNome: p.nome || p.jogador || p.Jogador || "",
+                          jogadorId: String(p.id || p.ID || ""),
+                          categoria: p.categoria || p.Categoria || "Master",
+                        });
+                      }
+                    }}
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white"
+                  >
+                    <option value="">-- Selecione para preencher Nome, ID e Categoria --</option>
+                    {initialPlayers.map((p) => {
+                      const id = String(p.id || p.ID || "");
+                      const nome = p.nome || p.jogador || p.Jogador || "";
+                      return (
+                        <option key={id || nome} value={id}>
+                          {nome} {id ? `(ID: ${id})` : ""} • {p.categoria || "Master"}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">Nome do Jogador</label>
