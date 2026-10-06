@@ -1052,7 +1052,7 @@ export function PlayerPortalDashboard({
                         <div className="font-semibold text-white">{r.etapaData}</div>
                         <div className="text-[10px] text-slate-400">
                           {r.tipo || "Liga"}{" "}
-                          {Number(r.multiplicador) > 1 && (
+                          {r.multiplicador && Number(r.multiplicador) !== 1 && (
                             <span className="text-amber-400 font-bold">({r.multiplicador}x)</span>
                           )}
                         </div>
@@ -1066,7 +1066,7 @@ export function PlayerPortalDashboard({
                         {r.vitorias}-{r.derrotas}-{r.empates}
                       </td>
                       <td className="py-2.5 px-3 text-center font-black text-amber-400 tabular-nums">
-                        {r.multiplicador && Number(r.multiplicador) > 1 ? (
+                        {r.multiplicador && Number(r.multiplicador) !== 1 ? (
                           <div>
                             <span>{r.pontosFinal ?? Number((r.pontos * r.multiplicador).toFixed(1))} PTS</span>
                             <span className="block text-[10px] text-amber-400/70 font-semibold">

@@ -232,7 +232,7 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
             {player.stageHistory && player.stageHistory.length > 0 ? (
               <div className="space-y-1.5 overflow-y-auto pr-1 custom-scrollbar flex-1">
                 {player.stageHistory.map((item, idx) => {
-                  const isPremier = item.multiplicador > 1.0;
+                  const hasMultiplier = item.multiplicador !== undefined && Number(item.multiplicador) !== 1.0;
                   const [year, month, day] = item.data.split("-");
                   const formattedDate = day && month && year ? `${day}/${month}` : item.data;
                   const isPodium = item.colocacao <= 4;
@@ -244,7 +244,7 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
                       className={`flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${
                         isCurrentStage
                           ? "border-amber-400 bg-amber-500/15"
-                          : isPremier
+                          : hasMultiplier
                           ? "border-amber-500/30 bg-amber-500/[0.04]"
                           : "border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03]"
                       }`}
@@ -256,7 +256,7 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
                             Etapa #{item.numeroEtapa}
                           </span>
                           <span className="text-[10px] text-slate-500">({formattedDate})</span>
-                          {isPremier && (
+                          {hasMultiplier && (
                             <span className="rounded bg-amber-500/20 border border-amber-500/40 px-1 text-[8px] font-black uppercase text-amber-300">
                               {item.multiplicador}x
                             </span>
@@ -286,7 +286,7 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
                         <span className="text-xs font-black text-[#ffcb05] tabular-nums block">
                           +{item.pontosFinais} PTS
                         </span>
-                        {isPremier ? (
+                        {hasMultiplier ? (
                           <span className="text-[9px] text-amber-300/80 font-mono block">
                             {item.pontosBase} &times; {item.multiplicador}x
                           </span>

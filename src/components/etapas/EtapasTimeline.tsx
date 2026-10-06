@@ -126,7 +126,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
       {/* Grid de Cards de Etapas Bento-Grid com Efeito iOS Spring */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {etapas.map((etapa, idx) => {
-          const isPremier = etapa.multiplicador > 1.0;
+          const hasMultiplier = etapa.multiplicador !== undefined && Number(etapa.multiplicador) !== 1.0;
           const [year, month, day] = etapa.data.split("-");
           const formattedDate = `${day}/${month}/${year}`;
           const stageNumber = etapa.numeroEtapa || (idx + 1);
@@ -138,7 +138,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
               whileTap={{ scale: 0.98 }}
               onClick={() => setSelectedEtapa(etapa)}
               className={`group relative flex flex-col justify-between rounded-3xl border p-5 sm:p-6 backdrop-blur-2xl transition-colors duration-300 cursor-pointer shadow-xl ${
-                isPremier
+                hasMultiplier
                   ? "border-amber-400/30 bg-amber-500/[0.03] hover:bg-amber-500/[0.06] hover:border-amber-400/50 shadow-amber-500/5"
                   : "border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.08]"
               }`}
@@ -150,7 +150,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
                     <span className="text-base sm:text-lg font-black text-white group-hover:text-amber-300 transition-colors">
                       Etapa #{stageNumber}
                     </span>
-                    {isPremier ? (
+                    {hasMultiplier ? (
                       <span className="rounded-full bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 text-[10px] font-black uppercase text-amber-300 shadow-sm shadow-amber-500/20">
                         {etapa.tipo} ({etapa.multiplicador}x)
                       </span>
@@ -259,7 +259,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
                   <span className="rounded-full bg-blue-500/20 px-2.5 py-0.5 text-xs font-black text-blue-300 border border-blue-500/30">
                     {selectedEtapa.tipo}
                   </span>
-                  {selectedEtapa.multiplicador > 1 && (
+                  {selectedEtapa.multiplicador && Number(selectedEtapa.multiplicador) !== 1 && (
                     <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-xs font-black text-amber-300 border border-amber-500/30">
                       {selectedEtapa.multiplicador}x Pontos
                     </span>
@@ -366,7 +366,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
                             {renderDeckBadge(res.deckNome)}
                           </td>
                           <td className="px-3 py-2.5 text-right font-black text-sm text-yellow-400 tabular-nums">
-                            {selectedEtapa.multiplicador && Number(selectedEtapa.multiplicador) > 1 ? (
+                            {selectedEtapa.multiplicador && Number(selectedEtapa.multiplicador) !== 1 ? (
                               <div>
                                 <span className="block">{Number((res.pontos * Number(selectedEtapa.multiplicador)).toFixed(1))} PTS</span>
                                 <span className="block text-[10px] text-yellow-400/70 font-semibold">
