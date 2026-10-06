@@ -1,4 +1,4 @@
-import { getCalendario } from "@/lib/queries";
+import { getCalendario, getConfigMap } from "@/lib/queries";
 import { Clock, MapPin, ExternalLink, CheckCircle2, CalendarDays, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +7,21 @@ export const metadata = {
   title: "Calendário Oficial de Torneios | Liga Atlântica TCG",
   description: "Cronograma e agenda oficial dos próximos torneios e sessões da Liga Atlântica em Feira de Santana.",
 };
+
+function normalizeDateToISO(dt?: string | null) {
+  if (!dt) return "";
+  const clean = String(dt).trim().replace(/\//g, "-");
+  const parts = clean.split("-");
+  if (parts.length === 3) {
+    if (parts[0].length === 2 && parts[2].length === 4) {
+      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+    }
+    if (parts[0].length === 4) {
+      return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`;
+    }
+  }
+  return dt;
+}
 
 function parseEventDate(rawDate: string) {
   if (!rawDate) return { day: "--", weekday: "---", month: "---", full: rawDate };
@@ -59,7 +74,11 @@ function getEventTypeBadge(title: string) {
 }
 
 export default async function CalendarioPage() {
-  const eventos = await getCalendario();
+  const [eventos, config] = await Promise.all([getCalendario(), getConfigMap()]);
+
+  const isPremierAbertas = config.premierAbertas === "true" || config.premierAbertas === true;
+  const premierDateISO = normalizeDateToISO(config.premierData);
+  const premierNomeLower = (config.premierNome || "").toLowerCase().trim();
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -85,10 +104,30 @@ export default async function CalendarioPage() {
             const isConfirmed = !isConcluded && ev.status?.toLowerCase() === "confirmado";
             const eventType = getEventTypeBadge(ev.evento);
 
+            const evDateISO = normalizeDateToISO(ev.data);
+            const evNomeLower = (ev.evento || "").toLowerCase().trim();
+
+            const isThisEventPremierOpen =
+              !isConcluded &&
+              isPremierAbertas &&
+              ((premierDateISO && evDateISO && premierDateISO === evDateISO) ||
+                (premierNomeLower &&
+                  (evNomeLower === premierNomeLower ||
+                    evNomeLower.includes(premierNomeLower) ||
+                    premierNomeLower.includes(evNomeLower))));
+
+            const hasDirectLink = Boolean(ev.linkInscricao && ev.linkInscricao.trim() !== "");
+            const hasInscricao = isThisEventPremierOpen || hasDirectLink;
+            const finalInscricaoHref = hasDirectLink ? ev.linkInscricao : "#inscricao";
+
             return (
               <div
                 key={ev.id || idx}
-                className={`group relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-3xl border border-white/[0.04] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.08] p-4 sm:p-6 shadow-xl backdrop-blur-2xl transition-all duration-300 hover:scale-[1.01] ${
+                className={`group relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-3xl border ${
+                  isThisEventPremierOpen
+                    ? "border-emerald-500/40 bg-emerald-950/20 shadow-emerald-950/30"
+                    : "border-white/[0.04] bg-white/[0.02]"
+                } hover:bg-white/[0.04] hover:border-white/[0.08] p-4 sm:p-6 shadow-xl backdrop-blur-2xl transition-all duration-300 hover:scale-[1.01] ${
                   isConcluded ? "opacity-60 saturate-50" : ""
                 }`}
               >
@@ -113,12 +152,17 @@ export default async function CalendarioPage() {
                       <span className={`rounded-lg border px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${eventType.color}`}>
                         {eventType.label}
                       </span>
+                      {hasInscricao && !isConcluded && (
+                        <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/20 border border-emerald-400/50 px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase text-emerald-300 shadow-sm animate-pulse">
+                          <Sparkles className="h-3 w-3 text-amber-300" /> Inscrições Abertas
+                        </span>
+                      )}
                       {isConcluded && (
                         <span className="inline-flex items-center gap-1 rounded-lg bg-slate-500/15 border border-slate-500/30 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-slate-400">
                           <CheckCircle2 className="h-3 w-3" /> Concluído
                         </span>
                       )}
-                      {isConfirmed && (
+                      {isConfirmed && !hasInscricao && (
                         <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-emerald-400">
                           <CheckCircle2 className="h-3 w-3" /> Confirmado
                         </span>
@@ -142,17 +186,8 @@ export default async function CalendarioPage() {
                 </div>
 
                 {/* Lado Direito: Ações */}
-                <div className="shrink-0 flex items-center justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/[0.04]">
-                  {ev.linkInscricao ? (
-                    <a
-                      href={ev.linkInscricao}
-                      target={ev.linkInscricao.startsWith("http") ? "_blank" : undefined}
-                      rel={ev.linkInscricao.startsWith("http") ? "noopener noreferrer" : undefined}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-all cursor-pointer"
-                    >
-                      Inscrição <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  ) : ev.linkMaps ? (
+                <div className="shrink-0 flex items-center justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/[0.04] flex-wrap">
+                  {ev.linkMaps && (
                     <a
                       href={ev.linkMaps}
                       target="_blank"
@@ -161,9 +196,20 @@ export default async function CalendarioPage() {
                     >
                       Como Chegar <ExternalLink className="h-3.5 w-3.5" />
                     </a>
-                  ) : null}
-                </div>
+                  )}
 
+                  {hasInscricao && !isConcluded && (
+                    <a
+                      href={finalInscricaoHref}
+                      target={finalInscricaoHref.startsWith("http") ? "_blank" : undefined}
+                      rel={finalInscricaoHref.startsWith("http") ? "noopener noreferrer" : undefined}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/30 transition-all cursor-pointer animate-pulse"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                      <span>Inscrever-se</span>
+                    </a>
+                  )}
+                </div>
               </div>
             );
           })}
