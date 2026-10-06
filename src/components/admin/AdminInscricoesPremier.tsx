@@ -86,7 +86,7 @@ export function AdminInscricoesPremier({
     initialConfig.premierExigirDecklist === "true" || initialConfig.premierExigirDecklist === true
   );
   const [premierPix, setPremierPix] = useState(
-    initialConfig.premierPix || "felipe.damasceno@pix.com"
+    initialConfig.premierPix || ""
   );
   const [premierTitular, setPremierTitular] = useState(
     initialConfig.premierTitular || "Liga Atlântica TCG (Felipe Damasceno)"
@@ -646,7 +646,7 @@ export function AdminInscricoesPremier({
                   type="text"
                   value={premierPix}
                   onChange={(e) => setPremierPix(e.target.value)}
-                  placeholder="Ex: felipe.damasceno@pix.com"
+                  placeholder="CPF, CNPJ, E-mail, Celular ou Chave Aleatória"
                   className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
                 />
               </div>
