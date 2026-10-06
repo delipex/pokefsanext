@@ -75,8 +75,9 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
           (player.jogadorId && r.jogadorId && r.jogadorId === player.jogadorId) ||
           r.jogadorNome.toLowerCase().trim() === player.jogadorNome.toLowerCase().trim()
       );
+      const mult = etapa.multiplicador ? Number(etapa.multiplicador) : 1.0;
+
       if (match) {
-        const mult = etapa.multiplicador ? Number(etapa.multiplicador) : 1.0;
         const basePts = Number(match.pontos) || 0;
         const finalPts = Number((basePts * mult).toFixed(1));
         const foundDeck = allDecks.find(
@@ -88,6 +89,7 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
           data: etapa.data,
           tipo: etapa.tipo || "Liga",
           multiplicador: mult,
+          participou: true,
           colocacao: match.colocacao,
           pontosBase: basePts,
           pontosFinais: finalPts,
@@ -97,6 +99,23 @@ export function EtapasTimeline({ etapas, allDecks = [] }: EtapasTimelineProps) {
           deckNome: match.deckNome || null,
           deckEnergia: foundDeck?.tipoEnergia || "colorless",
           deckIcone: foundDeck?.icone || null,
+        });
+      } else {
+        history.push({
+          numeroEtapa: etapa.numeroEtapa || idx + 1,
+          data: etapa.data,
+          tipo: etapa.tipo || "Liga",
+          multiplicador: mult,
+          participou: false,
+          colocacao: null,
+          pontosBase: 0,
+          pontosFinais: 0,
+          vitorias: 0,
+          empates: 0,
+          derrotas: 0,
+          deckNome: null,
+          deckEnergia: null,
+          deckIcone: null,
         });
       }
     }

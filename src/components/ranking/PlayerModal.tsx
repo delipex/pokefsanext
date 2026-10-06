@@ -27,7 +27,8 @@ export interface StageHistoryItem {
   data: string;
   tipo: string;
   multiplicador: number;
-  colocacao: number;
+  participou: boolean;
+  colocacao?: number | null;
   pontosBase: number;
   pontosFinais: number;
   vitorias: number;
@@ -63,43 +64,72 @@ interface PlayerModalProps {
   onClose: () => void;
 }
 
-const ITEMS_PER_PAGE = 5;
-
 export function PlayerModal({ player, onClose }: PlayerModalProps) {
   if (!player) return null;
 
   const sc = player.stageContext;
   const isStageView = Boolean(sc);
 
-  // Paginação inteligente inicializada na página da etapa inspecionada
-  const [page, setPage] = useState(() => {
-    if (sc && player.stageHistory) {
-      const idx = player.stageHistory.findIndex((h) => h.numeroEtapa === sc.numeroEtapa);
-      if (idx !== -1) return Math.floor(idx / ITEMS_PER_PAGE);
+  // Histórico de Etapas completo
+  const stages: StageHistoryItem[] = player.stageHistory && player.stageHistory.length > 0
+    ? player.stageHistory
+    : (() => {
+        // Fallback caso stageHistory não esteja presente
+        const raw = player.historicoColocacoes ? player.historicoColocacoes.split(";") : [];
+        return raw.map((col, idx) => {
+          const num = Number(col);
+          const attended = !isNaN(num) && num > 0;
+          return {
+            numeroEtapa: idx + 1,
+            data: `Etapa #${idx + 1}`,
+            tipo: "Liga",
+            multiplicador: 1.0,
+            participou: attended,
+            colocacao: attended ? num : null,
+            pontosBase: attended ? (num === 1 ? 12 : num === 2 ? 9 : num === 3 ? 7 : 4) : 0,
+            pontosFinais: attended ? (num === 1 ? 12 : num === 2 ? 9 : num === 3 ? 7 : 4) : 0,
+            vitorias: attended ? 2 : 0,
+            empates: 0,
+            derrotas: attended ? 1 : 0,
+            deckNome: player.ultimoDeck || null,
+            deckEnergia: player.ultimoDeckEnergia || "colorless",
+          };
+        });
+      })();
+
+  // Etapa Ativa Selecionada (inicia na etapa do clique ou na última participada)
+  const [activeIdx, setActiveIdx] = useState<number>(() => {
+    if (sc?.numeroEtapa && stages.length > 0) {
+      const idx = stages.findIndex((s) => s.numeroEtapa === sc.numeroEtapa);
+      if (idx !== -1) return idx;
     }
-    return 0;
+    // Procura a última etapa que participou
+    for (let i = stages.length - 1; i >= 0; i--) {
+      if (stages[i].participou) return i;
+    }
+    return Math.max(0, stages.length - 1);
   });
+
+  const activeStage = stages[activeIdx] || stages[0];
 
   // Métricas da Temporada
   const seasonTotalJogos = player.vitorias + player.empates + player.derrotas;
   const seasonWinRate = seasonTotalJogos > 0 ? Math.round((player.vitorias / seasonTotalJogos) * 100) : 0;
-  const etapasArray = player.historicoColocacoes ? player.historicoColocacoes.split(";") : [];
 
-  // Métricas da Etapa (se visualização de etapa)
-  const stageTotalJogos = sc ? sc.vitorias + sc.empates + sc.derrotas : 0;
-  const stageWinRate = stageTotalJogos > 0 ? Math.round((sc!.vitorias / stageTotalJogos) * 100) : 0;
+  // Métricas da Etapa Ativa
+  const activeStageTotal = activeStage ? activeStage.vitorias + activeStage.empates + activeStage.derrotas : 0;
+  const activeStageWinRate = activeStageTotal > 0 ? Math.round((activeStage.vitorias / activeStageTotal) * 100) : 0;
 
-  // Formatação de data da etapa
-  const formattedStageDate = sc?.etapaData
-    ? (() => {
-        const parts = sc.etapaData.replace(/\//g, "-").split("-");
-        if (parts.length === 3) {
-          if (parts[0].length === 4) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-          return `${parts[0]}/${parts[1]}/${parts[2]}`;
-        }
-        return sc.etapaData;
-      })()
-    : "";
+  // Formatação de data
+  const formatStageDate = (dt?: string) => {
+    if (!dt) return "";
+    const parts = dt.replace(/\//g, "-").split("-");
+    if (parts.length === 3) {
+      if (parts[0].length === 4) return `${parts[2]}/${parts[1]}`;
+      return `${parts[0]}/${parts[1]}`;
+    }
+    return dt;
+  };
 
   const maskPlayerId = (id?: string | null) => {
     if (!id) return "";
@@ -111,47 +141,45 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
     return `${first4}${asterisks}`;
   };
 
-  const renderPlacementBadge = (colocacao: number) => {
+  const renderPlacementBadge = (colocacao?: number | null) => {
+    if (!colocacao) return null;
     if (colocacao === 1) {
       return (
-        <span className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-amber-500/25 to-yellow-500/25 border border-amber-400/60 px-2 py-1 text-xs font-black text-amber-300 shadow-sm shadow-amber-500/10 shrink-0">
-          <span className="text-sm leading-none">🥇</span> 1º
+        <span className="flex items-center gap-1 rounded-xl bg-gradient-to-r from-amber-500/25 to-yellow-500/25 border border-amber-400/60 px-2.5 py-1 text-xs font-black text-amber-300 shadow-sm shadow-amber-500/20 shrink-0">
+          <span className="text-base leading-none">🥇</span> 1º Lugar
         </span>
       );
     }
     if (colocacao === 2) {
       return (
-        <span className="flex items-center gap-1 rounded-lg bg-slate-300/20 border border-slate-300/40 px-2 py-1 text-xs font-black text-slate-100 shadow-sm shrink-0">
-          <span className="text-sm leading-none">🥈</span> 2º
+        <span className="flex items-center gap-1 rounded-xl bg-slate-300/20 border border-slate-300/40 px-2.5 py-1 text-xs font-black text-slate-100 shadow-sm shrink-0">
+          <span className="text-base leading-none">🥈</span> 2º Lugar
         </span>
       );
     }
     if (colocacao === 3) {
       return (
-        <span className="flex items-center gap-1 rounded-lg bg-amber-700/30 border border-amber-600/40 px-2 py-1 text-xs font-black text-amber-400 shadow-sm shrink-0">
-          <span className="text-sm leading-none">🥉</span> 3º
+        <span className="flex items-center gap-1 rounded-xl bg-amber-700/30 border border-amber-600/40 px-2.5 py-1 text-xs font-black text-amber-400 shadow-sm shrink-0">
+          <span className="text-base leading-none">🥉</span> 3º Lugar
         </span>
       );
     }
     if (colocacao === 4) {
       return (
-        <span className="flex items-center gap-1 rounded-lg bg-blue-500/20 border border-blue-500/40 px-2 py-1 text-xs font-black text-blue-300 shadow-sm shrink-0">
-          <span className="text-xs leading-none">🎖️</span> 4º
+        <span className="flex items-center gap-1 rounded-xl bg-blue-500/20 border border-blue-500/40 px-2.5 py-1 text-xs font-black text-blue-300 shadow-sm shrink-0">
+          <span className="text-xs leading-none">🎖️</span> 4º Lugar
         </span>
       );
     }
     return (
-      <span className="flex items-center justify-center rounded-lg bg-slate-800/90 border border-white/10 px-2 py-1 text-xs font-extrabold text-slate-300 shrink-0 tabular-nums">
-        #{colocacao}º
+      <span className="flex items-center justify-center rounded-xl bg-slate-800/90 border border-white/10 px-2.5 py-1 text-xs font-extrabold text-slate-300 shrink-0 tabular-nums">
+        #{colocacao}º Lugar
       </span>
     );
   };
 
-  const totalHistoryItems = player.stageHistory?.length || 0;
-  const totalPages = Math.ceil(totalHistoryItems / ITEMS_PER_PAGE);
-  const currentHistoryPage = player.stageHistory
-    ? player.stageHistory.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE)
-    : [];
+  const participatedStagesCount = stages.filter((s) => s.participou).length;
+  const hasMultiplier = activeStage && activeStage.multiplicador !== undefined && Number(activeStage.multiplicador) !== 1.0;
 
   return (
     <AnimatePresence>
@@ -182,23 +210,6 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
           >
             <X className="h-4 w-4" />
           </button>
-
-          {/* Contexto da Etapa (se aberto a partir de uma etapa) */}
-          {isStageView && sc && (
-            <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 flex items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-base shrink-0">
-                  {sc.colocacao === 1 ? "🥇" : sc.colocacao === 2 ? "🥈" : sc.colocacao === 3 ? "🥉" : "🎖️"}
-                </span>
-                <span className="text-xs text-amber-300 font-bold truncate">
-                  Etapa #{sc.numeroEtapa || ""} • {formattedStageDate} ({sc.colocacao}º lugar)
-                </span>
-              </div>
-              <span className="shrink-0 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-xs font-black text-amber-300 tabular-nums">
-                {sc.pontos} PTS
-              </span>
-            </div>
-          )}
 
           {/* Cabeçalho do Jogador */}
           <div className="flex items-center gap-3 pr-8 shrink-0">
@@ -259,22 +270,22 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
             <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-2">
               <span className="text-[10px] font-bold text-emerald-400 block uppercase tracking-wider">Winrate</span>
               <p className="mt-0.5 text-base sm:text-lg font-black text-white tabular-nums">
-                {isStageView ? `${stageWinRate}%` : `${seasonWinRate}%`}
+                {seasonWinRate}%
               </p>
             </div>
             <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-2">
               <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">V-E-D</span>
               <p className="mt-0.5 text-xs sm:text-sm font-black text-slate-200 tabular-nums">
-                <span className="text-emerald-400">{isStageView && sc ? sc.vitorias : player.vitorias}</span>/
-                <span className="text-yellow-400">{isStageView && sc ? sc.empates : player.empates}</span>/
-                <span className="text-rose-400">{isStageView && sc ? sc.derrotas : player.derrotas}</span>
+                <span className="text-emerald-400">{player.vitorias}</span>/
+                <span className="text-yellow-400">{player.empates}</span>/
+                <span className="text-rose-400">{player.derrotas}</span>
               </p>
             </div>
           </div>
 
-          {/* Seção de Contabilidade de Pontos (Extrato Etapa a Etapa Paginado) */}
-          <div className="mt-3.5 flex flex-col rounded-2xl border border-white/[0.08] bg-slate-900/60 p-3 sm:p-3.5 backdrop-blur-xl shrink-0">
-            <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/[0.06] shrink-0">
+          {/* Seção Visual de Quadradinhos das Etapas (Matrix Interativa) */}
+          <div className="mt-3.5 flex flex-col rounded-2xl border border-white/[0.08] bg-slate-900/60 p-3 sm:p-3.5 backdrop-blur-xl shrink-0 space-y-3">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-white/[0.06] shrink-0">
               <div className="flex items-center gap-2">
                 <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
                   <Calculator className="h-3.5 w-3.5" />
@@ -283,165 +294,176 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
                   Extrato da Temporada
                 </span>
               </div>
-              <span className="rounded-lg bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/40 px-2.5 py-1 text-xs font-black text-amber-300 tabular-nums shadow-sm">
+              <span className="rounded-lg bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/40 px-2.5 py-0.5 text-xs font-black text-amber-300 tabular-nums shadow-sm">
                 {player.pontos} PTS TOTAL
               </span>
             </div>
 
-            {player.stageHistory && player.stageHistory.length > 0 ? (
-              <div className="mt-2.5 space-y-1.5">
-                {currentHistoryPage.map((item, idx) => {
-                  const hasMultiplier = item.multiplicador !== undefined && Number(item.multiplicador) !== 1.0;
-                  const [year, month, day] = item.data.split("-");
-                  const formattedDate = day && month && year ? `${day}/${month}` : item.data;
-                  const isCurrentStage = isStageView && sc?.numeroEtapa === item.numeroEtapa;
+            {/* Grid de Quadradinhos das Etapas (Mostra todas, inclusive faltas) */}
+            <div className="flex flex-wrap gap-1.5 justify-start max-h-[105px] overflow-y-auto pr-0.5 custom-scrollbar">
+              {stages.map((stg, sIdx) => {
+                const isSelected = sIdx === activeIdx;
+                const isAbsent = !stg.participou;
+                const col = stg.colocacao;
+                const isP1 = col === 1;
+                const isP2 = col === 2;
+                const isP3 = col === 3;
+                const isP4 = col === 4;
 
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex items-center justify-between gap-2.5 rounded-xl border p-2 text-xs transition-all ${
-                        isCurrentStage
-                          ? "border-amber-400 bg-amber-500/20 shadow-md shadow-amber-500/10 ring-1 ring-amber-400/50"
-                          : hasMultiplier
-                          ? "border-amber-500/30 bg-amber-500/[0.04] hover:bg-amber-500/[0.08]"
-                          : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05]"
-                      }`}
+                return (
+                  <button
+                    key={sIdx}
+                    type="button"
+                    onClick={() => setActiveIdx(sIdx)}
+                    className={`flex flex-col items-center justify-center h-10 w-9 sm:h-10 sm:w-10 rounded-xl text-[10px] font-bold border transition-all cursor-pointer relative shrink-0 ${
+                      isSelected
+                        ? "bg-amber-400 text-slate-950 border-amber-300 font-black shadow-lg shadow-amber-400/30 scale-105 z-10 ring-2 ring-amber-400/70"
+                        : isP1
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
+                        : isP2
+                        ? "bg-slate-300/20 text-slate-100 border-slate-300/40 hover:bg-slate-300/30"
+                        : isP3
+                        ? "bg-amber-700/30 text-amber-400 border-amber-600/40 hover:bg-amber-700/40"
+                        : isP4
+                        ? "bg-blue-500/20 text-blue-300 border-blue-500/40 hover:bg-blue-500/30"
+                        : !isAbsent
+                        ? "bg-slate-800/90 text-slate-200 border-white/10 hover:bg-slate-700/80 hover:border-white/20"
+                        : "bg-slate-900/40 text-slate-600 border-white/5 hover:border-white/10"
+                    }`}
+                    title={`Etapa #${stg.numeroEtapa}: ${isAbsent ? "Não participou" : `${stg.colocacao}º Lugar (+${stg.pontosFinais} PTS)`}`}
+                  >
+                    <span className={`text-[8px] leading-none ${isSelected ? "text-slate-950 font-bold" : "text-slate-400"}`}>
+                      E{stg.numeroEtapa}
+                    </span>
+                    <span className="leading-none mt-0.5 text-[10px] font-extrabold">
+                      {isAbsent ? "—" : isP1 ? "🥇" : isP2 ? "🥈" : isP3 ? "🥉" : `${stg.colocacao}º`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Cartão de Detalhes da Etapa Selecionada */}
+            {activeStage && (
+              <div className="rounded-2xl border border-white/[0.08] bg-slate-950/80 p-3 backdrop-blur-xl">
+                {/* Header da Etapa com Navegação Rápida */}
+                <div className="flex items-center justify-between gap-2 pb-2 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-black text-white">
+                      Etapa #{activeStage.numeroEtapa}
+                    </span>
+                    <span className="text-[10px] text-slate-400">({formatStageDate(activeStage.data)})</span>
+                    <span className="rounded-md bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.2 text-[9px] font-bold text-blue-300">
+                      {activeStage.tipo}
+                    </span>
+                    {hasMultiplier && (
+                      <span className="rounded-md bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.2 text-[9px] font-black text-amber-300 uppercase">
+                        {activeStage.multiplicador}x
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setActiveIdx((i) => Math.max(0, i - 1))}
+                      disabled={activeIdx === 0}
+                      className="p-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                      title="Etapa anterior"
                     >
-                      {/* Lado Esquerdo: Colocação em Evidência + Detalhes */}
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        {renderPlacementBadge(item.colocacao)}
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="text-[10px] text-slate-400 font-mono px-1">
+                      {activeIdx + 1}/{stages.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveIdx((i) => Math.min(stages.length - 1, i + 1))}
+                      disabled={activeIdx >= stages.length - 1}
+                      className="p-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                      title="Próxima etapa"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-extrabold text-white text-xs">
-                              Etapa #{item.numeroEtapa}
-                            </span>
-                            <span className="text-[10px] text-slate-400">({formattedDate})</span>
-                            {hasMultiplier && (
-                              <span className="rounded bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.2 text-[9px] font-black uppercase text-amber-300">
-                                {item.multiplicador}x
-                              </span>
-                            )}
-                          </div>
+                {/* Corpo do Detalhe da Etapa */}
+                {activeStage.participou ? (
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    {/* Lado Esquerdo: Colocação em Evidência + Deck + Record */}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      {renderPlacementBadge(activeStage.colocacao)}
 
-                          <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-300 flex-wrap">
-                            {item.deckNome && (
-                              <span className="flex items-center gap-1 font-medium truncate max-w-[130px] sm:max-w-[170px]">
-                                <EnergyBadge energyRaw={item.deckEnergia || ""} size="sm" showLabel={false} />
-                                <span className="truncate">{item.deckNome}</span>
-                              </span>
-                            )}
-                            <span className="text-slate-500 text-[10px]">•</span>
-                            <span className="text-[10px] font-mono text-slate-400 tabular-nums">
-                              <strong className="text-emerald-400 font-semibold">{item.vitorias}</strong>V-
-                              <strong className="text-yellow-400 font-semibold">{item.empates}</strong>E-
-                              <strong className="text-rose-400 font-semibold">{item.derrotas}</strong>D
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          {activeStage.deckNome ? (
+                            <span className="flex items-center gap-1 font-semibold text-white text-xs truncate max-w-[150px] sm:max-w-[190px]">
+                              <EnergyBadge energyRaw={activeStage.deckEnergia || ""} size="sm" showLabel={false} />
+                              <span className="truncate">{activeStage.deckNome}</span>
                             </span>
-                          </div>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">Deck não registrado</span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                          <span>
+                            <strong className="text-emerald-400">{activeStage.vitorias}</strong>V -{" "}
+                            <strong className="text-yellow-400">{activeStage.empates}</strong>E -{" "}
+                            <strong className="text-rose-400">{activeStage.derrotas}</strong>D
+                          </span>
+                          <span>•</span>
+                          <span className="text-slate-300 font-sans">
+                            Winrate {activeStageTotal > 0 ? Math.round((activeStage.vitorias / activeStageTotal) * 100) : 0}%
+                          </span>
                         </div>
                       </div>
+                    </div>
 
-                      {/* Lado Direito: Pontuação em Evidência */}
-                      <div className="text-right shrink-0 pl-2">
-                        <span className="text-sm font-black text-[#ffcb05] tabular-nums block leading-none">
-                          +{item.pontosFinais} PTS
+                    {/* Lado Direito: Pontuação com Fórmula em Evidência */}
+                    <div className="text-right shrink-0 pl-1">
+                      <span className="text-sm sm:text-base font-black text-[#ffcb05] tabular-nums block leading-tight">
+                        +{activeStage.pontosFinais} PTS
+                      </span>
+                      {hasMultiplier ? (
+                        <span className="text-[9px] text-amber-300/90 font-mono font-semibold block mt-0.5">
+                          {activeStage.pontosBase} &times; {activeStage.multiplicador}x
                         </span>
-                        {hasMultiplier ? (
-                          <span className="text-[10px] text-amber-300/90 font-mono font-semibold block mt-0.5">
-                            {item.pontosBase} &times; {item.multiplicador}x
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-500 font-mono block mt-0.5">
-                            ({item.pontosBase} base)
-                          </span>
-                        )}
+                      ) : (
+                        <span className="text-[9px] text-slate-400 font-mono block mt-0.5">
+                          ({activeStage.pontosBase} base)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500 py-1">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-800/80 border border-white/5 text-slate-500 font-bold">
+                        —
+                      </span>
+                      <div>
+                        <span className="font-semibold text-slate-400 block text-xs">Ausente</span>
+                        <span className="text-[10px] text-slate-500">O atleta não participou desta rodada</span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-1.5 my-2">
-                {etapasArray.map((colocacao, idx) => {
-                  const num = Number(colocacao);
-                  const isPodium = !isNaN(num) && num > 0 && num <= 4;
-                  const isAbsent = colocacao === "-" || !colocacao;
-                  const isCurrentStage = isStageView && sc?.numeroEtapa === idx + 1;
-
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex flex-col items-center justify-center h-8 w-8 rounded text-[10px] font-bold border ${
-                        isCurrentStage
-                          ? "bg-amber-400 text-slate-950 border-amber-300 font-black"
-                          : isPodium
-                          ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
-                          : isAbsent
-                          ? "bg-slate-800/30 text-slate-500 border-white/5"
-                          : "bg-slate-800 text-slate-200 border-white/10"
-                      }`}
-                      title={`Etapa #${idx + 1}: ${isAbsent ? "Não participou" : `${colocacao}º Lugar`}`}
-                    >
-                      <span className="text-[8px] leading-none text-slate-400">E{idx + 1}</span>
-                      <span className="leading-none mt-0.5">{isAbsent ? "—" : `${colocacao}º`}</span>
-                    </div>
-                  );
-                })}
+                    <span className="text-xs font-bold text-slate-600">0 PTS</span>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Paginação e Rodapé */}
-            <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400 shrink-0">
-              {totalPages > 1 ? (
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                    disabled={page === 0}
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-[11px] font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Anterior</span>
-                  </button>
-                  <div className="flex items-center gap-1 px-1">
-                    {Array.from({ length: totalPages }).map((_, pIdx) => (
-                      <button
-                        key={pIdx}
-                        type="button"
-                        onClick={() => setPage(pIdx)}
-                        className={`h-6 min-w-[24px] px-1.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
-                          pIdx === page
-                            ? "bg-amber-400 text-slate-950 font-black shadow-sm shadow-amber-400/20"
-                            : "text-slate-400 hover:text-white hover:bg-white/5"
-                        }`}
-                      >
-                        {pIdx + 1}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                    disabled={page >= totalPages - 1}
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-[11px] font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
-                  >
-                    <span className="hidden sm:inline">Próxima</span>
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <span className="flex items-center gap-1 text-emerald-400 font-medium text-[11px]">
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Histórico Completo
-                </span>
-              )}
-
+            {/* Rodapé Informativo */}
+            <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400 shrink-0">
+              <span className="flex items-center gap-1 text-emerald-400 font-medium text-[11px]">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Auditado
+              </span>
               <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
-                <span className="text-emerald-400 hidden sm:flex items-center gap-1 font-medium">
-                  <CheckCircle2 className="h-3 w-3 shrink-0" /> Auditado •
-                </span>
                 <span>
-                  Presenças: <strong className="text-white font-bold">{player.participacoes}</strong>
+                  Presenças: <strong className="text-white font-bold">{participatedStagesCount} de {stages.length} etapas</strong>
                 </span>
+                <span className="text-slate-500">({stages.length > 0 ? Math.round((participatedStagesCount / stages.length) * 100) : 0}%)</span>
               </div>
             </div>
           </div>
