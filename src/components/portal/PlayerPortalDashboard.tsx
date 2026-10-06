@@ -442,7 +442,7 @@ export function PlayerPortalDashboard({
           <div className="border-l-2 border-amber-500/40 pl-3.5">
             <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Pontuação Oficial</span>
             <span className="text-2xl font-black text-amber-400 tracking-tight">
-              {rankingItem ? Math.round(rankingItem.pontos) : 0} <span className="text-xs font-bold text-amber-300">PTS</span>
+              {rankingItem ? Number(rankingItem.pontos) : 0} <span className="text-xs font-bold text-amber-300">PTS</span>
             </span>
           </div>
 
@@ -1074,7 +1074,7 @@ export function PlayerPortalDashboard({
                             </span>
                           </div>
                         ) : (
-                          <span>{Math.round(r.pontos)} PTS</span>
+                          <span>{r.pontos} PTS</span>
                         )}
                       </td>
                       <td className="py-2.5 pr-4">
