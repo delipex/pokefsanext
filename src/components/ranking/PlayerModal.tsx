@@ -1,7 +1,8 @@
 "use client";
 
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trophy, Award, TrendingUp, Calendar, Zap, Swords, Medal, Calculator, CheckCircle2 } from "lucide-react";
+import { X, Trophy, Award, TrendingUp, Calendar, Zap, Swords, Medal, Calculator, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { CategoryBadge } from "../ui/CategoryBadge";
 
@@ -62,11 +63,22 @@ interface PlayerModalProps {
   onClose: () => void;
 }
 
+const ITEMS_PER_PAGE = 5;
+
 export function PlayerModal({ player, onClose }: PlayerModalProps) {
   if (!player) return null;
 
   const sc = player.stageContext;
   const isStageView = Boolean(sc);
+
+  // Paginação inteligente inicializada na página da etapa inspecionada
+  const [page, setPage] = useState(() => {
+    if (sc && player.stageHistory) {
+      const idx = player.stageHistory.findIndex((h) => h.numeroEtapa === sc.numeroEtapa);
+      if (idx !== -1) return Math.floor(idx / ITEMS_PER_PAGE);
+    }
+    return 0;
+  });
 
   // Métricas da Temporada
   const seasonTotalJogos = player.vitorias + player.empates + player.derrotas;
@@ -99,9 +111,51 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
     return `${first4}${asterisks}`;
   };
 
+  const renderPlacementBadge = (colocacao: number) => {
+    if (colocacao === 1) {
+      return (
+        <span className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-amber-500/25 to-yellow-500/25 border border-amber-400/60 px-2 py-1 text-xs font-black text-amber-300 shadow-sm shadow-amber-500/10 shrink-0">
+          <span className="text-sm leading-none">🥇</span> 1º
+        </span>
+      );
+    }
+    if (colocacao === 2) {
+      return (
+        <span className="flex items-center gap-1 rounded-lg bg-slate-300/20 border border-slate-300/40 px-2 py-1 text-xs font-black text-slate-100 shadow-sm shrink-0">
+          <span className="text-sm leading-none">🥈</span> 2º
+        </span>
+      );
+    }
+    if (colocacao === 3) {
+      return (
+        <span className="flex items-center gap-1 rounded-lg bg-amber-700/30 border border-amber-600/40 px-2 py-1 text-xs font-black text-amber-400 shadow-sm shrink-0">
+          <span className="text-sm leading-none">🥉</span> 3º
+        </span>
+      );
+    }
+    if (colocacao === 4) {
+      return (
+        <span className="flex items-center gap-1 rounded-lg bg-blue-500/20 border border-blue-500/40 px-2 py-1 text-xs font-black text-blue-300 shadow-sm shrink-0">
+          <span className="text-xs leading-none">🎖️</span> 4º
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center justify-center rounded-lg bg-slate-800/90 border border-white/10 px-2 py-1 text-xs font-extrabold text-slate-300 shrink-0 tabular-nums">
+        #{colocacao}º
+      </span>
+    );
+  };
+
+  const totalHistoryItems = player.stageHistory?.length || 0;
+  const totalPages = Math.ceil(totalHistoryItems / ITEMS_PER_PAGE);
+  const currentHistoryPage = player.stageHistory
+    ? player.stageHistory.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE)
+    : [];
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
         {/* Backdrop com Blur Profundo */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -118,7 +172,7 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
           exit={{ opacity: 0, scale: 0.94, y: 15 }}
           transition={{ type: "spring", stiffness: 350, damping: 28 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-lg max-h-[88vh] flex flex-col rounded-2xl border border-white/[0.08] bg-slate-950/95 p-4 sm:p-5 shadow-2xl backdrop-blur-2xl text-slate-100 z-10 overflow-hidden"
+          className="relative w-full max-w-lg flex flex-col rounded-3xl border border-white/[0.08] bg-slate-950/95 p-4 sm:p-5 shadow-2xl backdrop-blur-2xl text-slate-100 z-10 my-auto"
         >
           {/* Botão Fechar Discreto Superior Direito */}
           <button
@@ -187,7 +241,7 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
           </div>
 
           {/* Métricas Compactas em 4 Colunas */}
-          <div className="mt-3.5 grid grid-cols-4 gap-2 text-center shrink-0">
+          <div className="mt-3 grid grid-cols-4 gap-2 text-center shrink-0">
             <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-2">
               <span className="text-[10px] font-bold text-yellow-400 block uppercase tracking-wider">Pontos</span>
               <p className="mt-0.5 text-base sm:text-lg font-black text-white tabular-nums">
@@ -218,80 +272,86 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
             </div>
           </div>
 
-          {/* Seção de Contabilidade de Pontos (Extrato Etapa a Etapa) */}
-          <div className="mt-3.5 flex-1 min-h-0 flex flex-col rounded-xl border border-white/[0.06] bg-white/[0.01] p-3 overflow-hidden">
-            <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-white/[0.04] shrink-0">
-              <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Calculator className="h-3.5 w-3.5 text-amber-400" /> Extrato da Temporada
-              </span>
-              <span className="rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[11px] font-black text-amber-300 tabular-nums">
+          {/* Seção de Contabilidade de Pontos (Extrato Etapa a Etapa Paginado) */}
+          <div className="mt-3.5 flex flex-col rounded-2xl border border-white/[0.08] bg-slate-900/60 p-3 sm:p-3.5 backdrop-blur-xl shrink-0">
+            <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/[0.06] shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                  <Calculator className="h-3.5 w-3.5" />
+                </span>
+                <span className="text-xs font-extrabold text-white tracking-wide uppercase">
+                  Extrato da Temporada
+                </span>
+              </div>
+              <span className="rounded-lg bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-400/40 px-2.5 py-1 text-xs font-black text-amber-300 tabular-nums shadow-sm">
                 {player.pontos} PTS TOTAL
               </span>
             </div>
 
             {player.stageHistory && player.stageHistory.length > 0 ? (
-              <div className="space-y-1.5 overflow-y-auto pr-1 custom-scrollbar flex-1">
-                {player.stageHistory.map((item, idx) => {
+              <div className="mt-2.5 space-y-1.5">
+                {currentHistoryPage.map((item, idx) => {
                   const hasMultiplier = item.multiplicador !== undefined && Number(item.multiplicador) !== 1.0;
                   const [year, month, day] = item.data.split("-");
                   const formattedDate = day && month && year ? `${day}/${month}` : item.data;
-                  const isPodium = item.colocacao <= 4;
                   const isCurrentStage = isStageView && sc?.numeroEtapa === item.numeroEtapa;
 
                   return (
                     <div
                       key={idx}
-                      className={`flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${
+                      className={`flex items-center justify-between gap-2.5 rounded-xl border p-2 text-xs transition-all ${
                         isCurrentStage
-                          ? "border-amber-400 bg-amber-500/15"
+                          ? "border-amber-400 bg-amber-500/20 shadow-md shadow-amber-500/10 ring-1 ring-amber-400/50"
                           : hasMultiplier
-                          ? "border-amber-500/30 bg-amber-500/[0.04]"
-                          : "border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.03]"
+                          ? "border-amber-500/30 bg-amber-500/[0.04] hover:bg-amber-500/[0.08]"
+                          : "border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05]"
                       }`}
                     >
-                      {/* Lado Esquerdo */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-white text-[11px]">
-                            Etapa #{item.numeroEtapa}
-                          </span>
-                          <span className="text-[10px] text-slate-500">({formattedDate})</span>
-                          {hasMultiplier && (
-                            <span className="rounded bg-amber-500/20 border border-amber-500/40 px-1 text-[8px] font-black uppercase text-amber-300">
-                              {item.multiplicador}x
-                            </span>
-                          )}
-                          <span className="text-slate-600 text-[10px]">•</span>
-                          <span className={`text-[10px] font-bold ${isPodium ? "text-amber-400" : "text-slate-400"}`}>
-                            {item.colocacao === 1 ? "🥇 1º" : item.colocacao === 2 ? "🥈 2º" : item.colocacao === 3 ? "🥉 3º" : `${item.colocacao}º`}
-                          </span>
-                          <span className="text-slate-600 text-[10px]">•</span>
-                          <span className="text-[10px] text-slate-400 tabular-nums">
-                            {item.vitorias}-{item.empates}-{item.derrotas}
-                          </span>
-                        </div>
+                      {/* Lado Esquerdo: Colocação em Evidência + Detalhes */}
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        {renderPlacementBadge(item.colocacao)}
 
-                        {item.deckNome && (
-                          <div className="mt-0.5 flex items-center gap-1">
-                            <EnergyBadge energyRaw={item.deckEnergia || ""} size="sm" showLabel={false} />
-                            <span className="text-[10px] text-slate-300 font-medium truncate max-w-[140px]">
-                              {item.deckNome}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-extrabold text-white text-xs">
+                              Etapa #{item.numeroEtapa}
+                            </span>
+                            <span className="text-[10px] text-slate-400">({formattedDate})</span>
+                            {hasMultiplier && (
+                              <span className="rounded bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.2 text-[9px] font-black uppercase text-amber-300">
+                                {item.multiplicador}x
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-300 flex-wrap">
+                            {item.deckNome && (
+                              <span className="flex items-center gap-1 font-medium truncate max-w-[130px] sm:max-w-[170px]">
+                                <EnergyBadge energyRaw={item.deckEnergia || ""} size="sm" showLabel={false} />
+                                <span className="truncate">{item.deckNome}</span>
+                              </span>
+                            )}
+                            <span className="text-slate-500 text-[10px]">•</span>
+                            <span className="text-[10px] font-mono text-slate-400 tabular-nums">
+                              <strong className="text-emerald-400 font-semibold">{item.vitorias}</strong>V-
+                              <strong className="text-yellow-400 font-semibold">{item.empates}</strong>E-
+                              <strong className="text-rose-400 font-semibold">{item.derrotas}</strong>D
                             </span>
                           </div>
-                        )}
+                        </div>
                       </div>
 
-                      {/* Lado Direito */}
-                      <div className="text-right shrink-0">
-                        <span className="text-xs font-black text-[#ffcb05] tabular-nums block">
+                      {/* Lado Direito: Pontuação em Evidência */}
+                      <div className="text-right shrink-0 pl-2">
+                        <span className="text-sm font-black text-[#ffcb05] tabular-nums block leading-none">
                           +{item.pontosFinais} PTS
                         </span>
                         {hasMultiplier ? (
-                          <span className="text-[9px] text-amber-300/80 font-mono block">
+                          <span className="text-[10px] text-amber-300/90 font-mono font-semibold block mt-0.5">
                             {item.pontosBase} &times; {item.multiplicador}x
                           </span>
                         ) : (
-                          <span className="text-[9px] text-slate-500 font-mono block">
+                          <span className="text-[10px] text-slate-500 font-mono block mt-0.5">
                             ({item.pontosBase} base)
                           </span>
                         )}
@@ -301,7 +361,7 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
                 })}
               </div>
             ) : (
-              <div className="flex flex-wrap gap-1.5 overflow-y-auto pr-1 flex-1">
+              <div className="flex flex-wrap gap-1.5 my-2">
                 {etapasArray.map((colocacao, idx) => {
                   const num = Number(colocacao);
                   const isPodium = !isNaN(num) && num > 0 && num <= 4;
@@ -330,14 +390,59 @@ export function PlayerModal({ player, onClose }: PlayerModalProps) {
               </div>
             )}
 
-            {/* Rodapé Compacto */}
-            <div className="mt-2 pt-1.5 border-t border-white/[0.04] flex items-center justify-between text-[10px] text-slate-400 shrink-0">
-              <span className="flex items-center gap-1 text-emerald-400 font-medium">
-                <CheckCircle2 className="h-3 w-3 shrink-0" /> Auditado
-              </span>
-              <span className="tabular-nums">
-                Presenças: <strong className="text-white">{player.participacoes} etapas</strong>
-              </span>
+            {/* Paginação e Rodapé */}
+            <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400 shrink-0">
+              {totalPages > 1 ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-[11px] font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Anterior</span>
+                  </button>
+                  <div className="flex items-center gap-1 px-1">
+                    {Array.from({ length: totalPages }).map((_, pIdx) => (
+                      <button
+                        key={pIdx}
+                        type="button"
+                        onClick={() => setPage(pIdx)}
+                        className={`h-6 min-w-[24px] px-1.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                          pIdx === page
+                            ? "bg-amber-400 text-slate-950 font-black shadow-sm shadow-amber-400/20"
+                            : "text-slate-400 hover:text-white hover:bg-white/5"
+                        }`}
+                      >
+                        {pIdx + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                    disabled={page >= totalPages - 1}
+                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 text-[11px] font-semibold disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  >
+                    <span className="hidden sm:inline">Próxima</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <span className="flex items-center gap-1 text-emerald-400 font-medium text-[11px]">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Histórico Completo
+                </span>
+              )}
+
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                <span className="text-emerald-400 hidden sm:flex items-center gap-1 font-medium">
+                  <CheckCircle2 className="h-3 w-3 shrink-0" /> Auditado •
+                </span>
+                <span>
+                  Presenças: <strong className="text-white font-bold">{player.participacoes}</strong>
+                </span>
+              </div>
             </div>
           </div>
         </motion.div>
