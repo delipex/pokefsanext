@@ -94,6 +94,7 @@ export async function POST(req: Request) {
       limitlessUrl,
       eventoNome,
       etapaData,
+      metodoPagamento,
     } = body;
 
     // 2. Validações de Identidade
@@ -181,6 +182,10 @@ export async function POST(req: Request) {
         ? tipoEnergia
         : inferDeckEnergy(finalDeckNome, rawDecklistText);
 
+    // Define status inicial baseado na forma de pagamento escolhida
+    const isPresencial = metodoPagamento === "presencial" || metodoPagamento === "local";
+    const initialStatusPix = isPresencial ? "Pagar no Local" : "Pendente";
+
     // 5. Inserção na Tabela de Decklists / Inscrições (com proteção contra discrepâncias de esquema)
     let insertedItem: any = null;
     try {
@@ -198,7 +203,7 @@ export async function POST(req: Request) {
           decklistRaw: rawDecklistText || (limitlessUrl ? `Link: ${limitlessUrl}` : ""),
           totalCartas: totalCartas || (rawDecklistText ? 60 : 0),
           validada: isValidDeck,
-          statusPix: "Pendente",
+          statusPix: initialStatusPix,
         })
         .returning();
       insertedItem = inserted;
@@ -221,7 +226,7 @@ export async function POST(req: Request) {
           rawDecklistText || (limitlessUrl ? `Link: ${limitlessUrl}` : ""),
           totalCartas || (rawDecklistText ? 60 : 0),
           isValidDeck ? 1 : 0,
-          "Pendente",
+          initialStatusPix,
         ],
       });
       insertedItem = res.rows[0] || { protocolo, jogadorNome: nameVal.cleanName };
@@ -260,7 +265,7 @@ export async function POST(req: Request) {
       // Silencioso se der warning no perfil do jogador
     }
 
-    // 7. Montar Link Direto do WhatsApp para Envio do Comprovante
+    // 7. Montar Link Direto do WhatsApp para Envio do Comprovante ou Confirmação
     const formattedNasc = dataNascimento
       ? dataNascimento.includes("-")
         ? dataNascimento.split("-").reverse().join("/")
@@ -281,7 +286,12 @@ export async function POST(req: Request) {
     if (rawDecklistText) {
       waMsg += `\n📜 *LISTA (${totalCartas} cartas):*\n${rawDecklistText}\n`;
     }
-    waMsg += `\n💰 *Comprovante:* Segue anexo o comprovante PIX da inscrição.`;
+
+    if (isPresencial) {
+      waMsg += `\n💰 *Pagamento:* No Dia do Evento (Presencial no Balcão)\n⚠️ *Aviso:* Realizar o pagamento na recepção antes do início da Rodada 1.`;
+    } else {
+      waMsg += `\n💰 *Pagamento:* PIX Antecipado (R$ ${configMap.premierValor || "0,00"})\n📎 *Comprovante:* Segue anexo o comprovante PIX da inscrição.`;
+    }
 
 
     const encodedWa = encodeURIComponent(waMsg);

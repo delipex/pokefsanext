@@ -234,3 +234,110 @@ export function inferDeckEnergy(deckName?: string | null, decklistText?: string 
   return "colorless";
 }
 
+// Lista de Pokémon de suporte universais (não devem ser o nome principal se houver atacante)
+const SUPPORT_POKEMON = [
+  "lumineon", "rotom", "fezandipiti", "squawkabilly", "mew ex", "radiant", "greninja radiante",
+  "bidoof", "bibarel", "pidgey", "pidgeotto", "duskull", "dusclops", "drakloak", "dreepy",
+  "charmander", "charmeleon", "ralts", "kirlia", "manaphy", "jirachi", "cleffa", "dunsparce",
+  "dudunsparce", "budew", "hawlucha", "mew", "radiante"
+];
+
+/**
+ * Detecta o nome do arquétipo/deck automaticamente a partir de uma lista de cartas colada
+ */
+export function detectArchetypeFromDecklist(rawText: string, catalogDecks: string[] = []): string | null {
+  if (!rawText || typeof rawText !== "string") return null;
+
+  const lines = rawText.split(/\r?\n/);
+  const pokemonCards: { count: number; name: string }[] = [];
+
+  let inPokemonSection = true;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (/^(pok[eé]mon)/i.test(trimmed)) {
+      inPokemonSection = true;
+      continue;
+    }
+    if (/^(trainer|treinador|energia|energy)/i.test(trimmed)) {
+      inPokemonSection = false;
+      continue;
+    }
+
+    const match = trimmed.match(/^(\d+)\s+(.+?)(?:\s+[A-Za-z0-9]{2,5}\s+\d+[a-zA-Z]?)?(?:\s+.*)?$/);
+    if (match) {
+      const count = parseInt(match[1], 10);
+      const name = match[2].trim();
+      const lower = name.toLowerCase();
+
+      // Ignora itens ou energias se não estiver em seção explícita
+      if (
+        lower.includes("energy") || lower.includes("energia") ||
+        lower.includes("ball") || lower.includes("candy") || lower.includes("rod") ||
+        lower.includes("stretcher") || lower.includes("vessel") || lower.includes("switch") ||
+        lower.includes("iono") || lower.includes("arven") || lower.includes("orders") ||
+        lower.includes("research") || lower.includes("poffin")
+      ) {
+        continue;
+      }
+
+      if (inPokemonSection || count > 0) {
+        pokemonCards.push({ count, name });
+      }
+    }
+  }
+
+  if (pokemonCards.length === 0) return null;
+
+  // 1. Separa atacantes principais dos Pokémon de puro suporte
+  const attackers = pokemonCards.filter(
+    (p) => !SUPPORT_POKEMON.some((sup) => p.name.toLowerCase().includes(sup))
+  );
+
+  const candidates = attackers.length > 0 ? attackers : pokemonCards;
+
+  // Ordena por quantidade (cópias) e prioridade de sufixos (ex, VSTAR, VMAX, V)
+  candidates.sort((a, b) => {
+    const aEx = /ex|vstar|vmax|v/i.test(a.name) ? 10 : 0;
+    const bEx = /ex|vstar|vmax|v/i.test(b.name) ? 10 : 0;
+    return (b.count + bEx) - (a.count + aEx);
+  });
+
+  const topCard = candidates[0];
+  if (!topCard) return null;
+
+  // 2. Tenta fazer match contra o catálogo oficial da Liga
+  if (catalogDecks.length > 0) {
+    const topNameNorm = normalizeDeckString(topCard.name.replace(/ ex| VSTAR| VMAX| V/i, ""));
+
+    // Verifica combos populares de 2 Pokémon (Ex: Dragapult + Dusknoir)
+    for (const catDeck of catalogDecks) {
+      const normCat = normalizeDeckString(catDeck);
+      const words = normCat.split(" ");
+
+      if (words.length >= 2) {
+        const matchesAllWords = words.every((w) =>
+          pokemonCards.some((p) => normalizeDeckString(p.name).includes(w))
+        );
+        if (matchesAllWords) {
+          return catDeck;
+        }
+      }
+    }
+
+    // Match direto pelo atacante principal
+    for (const catDeck of catalogDecks) {
+      const normCat = normalizeDeckString(catDeck);
+      if (normCat.includes(topNameNorm) || topNameNorm.includes(normCat)) {
+        return catDeck;
+      }
+    }
+  }
+
+  // 3. Fallback: Retorna o nome limpo do Pokémon principal
+  return topCard.name;
+}
+
+

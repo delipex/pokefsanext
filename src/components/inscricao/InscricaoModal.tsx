@@ -33,6 +33,7 @@ import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
 import defaultDecks from "@/data/decks.json";
 import { parsePTCGDecklist, ParsedDecklistResult } from "@/lib/decklist-parser";
+import { detectArchetypeFromDecklist } from "@/lib/deck-normalizer";
 import { DecklistVisualGallery } from "@/components/deck/DecklistVisualGallery";
 
 // Catálogo padrão de baralhos cadastrados da Liga
@@ -67,6 +68,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   const [deckCatalogList, setDeckCatalogList] = useState<string[]>(CATALOG_DECKS);
   const [decklistRaw, setDecklistRaw] = useState("");
   const [limitlessUrl, setLimitlessUrl] = useState("");
+  const [metodoPagamento, setMetodoPagamento] = useState<"pix" | "presencial">("pix");
   const [isFetchingLimitless, setIsFetchingLimitless] = useState(false);
   const [limitlessFetchError, setLimitlessFetchError] = useState<string | null>(null);
 
@@ -191,6 +193,31 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
 
   const parsedCardsCount = parsedDeckData.totalCards;
 
+  // Auto-identifica o baralho quando o jogador digita ou cola a lista
+  const handleDecklistChange = (val: string) => {
+    setDecklistRaw(val);
+    if (!val || val.trim().length < 12) return;
+
+    const detected = detectArchetypeFromDecklist(val, deckCatalogList);
+    if (detected) {
+      if (deckCatalogList.includes(detected)) {
+        setSelectedDeck(detected);
+      } else {
+        const partial = deckCatalogList.find(
+          (d) =>
+            d.toLowerCase().includes(detected.toLowerCase()) ||
+            detected.toLowerCase().includes(d.toLowerCase())
+        );
+        if (partial) {
+          setSelectedDeck(partial);
+        } else {
+          setSelectedDeck("Outro");
+          setCustomDeckNome(detected);
+        }
+      }
+    }
+  };
+
   // Puxar decklist automaticamente pelo link do Limitless
   const handleFetchLimitless = async (urlOverride?: string) => {
     const url = urlOverride || limitlessUrl;
@@ -303,6 +330,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
           tipoEnergia: "auto",
           decklistRaw: decklistRaw.trim(),
           limitlessUrl: limitlessUrl.trim(),
+          metodoPagamento,
           eventoNome: config.premierNome || "Torneio Oficial Liga Atlântica",
           etapaData: config.premierData || new Date().toISOString().split("T")[0],
         }),
@@ -404,12 +432,12 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                   </button>
                 </div>
 
-                {/* Card de Pagamento PIX */}
-                {successData.chavePix && (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left space-y-3">
+                {/* Card de Pagamento PIX ou Aviso Presencial */}
+                {metodoPagamento === "pix" && successData.chavePix ? (
+                  <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-left space-y-3">
                     <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
                       <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-amber-400" />
+                        <QrCode className="h-4 w-4 text-emerald-400" />
                         <span className="text-xs font-bold text-white uppercase tracking-wider">
                           Dados para Pagamento PIX
                         </span>
@@ -437,6 +465,18 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         </button>
                       </div>
                     </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 text-left space-y-2">
+                    <div className="flex items-center gap-2 text-blue-300">
+                      <MapPin className="h-4 w-4 text-blue-400" />
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        Pagamento no Dia do Evento (Presencial)
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Sua pré-inscrição foi registrada com sucesso! Por favor, apresente-se na recepção antes da Rodada 1 para efetuar o pagamento de <strong>R$ {successData.valor}</strong> e confirmar o seu check-in.
+                    </p>
                   </div>
                 )}
 
@@ -750,7 +790,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     <textarea
                       rows={4}
                       value={decklistRaw}
-                      onChange={(e) => setDecklistRaw(e.target.value)}
+                      onChange={(e) => handleDecklistChange(e.target.value)}
                       placeholder={`Cole a lista exportada do Pokémon TCG Live ou Limitless:\nExemplo:\n4 Dragapult ex TWM 130\n2 Drakloak TWM 129\n4 Arven OBF 186\n...`}
                       className="w-full rounded-xl border border-white/10 bg-slate-900/90 p-3 text-xs font-mono text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none leading-relaxed"
                     />
@@ -776,6 +816,81 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                       />
                     </div>
                   )}
+
+                  {/* Escolha da Forma de Pagamento */}
+                  <div className="space-y-2 pt-2 border-t border-white/10">
+                    <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <CreditCard className="h-3.5 w-3.5 text-emerald-400" />
+                        Forma de Pagamento da Inscrição *
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-semibold">
+                        {config.premierValor ? `R$ ${config.premierValor}` : "Escolha a opção"}
+                      </span>
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {/* Opção 1: PIX Antecipado */}
+                      <button
+                        type="button"
+                        onClick={() => setMetodoPagamento("pix")}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          metodoPagamento === "pix"
+                            ? "bg-emerald-500/15 border-emerald-500/60 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-400"
+                            : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-400"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <QrCode className={`h-4 w-4 ${metodoPagamento === "pix" ? "text-emerald-400" : "text-slate-400"}`} />
+                            <span className={`text-xs font-black ${metodoPagamento === "pix" ? "text-white" : "text-slate-300"}`}>
+                              PIX Antecipado
+                            </span>
+                          </div>
+                          <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
+                            metodoPagamento === "pix"
+                              ? "bg-emerald-500 border-emerald-400 text-slate-950 font-black"
+                              : "border-white/20"
+                          }`}>
+                            {metodoPagamento === "pix" ? "✓" : ""}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 leading-tight">
+                          Pague online e envie o comprovante para garantir sua vaga de imediato.
+                        </p>
+                      </button>
+
+                      {/* Opção 2: Pagar no Local */}
+                      <button
+                        type="button"
+                        onClick={() => setMetodoPagamento("presencial")}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          metodoPagamento === "presencial"
+                            ? "bg-blue-500/15 border-blue-500/60 shadow-lg shadow-blue-500/10 ring-1 ring-blue-400"
+                            : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-400"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <MapPin className={`h-4 w-4 ${metodoPagamento === "presencial" ? "text-blue-400" : "text-slate-400"}`} />
+                            <span className={`text-xs font-black ${metodoPagamento === "presencial" ? "text-white" : "text-slate-300"}`}>
+                              No Dia do Evento
+                            </span>
+                          </div>
+                          <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
+                            metodoPagamento === "presencial"
+                              ? "bg-blue-500 border-blue-400 text-white font-black"
+                              : "border-white/20"
+                          }`}>
+                            {metodoPagamento === "presencial" ? "✓" : ""}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 leading-tight">
+                          Pague presencialmente na recepção antes do início da Rodada 1.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
 
                   {/* Observações / Regras do Organizador */}
                   {config.premierObs && (

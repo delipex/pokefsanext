@@ -833,20 +833,24 @@ export function AdminInscricoesPremier({
           >
             <option value="">Todos os Status de Pagamento</option>
             <option value="Confirmado">Confirmado / Pago ✅</option>
-            <option value="Pendente">Pendente ⏳</option>
+            <option value="Pendente">PIX Pendente ⏳</option>
+            <option value="Pagar no Local">Pagar no Local 🏢</option>
           </select>
         </div>
 
         {/* Badges de Resumo */}
-        <div className="flex items-center gap-3 mb-4 text-xs">
+        <div className="flex flex-wrap items-center gap-2.5 mb-4 text-xs">
           <span className="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 border border-white/10 font-bold">
             Total Inscritos: {filteredList.length}
           </span>
           <span className="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
-            Pagamentos Confirmados: {confirmedCount}
+            Confirmados: {confirmedCount}
           </span>
           <span className="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">
-            Pagamentos Pendentes: {pendingCount}
+            PIX Pendente: {filteredList.filter((d) => d.statusPix === "Pendente").length}
+          </span>
+          <span className="px-3 py-1 rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/20 font-bold">
+            No Local (Balcão): {filteredList.filter((d) => d.statusPix === "Pagar no Local" || d.statusPix === "Presencial").length}
           </span>
         </div>
 
@@ -869,13 +873,14 @@ export function AdminInscricoesPremier({
                   <th className="py-3 px-3 text-center w-20">Categoria</th>
                   <th className="py-3 px-4">Baralho / Arquétipo</th>
                   <th className="py-3 px-3 text-center w-24">Lista</th>
-                  <th className="py-3 px-3 text-center w-28">Status PIX</th>
+                  <th className="py-3 px-3 text-center w-32">Pagamento</th>
                   <th className="py-3 px-3 text-right w-24">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {filteredList.map((item) => {
                   const isPaid = item.statusPix === "Confirmado";
+                  const isPresencial = item.statusPix === "Pagar no Local" || item.statusPix === "Presencial";
                   const hasList = Boolean(item.decklistRaw);
 
                   return (
@@ -929,11 +934,13 @@ export function AdminInscricoesPremier({
                           className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer border ${
                             isPaid
                               ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/25"
+                              : isPresencial
+                              ? "bg-blue-500/15 text-blue-400 border-blue-500/30 hover:bg-blue-500/25"
                               : "bg-amber-500/15 text-amber-400 border-amber-500/30 hover:bg-amber-500/25"
                           }`}
-                          title="Clique para alternar status do PIX"
+                          title="Clique para alternar status do pagamento"
                         >
-                          {isPaid ? "Pago ✅" : "Pendente ⏳"}
+                          {isPaid ? "Pago ✅" : isPresencial ? "No Local 🏢" : "PIX Pendente ⏳"}
                         </button>
                       </td>
                       <td className="py-3 px-3 text-right">
