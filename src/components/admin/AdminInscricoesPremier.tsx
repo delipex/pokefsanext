@@ -23,6 +23,8 @@ import {
   X,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
+import { parsePTCGDecklist } from "@/lib/decklist-parser";
+import { DecklistVisualGallery } from "@/components/deck/DecklistVisualGallery";
 
 interface AdminInscricoesPremierProps {
   initialConfig: Record<string, any>;
@@ -953,47 +955,56 @@ export function AdminInscricoesPremier({
         )}
       </div>
 
-      {/* Modal de Visualização de Decklist (60 Cartas) */}
+      {/* Modal de Visualização de Decklist Oficial (60 Cartas + Artes) */}
       {viewingDecklist && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="glass-card max-w-lg w-full p-6 rounded-2xl border border-white/20 bg-slate-950 space-y-4 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+          <div className="glass-card max-w-3xl w-full p-4 sm:p-6 rounded-2xl border border-white/20 bg-slate-950 space-y-4 max-h-[92vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>
-                <h3 className="text-base font-bold text-white">Decklist de {viewingDecklist.jogadorNome}</h3>
-                <p className="text-xs text-amber-300 font-semibold">{viewingDecklist.deckNome}</p>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-400" />
+                  Decklist de {viewingDecklist.jogadorNome}
+                </h3>
+                <p className="text-xs text-amber-300 font-semibold">
+                  {viewingDecklist.deckNome} • POP ID: {viewingDecklist.jogadorId || "N/D"} ({viewingDecklist.categoria || "Master"})
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => setViewingDecklist(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
+                className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto bg-slate-900/90 p-4 rounded-xl border border-white/10 text-slate-200 font-mono text-xs whitespace-pre-wrap select-all">
-              {viewingDecklist.decklistRaw}
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <DecklistVisualGallery
+                parsedData={parsePTCGDecklist(viewingDecklist.decklistRaw || "")}
+                deckName={viewingDecklist.deckNome}
+                rawText={viewingDecklist.decklistRaw}
+              />
             </div>
 
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-xs text-slate-400">
-                Total: {viewingDecklist.totalCartas || 60} cartas
+            <div className="flex justify-between items-center pt-2 border-t border-white/10">
+              <span className="text-xs text-slate-400 font-mono">
+                Protocolo: #{viewingDecklist.protocolo || "N/A"}
               </span>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText(viewingDecklist.decklistRaw);
-                    alert("Lista copiada!");
+                    navigator.clipboard.writeText(viewingDecklist.decklistRaw || "");
+                    alert("Lista copiada para a área de transferência!");
                   }}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer"
                 >
-                  Copiar Lista
+                  Copiar Texto
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewingDecklist(null)}
-                  className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs cursor-pointer"
                 >
                   Fechar
                 </button>

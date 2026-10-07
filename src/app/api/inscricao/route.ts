@@ -279,7 +279,7 @@ export async function POST(req: Request) {
       waMsg += `🔗 *Limitless:* ${limitlessUrl}\n`;
     }
     if (rawDecklistText) {
-      waMsg += `\n📜 *LISTA (${totalCartas} cartas):*\n${rawDecklistText.slice(0, 500)}${rawDecklistText.length > 500 ? "..." : ""}\n`;
+      waMsg += `\n📜 *LISTA (${totalCartas} cartas):*\n${rawDecklistText}\n`;
     }
     waMsg += `\n💰 *Comprovante:* Segue anexo o comprovante PIX da inscrição.`;
 

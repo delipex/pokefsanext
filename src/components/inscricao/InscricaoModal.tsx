@@ -25,11 +25,15 @@ import {
   CreditCard,
   QrCode,
   Layers,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { EnergyBadge } from "@/components/ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
 import defaultDecks from "@/data/decks.json";
+import { parsePTCGDecklist, ParsedDecklistResult } from "@/lib/decklist-parser";
+import { DecklistVisualGallery } from "@/components/deck/DecklistVisualGallery";
 
 // Catálogo padrão de baralhos cadastrados da Liga
 const CATALOG_DECKS: string[] = Array.from(
@@ -62,8 +66,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   const [customDeckNome, setCustomDeckNome] = useState("");
   const [deckCatalogList, setDeckCatalogList] = useState<string[]>(CATALOG_DECKS);
   const [decklistRaw, setDecklistRaw] = useState("");
-
   const [limitlessUrl, setLimitlessUrl] = useState("");
+  const [isFetchingLimitless, setIsFetchingLimitless] = useState(false);
+  const [limitlessFetchError, setLimitlessFetchError] = useState<string | null>(null);
 
   // UI / Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -179,20 +184,59 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   };
 
 
-  // Contador de cartas em tempo real
-  const parsedCardsCount = useMemo(() => {
-    if (!decklistRaw.trim()) return 0;
-    const lines = decklistRaw.split(/\r?\n/);
-    let total = 0;
-    for (const line of lines) {
-      const match = line.trim().match(/^(\d+)\s+/);
-      if (match) {
-        const count = parseInt(match[1], 10);
-        if (count > 0 && count < 60) total += count;
-      }
-    }
-    return total;
+  // Parser visual e contador de cartas em tempo real
+  const parsedDeckData: ParsedDecklistResult = useMemo(() => {
+    return parsePTCGDecklist(decklistRaw);
   }, [decklistRaw]);
+
+  const parsedCardsCount = parsedDeckData.totalCards;
+
+  // Puxar decklist automaticamente pelo link do Limitless
+  const handleFetchLimitless = async (urlOverride?: string) => {
+    const url = urlOverride || limitlessUrl;
+    if (!url || !url.trim()) {
+      setLimitlessFetchError("Cole um link válido do Limitless antes de buscar.");
+      return;
+    }
+    if (!url.includes("limitlesstcg.com")) {
+      setLimitlessFetchError("O link deve ser do site limitlesstcg.com (ex: https://limitlesstcg.com/decks/list/...)");
+      return;
+    }
+
+    setIsFetchingLimitless(true);
+    setLimitlessFetchError(null);
+
+    try {
+      const res = await fetch(`/api/deck/fetch-limitless?url=${encodeURIComponent(url.trim())}`);
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Não foi possível puxar o baralho do Limitless.");
+      }
+
+      if (data.decklistRaw) {
+        setDecklistRaw(data.decklistRaw);
+      }
+
+      if (data.deckTitle && (!selectedDeck || selectedDeck === "Outro")) {
+        const found = deckCatalogList.find(
+          (d) =>
+            d.toLowerCase().includes(data.deckTitle.toLowerCase()) ||
+            data.deckTitle.toLowerCase().includes(d.toLowerCase())
+        );
+        if (found) {
+          setSelectedDeck(found);
+        } else {
+          setSelectedDeck("Outro");
+          setCustomDeckNome(data.deckTitle);
+        }
+      }
+    } catch (err: any) {
+      setLimitlessFetchError(err.message || "Erro ao conectar com o Limitless.");
+    } finally {
+      setIsFetchingLimitless(false);
+    }
+  };
 
   const isAbertas = config.premierAbertas === "true" || config.premierAbertas === true;
   const isDlExigida = config.premierExigirDecklist === "true" || config.premierExigirDecklist === true;
@@ -393,6 +437,21 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         </button>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Visualizador Gráfico do Deck Submetido no Sucesso */}
+                {parsedDeckData.totalCards > 0 && (
+                  <div className="text-left space-y-2 pt-1">
+                    <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+                      Seu Baralho Registrado ({parsedDeckData.totalCards} Cartas)
+                    </span>
+                    <DecklistVisualGallery
+                      parsedData={parsedDeckData}
+                      deckName={selectedDeck === "Outro" ? customDeckNome || "Meu Baralho" : selectedDeck || "Meu Baralho"}
+                      rawText={decklistRaw}
+                    />
                   </div>
                 )}
 
@@ -616,6 +675,55 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                   </div>
 
 
+                  {/* Link do Limitless (Importador Automático) */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
+                        Importar via Link do Limitless (Opcional)
+                      </span>
+                      <span className="text-[10px] text-blue-400 font-semibold">Preenchimento Automático</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={limitlessUrl}
+                        onChange={(e) => {
+                          setLimitlessUrl(e.target.value);
+                          if (e.target.value.includes("limitlesstcg.com/decks/list/")) {
+                            handleFetchLimitless(e.target.value);
+                          }
+                        }}
+                        placeholder="https://limitlesstcg.com/decks/list/..."
+                        className="flex-1 rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleFetchLimitless()}
+                        disabled={isFetchingLimitless || !limitlessUrl.trim()}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-3.5 py-2.5 text-xs font-bold text-white transition-all disabled:opacity-50 cursor-pointer shrink-0 shadow-md"
+                      >
+                        {isFetchingLimitless ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <span>Puxando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                            <span>Puxar 60 Cartas</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    {limitlessFetchError && (
+                      <p className="text-[11px] font-semibold text-rose-400 flex items-center gap-1 mt-1">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        {limitlessFetchError}
+                      </p>
+                    )}
+                  </div>
+
                   {/* Decklist de 60 Cartas (Textarea + Card Counter) */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
@@ -644,19 +752,23 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     />
                   </div>
 
-                  {/* Link do Limitless (Opcional) */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                      <ExternalLink className="h-3.5 w-3.5 text-blue-400" /> Link da Lista no Limitless (Opcional)
-                    </label>
-                    <input
-                      type="url"
-                      value={limitlessUrl}
-                      onChange={(e) => setLimitlessUrl(e.target.value)}
-                      placeholder="https://limitlesstcg.com/decks/list/..."
-                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2 text-xs text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"
-                    />
-                  </div>
+                  {/* Visualizador Gráfico de Cartas com Artes Oficiais em Tempo Real */}
+                  {parsedDeckData.totalCards > 0 && (
+                    <div className="space-y-1.5 pt-1 animate-fadeIn">
+                      <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-emerald-300">
+                          <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                          Visualização Oficial do Baralho (60 Cartas)
+                        </span>
+                        <span className="text-[10px] text-slate-400">Artes oficiais carregadas</span>
+                      </label>
+                      <DecklistVisualGallery
+                        parsedData={parsedDeckData}
+                        deckName={selectedDeck === "Outro" ? customDeckNome || "Baralho Personalizado" : selectedDeck || "Baralho do Jogador"}
+                        rawText={decklistRaw}
+                      />
+                    </div>
+                  )}
 
                   {/* Observações / Regras do Organizador */}
                   {config.premierObs && (
