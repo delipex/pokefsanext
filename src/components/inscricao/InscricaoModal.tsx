@@ -24,25 +24,21 @@ import {
   Hash,
   CreditCard,
   QrCode,
+  Layers,
 } from "lucide-react";
 import { EnergyBadge } from "@/components/ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
+import defaultDecks from "@/data/decks.json";
 
-const ENERGY_OPTIONS = [
-  { id: "auto", label: "⚡ Automático / Multi-Energia (Recomendado)", bg: "bg-blue-500/20 text-blue-300 border-blue-500/40" },
-  { id: "colorless", label: "Incolor / Basic Box (Caixa Básica)", bg: "bg-zinc-500/20 text-zinc-300 border-zinc-500/40" },
-  { id: "grass", label: "Planta (Grass)", bg: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
-  { id: "fire", label: "Fogo (Fire)", bg: "bg-rose-500/20 text-rose-300 border-rose-500/40" },
-  { id: "water", label: "Água (Water)", bg: "bg-blue-500/20 text-blue-300 border-blue-500/40" },
-  { id: "lightning", label: "Elétrica (Lightning)", bg: "bg-amber-500/20 text-amber-300 border-amber-500/40" },
-  { id: "psychic", label: "Psíquica (Psychic)", bg: "bg-purple-500/20 text-purple-300 border-purple-500/40" },
-  { id: "fighting", label: "Luta (Fighting)", bg: "bg-orange-500/20 text-orange-300 border-orange-500/40" },
-  { id: "darkness", label: "Escuridão (Darkness)", bg: "bg-slate-500/20 text-slate-300 border-slate-500/40" },
-  { id: "metal", label: "Metálica (Metal)", bg: "bg-slate-400/20 text-slate-200 border-slate-400/40" },
-  { id: "dragon", label: "Dragão (Dragon)", bg: "bg-amber-600/20 text-amber-400 border-amber-600/40" },
-];
-
+// Catálogo padrão de baralhos cadastrados da Liga
+const CATALOG_DECKS: string[] = Array.from(
+  new Set(
+    (defaultDecks as any[])
+      .map((d) => (d.deck || d.nome || "").trim())
+      .filter(Boolean)
+  )
+).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
 interface InscricaoModalProps {
   initialConfig?: Record<string, any>;
@@ -62,8 +58,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   const [dataNascimento, setDataNascimento] = useState("");
   const [categoria, setCategoria] = useState<"Master" | "Senior" | "Junior">("Master");
   const [whatsapp, setWhatsapp] = useState("");
-  const [deckNome, setDeckNome] = useState("");
-  const [tipoEnergia, setTipoEnergia] = useState("auto");
+  const [selectedDeck, setSelectedDeck] = useState("");
+  const [customDeckNome, setCustomDeckNome] = useState("");
+  const [deckCatalogList, setDeckCatalogList] = useState<string[]>(CATALOG_DECKS);
   const [decklistRaw, setDecklistRaw] = useState("");
 
   const [limitlessUrl, setLimitlessUrl] = useState("");
@@ -114,7 +111,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     }
   }, [controlledIsOpen]);
 
-  // Carrega configurações mais atualizadas da API quando aberto
+  // Carrega configurações mais atualizadas da API e catálogo de decks quando aberto
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -129,6 +126,18 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
         })
         .catch(() => {})
         .finally(() => setIsLoadingConfig(false));
+
+      fetch("/api/admin/decks")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.decks && Array.isArray(data.decks)) {
+            const names = Array.from(
+              new Set(data.decks.map((d: any) => (d.nome || d.deck || "").trim()).filter(Boolean))
+            ).sort((a: any, b: any) => a.localeCompare(b, "pt-BR"));
+            if (names.length > 0) setDeckCatalogList(names as string[]);
+          }
+        })
+        .catch(() => {});
     } else {
       document.body.style.overflow = "";
     }
@@ -221,8 +230,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
       return;
     }
 
-    if (!deckNome.trim()) {
-      setErrorMessage("Informe o Arquétipo / Nome do seu baralho.");
+    const finalDeckNome = selectedDeck === "Outro" ? customDeckNome.trim() : selectedDeck.trim();
+    if (!finalDeckNome) {
+      setErrorMessage("Por favor, selecione ou informe o seu Baralho / Deck.");
       return;
     }
 
@@ -245,8 +255,8 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
           dataNascimento: dataNascimento.trim(),
           categoria,
           whatsapp: whatsapp.trim(),
-          deckNome: deckNome.trim(),
-          tipoEnergia,
+          deckNome: finalDeckNome,
+          tipoEnergia: "auto",
           decklistRaw: decklistRaw.trim(),
           limitlessUrl: limitlessUrl.trim(),
           eventoNome: config.premierNome || "Torneio Oficial Liga Atlântica",
@@ -564,37 +574,45 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                   </div>
 
 
-                  {/* Nome do Deck & Tipo de Energia */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-300">Arquétipo / Nome do Deck *</label>
-                      <input
-                        type="text"
-                        required
-                        value={deckNome}
-                        onChange={(e) => setDeckNome(e.target.value)}
-                        placeholder="Ex: Dragapult Dusknoir, Lugia VSTAR..."
-                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
-                      />
-                    </div>
+                  {/* Baralho / Arquétipo do Deck (Menu de Escolha) */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5 text-blue-400" />
+                        Baralho / Arquétipo do Deck *
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-normal">
+                        {deckCatalogList.length} opções disponíveis
+                      </span>
+                    </label>
+                    <select
+                      required
+                      value={selectedDeck}
+                      onChange={(e) => setSelectedDeck(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
+                    >
+                      <option value="">-- Selecione o Baralho / Deck --</option>
+                      {deckCatalogList.map((deck) => (
+                        <option key={deck} value={deck}>
+                          {deck}
+                        </option>
+                      ))}
+                      <option value="Outro">➕ Outro (Digitar manualmente...)</option>
+                    </select>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                        <span>Identidade / Energia</span>
-                        <span className="text-[10px] text-slate-400 font-normal">Auto-detectada</span>
-                      </label>
-                      <select
-                        value={tipoEnergia}
-                        onChange={(e) => setTipoEnergia(e.target.value)}
-                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3 py-2.5 text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
-                      >
-                        {ENERGY_OPTIONS.map((opt) => (
-                          <option key={opt.id} value={opt.id}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    {selectedDeck === "Outro" && (
+                      <div className="pt-1.5">
+                        <input
+                          type="text"
+                          required
+                          value={customDeckNome}
+                          onChange={(e) => setCustomDeckNome(e.target.value)}
+                          placeholder="Digite o nome do baralho / arquétipo..."
+                          className="w-full rounded-xl border border-blue-500/50 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                          autoFocus
+                        />
+                      </div>
+                    )}
                   </div>
 
 
