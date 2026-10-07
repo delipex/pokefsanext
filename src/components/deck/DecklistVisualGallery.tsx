@@ -92,25 +92,25 @@ export function DecklistVisualGallery({
   return (
     <div className={`rounded-2xl border border-white/10 bg-slate-950/90 p-4 backdrop-blur-xl shadow-2xl ${className}`}>
       {/* Header com Totais e Alternador de Visão */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-inner">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-inner">
             <Sparkles className="h-4 w-4" />
           </div>
-          <div>
-            <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-              {deckName}
+          <div className="min-w-0">
+            <h4 className="text-sm font-bold text-white flex flex-wrap items-center gap-1.5 truncate">
+              <span>{deckName}</span>
               {parsedData.isValid60 ? (
-                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                  <CheckCircle2 className="h-3 w-3" /> 60/60 Válido
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                  <CheckCircle2 className="h-3 w-3" /> 60/60
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                  <AlertCircle className="h-3 w-3" /> {parsedData.totalCards}/60 Cartas
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                  <AlertCircle className="h-3 w-3" /> {parsedData.totalCards}/60
                 </span>
               )}
             </h4>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-400 truncate">
               {parsedData.pokemon.reduce((sum, c) => sum + c.count, 0)} Pokémon •{" "}
               {parsedData.trainer.reduce((sum, c) => sum + c.count, 0)} Treinadores •{" "}
               {parsedData.energy.reduce((sum, c) => sum + c.count, 0)} Energias
@@ -118,29 +118,29 @@ export function DecklistVisualGallery({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={handleDownloadImage}
             disabled={isDownloading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md transition-all cursor-pointer disabled:opacity-50"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md transition-all cursor-pointer disabled:opacity-50"
             title="Baixar ou compartilhar imagem do baralho (PNG)"
           >
             {isDownloading ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Gerando Imagem...</span>
+                <span>Gerando...</span>
               </>
             ) : (
               <>
                 <Download className="h-3.5 w-3.5" />
-                <span>Baixar Imagem</span>
+                <span>Baixar Foto</span>
               </>
             )}
           </button>
 
           {allowToggleView && (
-            <div className="flex items-center gap-1.5 bg-slate-900/90 border border-white/10 p-1 rounded-xl">
+            <div className="flex items-center gap-1 bg-slate-900/90 border border-white/10 p-1 rounded-xl">
               <button
                 type="button"
                 onClick={() => setActiveView("visual")}
