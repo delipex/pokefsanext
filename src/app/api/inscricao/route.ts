@@ -86,6 +86,7 @@ export async function POST(req: Request) {
     const {
       jogadorNome,
       jogadorId,
+      dataNascimento,
       categoria,
       deckNome,
       tipoEnergia,
@@ -157,7 +158,19 @@ export async function POST(req: Request) {
 
     const finalEventName = eventoNome || configMap.premierNome || "League Challenge — Liga Atlântica";
     const finalEventDate = etapaData || configMap.premierData || now.toISOString().split("T")[0];
-    const finalCategory = categoria || "Master";
+    
+    // Calcula categoria oficial Play! Pokémon com base na data de nascimento
+    let finalCategory = categoria || "Master";
+    if (dataNascimento) {
+      const parts = dataNascimento.split("-");
+      if (parts.length === 3) {
+        const yr = parseInt(parts[0], 10);
+        if (yr >= 2013) finalCategory = "Junior";
+        else if (yr >= 2009) finalCategory = "Senior";
+        else finalCategory = "Master";
+      }
+    }
+
     const finalDeckNome = sanitizeText(deckNome) || "A definir";
 
     // Auto-detecta energia inteligente caso o usuário não tenha selecionado ou seja genérica
@@ -225,6 +238,7 @@ export async function POST(req: Request) {
           id: popVal.cleanId!,
           nome: nameVal.cleanName!,
           categoria: finalCategory,
+          dataNascimento: dataNascimento || null,
           ativo: true,
           deckAtivoNome: finalDeckNome,
           decklistTexto: rawDecklistText,
@@ -233,6 +247,8 @@ export async function POST(req: Request) {
         await db
           .update(jogadores)
           .set({
+            categoria: finalCategory,
+            dataNascimento: dataNascimento || existingPlayer[0].dataNascimento,
             deckAtivoNome: finalDeckNome,
             decklistTexto: rawDecklistText || existingPlayer[0].decklistTexto,
           })
@@ -243,13 +259,19 @@ export async function POST(req: Request) {
     }
 
     // 7. Montar Link Direto do WhatsApp para Envio do Comprovante
+    const formattedNasc = dataNascimento
+      ? dataNascimento.includes("-")
+        ? dataNascimento.split("-").reverse().join("/")
+        : dataNascimento
+      : "";
+
     const waContact = (configMap.premierWaContato || "").replace(/\D/g, "");
     let waMsg = `🏆 *INSCRIÇÃO & DECKLIST - LIGA ATLÂNTICA*\n`;
     waMsg += `🔖 *Protocolo:* \`${protocolo}\`\n`;
     waMsg += `📍 *Evento:* ${finalEventName}\n`;
     waMsg += `👤 *Jogador:* ${nameVal.cleanName}\n`;
     waMsg += `🆔 *POP ID:* ${popVal.cleanId}\n`;
-    waMsg += `🎂 *Categoria:* ${finalCategory}\n`;
+    waMsg += `🎂 *Nascimento:* ${formattedNasc ? `${formattedNasc} (${finalCategory})` : finalCategory}\n`;
     waMsg += `🃏 *Deck:* ${finalDeckNome} (${totalCartas}/60 cartas)\n`;
     if (limitlessUrl) {
       waMsg += `🔗 *Limitless:* ${limitlessUrl}\n`;
@@ -258,6 +280,7 @@ export async function POST(req: Request) {
       waMsg += `\n📜 *LISTA (${totalCartas} cartas):*\n${rawDecklistText.slice(0, 500)}${rawDecklistText.length > 500 ? "..." : ""}\n`;
     }
     waMsg += `\n💰 *Comprovante:* Segue anexo o comprovante PIX da inscrição.`;
+
 
     const encodedWa = encodeURIComponent(waMsg);
     const waUrl = waContact

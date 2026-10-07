@@ -59,7 +59,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   // Form State
   const [nome, setNome] = useState("");
   const [popId, setPopId] = useState("");
-  const [anoNascimento, setAnoNascimento] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
   const [categoria, setCategoria] = useState<"Master" | "Senior" | "Junior">("Master");
   const [whatsapp, setWhatsapp] = useState("");
   const [deckNome, setDeckNome] = useState("");
@@ -147,20 +147,25 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     controlledOnClose?.();
   };
 
-  // Cálculo automático da categoria Play! Pokémon por ano de nascimento
-  const handleBirthYearChange = (val: string) => {
-    setAnoNascimento(val);
-    const yr = parseInt(val, 10);
-    if (!isNaN(yr) && yr > 1900 && yr <= new Date().getFullYear()) {
-      if (yr >= 2013) {
-        setCategoria("Junior");
-      } else if (yr >= 2009) {
-        setCategoria("Senior");
-      } else {
-        setCategoria("Master");
+  // Cálculo automático da categoria Play! Pokémon por data de nascimento
+  const handleBirthDateChange = (val: string) => {
+    setDataNascimento(val);
+    if (!val) return;
+    const parts = val.split("-");
+    if (parts.length === 3) {
+      const yr = parseInt(parts[0], 10);
+      if (!isNaN(yr) && yr > 1900 && yr <= new Date().getFullYear()) {
+        if (yr >= 2013) {
+          setCategoria("Junior");
+        } else if (yr >= 2009) {
+          setCategoria("Senior");
+        } else {
+          setCategoria("Master");
+        }
       }
     }
   };
+
 
   // Contador de cartas em tempo real
   const parsedCardsCount = useMemo(() => {
@@ -234,7 +239,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
         body: JSON.stringify({
           jogadorNome: nome.trim(),
           jogadorId: cleanPopId,
-          anoNascimento: anoNascimento.trim(),
+          dataNascimento: dataNascimento.trim(),
           categoria,
           whatsapp: whatsapp.trim(),
           deckNome: deckNome.trim(),
@@ -245,6 +250,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
           etapaData: config.premierData || new Date().toISOString().split("T")[0],
         }),
       });
+
 
       const data = await res.json();
 
@@ -511,23 +517,26 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     </div>
                   </div>
 
-                  {/* Ano de Nascimento / Categoria & WhatsApp */}
+                  {/* Data de Nascimento / Categoria & WhatsApp */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-300">Ano de Nasc.</label>
+                      <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                        <span>Data de Nascimento *</span>
+                      </label>
                       <input
-                        type="number"
-                        min="1950"
-                        max="2026"
-                        value={anoNascimento}
-                        onChange={(e) => handleBirthYearChange(e.target.value)}
-                        placeholder="Ex: 1998"
-                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                        type="date"
+                        required
+                        value={dataNascimento}
+                        onChange={(e) => handleBirthDateChange(e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white focus:border-blue-500 focus:outline-none"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-300">Categoria Play!</label>
+                      <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                        <span>Categoria Play!</span>
+                        <span className="text-[10px] text-emerald-400 font-semibold">Auto-definida</span>
+                      </label>
                       <select
                         value={categoria}
                         onChange={(e) => setCategoria(e.target.value as any)}
@@ -550,6 +559,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                       />
                     </div>
                   </div>
+
 
                   {/* Nome do Deck & Tipo de Energia */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
