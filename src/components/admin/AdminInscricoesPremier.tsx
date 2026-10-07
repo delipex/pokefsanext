@@ -117,7 +117,6 @@ export function AdminInscricoesPremier({
   const [isUpdatingFromSheets, setIsUpdatingFromSheets] = useState(false);
   const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [copiedTom, setCopiedTom] = useState(false);
 
   // Formulário de Nova Inscrição Manual
   const [manualForm, setManualForm] = useState({
@@ -230,14 +229,6 @@ export function AdminInscricoesPremier({
     } finally {
       setIsUpdatingFromSheets(false);
     }
-  };
-
-  // Copiar roster para o formato TOM
-  const handleCopyToTOM = () => {
-    const lines = filteredList.map((d) => `${d.jogadorNome}\t${d.jogadorId || ""}\t${d.categoria || "Master"}`);
-    navigator.clipboard.writeText(lines.join("\n"));
-    setCopiedTom(true);
-    setTimeout(() => setCopiedTom(false), 2500);
   };
 
   // Exportar Roster CSV
@@ -789,14 +780,6 @@ export function AdminInscricoesPremier({
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isUpdatingFromSheets ? "animate-spin" : ""}`} />
               <span>{isUpdatingFromSheets ? "Atualizando..." : "Atualizar"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleCopyToTOM}
-              className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-md transition-all"
-            >
-              {copiedTom ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-              <span>{copiedTom ? "Copiado!" : "Copiar p/ TOM"}</span>
             </button>
           </div>
         </div>
