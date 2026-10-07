@@ -147,23 +147,26 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     controlledOnClose?.();
   };
 
-  // Cálculo automático da categoria Play! Pokémon por data de nascimento
-  const handleBirthDateChange = (val: string) => {
-    setDataNascimento(val);
-    if (!val) return;
+  // Cálculo automático da categoria Play! Pokémon por data de nascimento (Temporada Oficial)
+  const calculatePlayPokemonCategory = (val: string): "Master" | "Senior" | "Junior" => {
+    if (!val) return "Master";
     const parts = val.split("-");
     if (parts.length === 3) {
       const yr = parseInt(parts[0], 10);
-      if (!isNaN(yr) && yr > 1900 && yr <= new Date().getFullYear()) {
-        if (yr >= 2013) {
-          setCategoria("Junior");
-        } else if (yr >= 2009) {
-          setCategoria("Senior");
-        } else {
-          setCategoria("Master");
-        }
+      if (!isNaN(yr) && yr > 1900) {
+        if (yr >= 2014) return "Junior";
+        if (yr >= 2010) return "Senior";
+        return "Master";
       }
     }
+    return "Master";
+  };
+
+  const handleBirthDateChange = (val: string) => {
+    setDataNascimento(val);
+    if (!val) return;
+    const autoCat = calculatePlayPokemonCategory(val);
+    setCategoria(autoCat);
   };
 
 
@@ -542,9 +545,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         onChange={(e) => setCategoria(e.target.value as any)}
                         className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3 py-2.5 text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
                       >
-                        <option value="Master">Master (16+ anos)</option>
-                        <option value="Senior">Senior (12 a 15 anos)</option>
-                        <option value="Junior">Junior (&lt;12 anos)</option>
+                        <option value="Master">Master (Nascidos até 2009)</option>
+                        <option value="Senior">Senior (2010 a 2013)</option>
+                        <option value="Junior">Junior (2014 ou posterior)</option>
                       </select>
                     </div>
 

@@ -159,15 +159,17 @@ export async function POST(req: Request) {
     const finalEventName = eventoNome || configMap.premierNome || "League Challenge — Liga Atlântica";
     const finalEventDate = etapaData || configMap.premierData || now.toISOString().split("T")[0];
     
-    // Calcula categoria oficial Play! Pokémon com base na data de nascimento
+    // Calcula categoria oficial Play! Pokémon com base no ano de nascimento (Temporada Oficial)
     let finalCategory = categoria || "Master";
     if (dataNascimento) {
       const parts = dataNascimento.split("-");
       if (parts.length === 3) {
         const yr = parseInt(parts[0], 10);
-        if (yr >= 2013) finalCategory = "Junior";
-        else if (yr >= 2009) finalCategory = "Senior";
-        else finalCategory = "Master";
+        if (!isNaN(yr)) {
+          if (yr >= 2014) finalCategory = "Junior";
+          else if (yr >= 2010) finalCategory = "Senior";
+          else finalCategory = "Master";
+        }
       }
     }
 
