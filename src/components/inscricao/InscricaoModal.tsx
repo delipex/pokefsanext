@@ -450,6 +450,10 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     <DecklistVisualGallery
                       parsedData={parsedDeckData}
                       deckName={selectedDeck === "Outro" ? customDeckNome || "Meu Baralho" : selectedDeck || "Meu Baralho"}
+                      playerName={nome}
+                      popId={popId}
+                      protocolo={successData.protocolo}
+                      eventName={config.premierNome || "Liga Atlântica TCG"}
                       rawText={decklistRaw}
                     />
                   </div>
@@ -765,6 +769,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                       <DecklistVisualGallery
                         parsedData={parsedDeckData}
                         deckName={selectedDeck === "Outro" ? customDeckNome || "Baralho Personalizado" : selectedDeck || "Baralho do Jogador"}
+                        playerName={nome || "Treinador"}
+                        popId={popId}
+                        eventName={config.premierNome || "Liga Atlântica TCG"}
                         rawText={decklistRaw}
                       />
                     </div>

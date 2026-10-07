@@ -2,13 +2,18 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ParsedCardItem, ParsedDecklistResult } from "@/lib/decklist-parser";
-import { Layers, Sparkles, Eye, FileText, CheckCircle2, AlertCircle, Copy, Check } from "lucide-react";
+import { Layers, Sparkles, Eye, FileText, CheckCircle2, AlertCircle, Copy, Check, Download, Loader2 } from "lucide-react";
+import { downloadDecklistImage } from "@/lib/deck-image-exporter";
 
 interface DecklistVisualGalleryProps {
   parsedData: ParsedDecklistResult;
   deckName?: string;
+  playerName?: string;
+  popId?: string;
+  protocolo?: string;
+  eventName?: string;
   className?: string;
   allowToggleView?: boolean;
   rawText?: string;
@@ -17,13 +22,33 @@ interface DecklistVisualGalleryProps {
 export function DecklistVisualGallery({
   parsedData,
   deckName = "Decklist",
+  playerName = "Treinador",
+  popId = "",
+  protocolo = "",
+  eventName = "Liga Atlântica TCG",
   className = "",
   allowToggleView = true,
   rawText = "",
 }: DecklistVisualGalleryProps) {
   const [activeView, setActiveView] = useState<"visual" | "text">("visual");
   const [copiedText, setCopiedText] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+
+  const handleDownloadImage = async () => {
+    setIsDownloading(true);
+    try {
+      await downloadDecklistImage(parsedData, {
+        deckName,
+        playerName,
+        popId,
+        protocolo,
+        eventName,
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const handleImageError = (cardKey: string) => {
     setImageErrors((prev) => ({ ...prev, [cardKey]: true }));
@@ -93,34 +118,56 @@ export function DecklistVisualGallery({
           </div>
         </div>
 
-        {allowToggleView && (
-          <div className="flex items-center gap-1.5 bg-slate-900/90 border border-white/10 p-1 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setActiveView("visual")}
-              className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-                activeView === "visual"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Eye className="h-3.5 w-3.5" />
-              <span>Visual</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveView("text")}
-              className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-                activeView === "text"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span>Texto</span>
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadImage}
+            disabled={isDownloading}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md transition-all cursor-pointer disabled:opacity-50"
+            title="Baixar ou compartilhar imagem do baralho (PNG)"
+          >
+            {isDownloading ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Gerando Imagem...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5" />
+                <span>Baixar Imagem</span>
+              </>
+            )}
+          </button>
+
+          {allowToggleView && (
+            <div className="flex items-center gap-1.5 bg-slate-900/90 border border-white/10 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setActiveView("visual")}
+                className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  activeView === "visual"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span>Visual</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveView("text")}
+                className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                  activeView === "text"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>Texto</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Conteúdo: Visão Gráfica de Cartas */}
