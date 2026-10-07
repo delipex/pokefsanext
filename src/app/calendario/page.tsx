@@ -80,6 +80,23 @@ export default async function CalendarioPage() {
   const premierDateISO = normalizeDateToISO(config.premierData);
   const premierNomeLower = (config.premierNome || "").toLowerCase().trim();
 
+  // Verifica se a data do evento já passou
+  const isPremierEventPassed = (() => {
+    if (!premierDateISO) return false;
+    const now = new Date();
+    const parts = premierDateISO.split("-");
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      const eventEnd = new Date(y, m - 1, d, 23, 59, 59);
+      return now.getTime() > eventEnd.getTime();
+    }
+    return false;
+  })();
+
+  const isPremierActive = isPremierAbertas && !isPremierEventPassed;
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       {/* Cabeçalho */}
@@ -109,12 +126,13 @@ export default async function CalendarioPage() {
 
             const isThisEventPremierOpen =
               !isConcluded &&
-              isPremierAbertas &&
+              isPremierActive &&
               ((premierDateISO && evDateISO && premierDateISO === evDateISO) ||
                 (premierNomeLower &&
                   (evNomeLower === premierNomeLower ||
                     evNomeLower.includes(premierNomeLower) ||
                     premierNomeLower.includes(evNomeLower))));
+
 
             const hasDirectLink = Boolean(ev.linkInscricao && ev.linkInscricao.trim() !== "");
             const hasInscricao = isThisEventPremierOpen || hasDirectLink;

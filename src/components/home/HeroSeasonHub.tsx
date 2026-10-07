@@ -228,8 +228,25 @@ export function HeroSeasonHub({
   const nextDateISO = normalizeDateToISO(nextEvent?.data);
   const premierDateISO = normalizeDateToISO(premierConfig?.premierData);
 
+  // Verifica se a data do evento já passou para expirar automaticamente
+  const isPremierEventPassed = (() => {
+    if (!premierDateISO) return false;
+    const now = new Date();
+    const parts = premierDateISO.split("-");
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      const eventEnd = new Date(y, m - 1, d, 23, 59, 59);
+      return now.getTime() > eventEnd.getTime();
+    }
+    return false;
+  })();
+
+  const isPremierActive = premierAbertas && !isPremierEventPassed;
+
   const isNextEventThePremierEvent = Boolean(
-    premierAbertas &&
+    isPremierActive &&
     (
       (premierDateISO && nextDateISO && premierDateISO === nextDateISO) ||
       (premierConfig?.premierNome && nextEvent?.evento && (
@@ -241,6 +258,7 @@ export function HeroSeasonHub({
 
   const hasDirectRegistrationLink = Boolean(nextEvent?.linkInscricao && nextEvent.linkInscricao.trim() !== "");
   const isRegistrationOpenForThisCard = isNextEventThePremierEvent || hasDirectRegistrationLink;
+
 
   // Tag inteligente de destaque para eventos especiais (Cup, Challenge, etc.)
   const getEventTagConfig = () => {
@@ -362,8 +380,9 @@ export function HeroSeasonHub({
   return (
     <div className="w-full space-y-4">
       {/* Banner de Destaque Dedicado para Torneio Especial com Inscrições Abertas (se o próximo evento imediato for outra sessão) */}
-      {premierAbertas && !isNextEventThePremierEvent && (
+      {isPremierActive && !isNextEventThePremierEvent && (
         <motion.div
+
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl border border-emerald-500/30 bg-emerald-950/40 p-4 sm:p-5 backdrop-blur-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl shadow-emerald-950/30"
