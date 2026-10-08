@@ -33,7 +33,6 @@ import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
 import defaultDecks from "@/data/decks.json";
 import { parsePTCGDecklist, ParsedDecklistResult } from "@/lib/decklist-parser";
-import { detectArchetypeFromDecklist } from "@/lib/deck-normalizer";
 import { DecklistVisualGallery } from "@/components/deck/DecklistVisualGallery";
 
 // Catálogo padrão de baralhos cadastrados da Liga
@@ -193,29 +192,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
 
   const parsedCardsCount = parsedDeckData.totalCards;
 
-  // Auto-identifica o baralho quando o jogador digita ou cola a lista
+  // Atualiza decklist de 60 cartas
   const handleDecklistChange = (val: string) => {
     setDecklistRaw(val);
-    if (!val || val.trim().length < 12) return;
-
-    const detected = detectArchetypeFromDecklist(val, deckCatalogList);
-    if (detected) {
-      if (deckCatalogList.includes(detected)) {
-        setSelectedDeck(detected);
-      } else {
-        const partial = deckCatalogList.find(
-          (d) =>
-            d.toLowerCase().includes(detected.toLowerCase()) ||
-            detected.toLowerCase().includes(d.toLowerCase())
-        );
-        if (partial) {
-          setSelectedDeck(partial);
-        } else {
-          setSelectedDeck("Outro");
-          setCustomDeckNome(detected);
-        }
-      }
-    }
   };
 
   // Puxar decklist automaticamente pelo link do Limitless
@@ -243,20 +222,6 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
 
       if (data.decklistRaw) {
         setDecklistRaw(data.decklistRaw);
-      }
-
-      if (data.deckTitle && (!selectedDeck || selectedDeck === "Outro")) {
-        const found = deckCatalogList.find(
-          (d) =>
-            d.toLowerCase().includes(data.deckTitle.toLowerCase()) ||
-            data.deckTitle.toLowerCase().includes(d.toLowerCase())
-        );
-        if (found) {
-          setSelectedDeck(found);
-        } else {
-          setSelectedDeck("Outro");
-          setCustomDeckNome(data.deckTitle);
-        }
       }
     } catch (err: any) {
       setLimitlessFetchError(err.message || "Erro ao conectar com o Limitless.");
