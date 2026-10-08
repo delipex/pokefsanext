@@ -48,6 +48,7 @@ interface PlayerPortalDashboardProps {
   totalAtletas?: number;
   historicoTemporadas?: any[];
   titulos?: any[];
+  config?: Record<string, any>;
 }
 
 export function PlayerPortalDashboard({
@@ -64,6 +65,7 @@ export function PlayerPortalDashboard({
   totalAtletas = 0,
   historicoTemporadas = [],
   titulos = [],
+  config = {},
 }: PlayerPortalDashboardProps) {
   const router = useRouter();
 
@@ -966,8 +968,60 @@ export function PlayerPortalDashboard({
               </button>
             </form>
           </div>
+        ) : config.premierAbertas === "true" || config.premierAbertas === true || config.inscricoesAtivas === "true" ? (
+          /* B. TORNEIO OFICIAL COM INSCRIÇÕES ABERTAS (PREENCHIMENTO RÁPIDO) */
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse">
+                  <Sparkles className="h-3 w-3" /> Inscrições Abertas
+                </span>
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                  {config.premierTema ? `${config.premierTema} Edition` : "Torneio Oficial"}
+                </span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white">
+                {config.premierNome || nextEvent?.evento || "Torneio Oficial da Liga Atlântica"}
+              </h3>
+              <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                Garanta sua vaga com antecedência! Seus dados cadastrais (Nome, POP ID, Categoria e Deck) serão preenchidos automaticamente na tela de confirmação.
+              </p>
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-xs text-slate-300">
+                  <Calendar className="h-4 w-4 text-amber-400 shrink-0" />
+                  <span className="font-bold text-white">{config.premierData || nextEvent?.data || "A definir"}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-xs text-slate-300">
+                  <Clock className="h-4 w-4 text-blue-400 shrink-0" />
+                  <span>{config.premierHorario || nextEvent?.horario || "14:00"}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-xs text-slate-300">
+                  <MapPin className="h-4 w-4 text-rose-400 shrink-0" />
+                  <span>{config.premierLocal || nextEvent?.local || "Livraria Atlântica"}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/30 text-xs text-emerald-400 font-bold">
+                  <span>R$ {config.premierValor || "35,00"}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 w-full lg:w-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("open-inscricao-modal"));
+                  }
+                }}
+                className="w-full lg:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all cursor-pointer transform active:scale-98"
+              >
+                <Zap className="h-4 w-4 text-slate-950 fill-slate-950" />
+                <span>Fazer Inscrição Rápida</span>
+              </button>
+            </div>
+          </div>
         ) : (
-          /* B. SESSÃO REGULAR DE LIGA: MENU FECHADO, APENAS INFORMAÇÕES DO PRÓXIMO TORNEIO */
+          /* C. SESSÃO REGULAR DE LIGA: MENU FECHADO, APENAS INFORMAÇÕES DO PRÓXIMO TORNEIO */
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-amber-400 text-xs font-black uppercase tracking-wider">

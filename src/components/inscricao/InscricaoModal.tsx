@@ -70,6 +70,15 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   const [metodoPagamento, setMetodoPagamento] = useState<"pix" | "presencial">("pix");
   const [isFetchingLimitless, setIsFetchingLimitless] = useState(false);
   const [limitlessFetchError, setLimitlessFetchError] = useState<string | null>(null);
+  const [loggedInUser, setLoggedInUser] = useState<{
+    popId: string;
+    nome: string;
+    categoria?: string;
+    whatsapp?: string;
+    dataNascimento?: string;
+    deckAtivoNome?: string;
+    decklistTexto?: string;
+  } | null>(null);
 
   // UI / Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,7 +126,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     }
   }, [controlledIsOpen]);
 
-  // Carrega configurações mais atualizadas da API e catálogo de decks quando aberto
+  // Carrega configurações mais atualizadas da API, catálogo de decks e sessão ativa do atleta quando aberto
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -141,6 +150,33 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
               new Set(data.decks.map((d: any) => (d.nome || d.deck || "").trim()).filter(Boolean))
             ).sort((a: any, b: any) => a.localeCompare(b, "pt-BR"));
             if (names.length > 0) setDeckCatalogList(names as string[]);
+          }
+        })
+        .catch(() => {});
+
+      // Auto-preenchimento para atletas logados no Portal
+      fetch("/api/portal/me")
+        .then((res) => res.json())
+        .then((user) => {
+          if (user && user.loggedIn && user.popId) {
+            setLoggedInUser(user);
+            setNome((prev) => (!prev ? user.nome || "" : prev));
+            setPopId((prev) => (!prev ? String(user.popId) || "" : prev));
+            if (user.categoria) {
+              setCategoria(user.categoria);
+            }
+            if (user.dataNascimento) {
+              setDataNascimento((prev) => (!prev ? user.dataNascimento : prev));
+            }
+            if (user.whatsapp) {
+              setWhatsapp((prev) => (!prev ? user.whatsapp : prev));
+            }
+            if (user.deckAtivoNome) {
+              setSelectedDeck((prev) => (!prev ? user.deckAtivoNome : prev));
+            }
+            if (user.decklistTexto) {
+              setDecklistRaw((prev) => (!prev ? user.decklistTexto : prev));
+            }
           }
         })
         .catch(() => {});
@@ -563,6 +599,26 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400" />
                     <span>{errorMessage}</span>
                   </motion.div>
+                )}
+
+                {/* Banner de Sessão Ativa / Auto-Preenchimento */}
+                {loggedInUser && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 shadow-sm">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-white flex flex-wrap items-center gap-1.5 truncate">
+                        <span>{loggedInUser.nome}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-normal">
+                          POP ID: {loggedInUser.popId}
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-emerald-300/80 truncate">
+                        Login ativo: seus dados foram carregados para facilitar sua inscrição ⚡
+                      </p>
+                    </div>
+                  </div>
                 )}
 
                 {/* Formulário Interativo */}

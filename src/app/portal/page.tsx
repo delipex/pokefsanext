@@ -274,6 +274,7 @@ export default async function PlayerPortalPage() {
       totalAtletas={totalAtletas}
       historicoTemporadas={historicoTemporadas}
       titulos={titulos}
+      config={configMap}
     />
   );
 }
