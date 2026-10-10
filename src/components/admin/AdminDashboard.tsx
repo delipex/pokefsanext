@@ -325,6 +325,56 @@ export function AdminDashboard({
   const [deckSearch, setDeckSearch] = useState("");
   const [deckMessage, setDeckMessage] = useState("");
 
+  // Detecção Inteligente de Novos Decks Informados por Jogadores (Inscrições e Etapas)
+  const uncatalogedDecks = useMemo(() => {
+    const catalogNames = new Set(
+      (decks || []).map((d) => (d.nome || d.deck || "").trim().toLowerCase()).filter(Boolean)
+    );
+    const ignored = new Set([
+      "outro",
+      "outros",
+      "não registrado",
+      "nao registrado",
+      "sem deck",
+      "sem deck registrado",
+      "desconhecido",
+      "",
+    ]);
+
+    const map = new Map<string, { nome: string; count: number; sources: string[] }>();
+
+    // Decks nas inscrições / decklists enviadas
+    (decklists || []).forEach((dl) => {
+      const raw = String(dl.deckNome || "").trim();
+      const key = raw.toLowerCase();
+      if (raw && !ignored.has(key) && !catalogNames.has(key)) {
+        const existing = map.get(key) || { nome: raw, count: 0, sources: [] };
+        existing.count += 1;
+        if (!existing.sources.includes("Inscrições")) existing.sources.push("Inscrições");
+        map.set(key, existing);
+      }
+    });
+
+    // Decks nos resultados de etapas
+    (adminEtapas || []).forEach((etp) => {
+      (etp.resultados || []).forEach((r: any) => {
+        const raw = String(r.deckNome || "").trim();
+        const key = raw.toLowerCase();
+        if (raw && !ignored.has(key) && !catalogNames.has(key)) {
+          const existing = map.get(key) || { nome: raw, count: 0, sources: [] };
+          existing.count += 1;
+          const sourceLabel = `Etapa ${etp.data ? formatDateBR(etp.data) : ""}`.trim();
+          if (!existing.sources.includes(sourceLabel) && !existing.sources.includes("Resultados de Etapas")) {
+            existing.sources.push(sourceLabel || "Etapas");
+          }
+          map.set(key, existing);
+        }
+      });
+    });
+
+    return Array.from(map.values());
+  }, [decks, decklists, adminEtapas]);
+
   // Estado de Calendário com deduplicação defensiva
   const deduplicatedInitialCal = useMemo(() => {
     const map = new Map<string, any>();
@@ -996,6 +1046,12 @@ export function AdminDashboard({
 
   const handleOpenNewDeckModal = () => {
     handleCancelEditDeck();
+    setIsDeckModalOpen(true);
+  };
+
+  const handleOpenNewDeckModalWithPreset = (presetName: string) => {
+    handleCancelEditDeck();
+    setNewDeckName(presetName);
     setIsDeckModalOpen(true);
   };
 
@@ -2498,6 +2554,56 @@ export function AdminDashboard({
               </button>
             </div>
           </div>
+
+          {/* Banner de Novos Decks Detectados em Inscrições ou Etapas */}
+          {uncatalogedDecks.length > 0 && (
+            <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-950/40 via-slate-900/80 to-slate-900/80 p-6 backdrop-blur-xl shadow-2xl space-y-4 animate-in fade-in">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2.5 text-amber-400">
+                  <Sparkles className="h-5 w-5 shrink-0" />
+                  <h4 className="font-bold text-sm sm:text-base text-white">
+                    ✨ Novos Decks / Arquétipos Detectados ({uncatalogedDecks.length})
+                  </h4>
+                </div>
+                <span className="text-xs text-amber-300/80 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 font-medium">
+                  Encontrados em Inscrições ou Etapas
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Os seguintes baralhos foram informados por competidores mas ainda não foram catalogados oficialmente com suas energias e dados. Deseja cadastrá-los no catálogo?
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                {uncatalogedDecks.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/80 p-3.5 hover:border-amber-400/40 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <h5 className="text-xs font-black text-white truncate">{item.nome}</h5>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-amber-400 font-bold">
+                          {item.count} vez{item.count > 1 ? "es" : ""}
+                        </span>
+                        <span className="text-[10px] text-slate-400 truncate">
+                          • {item.sources.join(", ")}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenNewDeckModalWithPreset(item.nome)}
+                      className="shrink-0 flex items-center gap-1 rounded-xl bg-amber-400 hover:bg-amber-300 px-3 py-1.5 text-[11px] font-black text-slate-950 shadow-md shadow-amber-400/20 transition-all cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Cadastrar</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Tabela de Decks */}
           <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur-xl shadow-xl">

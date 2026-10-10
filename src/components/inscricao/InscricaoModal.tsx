@@ -317,8 +317,8 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     }
 
     const finalDeckNome = selectedDeck === "Outro" ? customDeckNome.trim() : selectedDeck.trim();
-    if (!finalDeckNome) {
-      setErrorMessage("Por favor, selecione ou informe o seu Baralho / Deck.");
+    if (!finalDeckNome || finalDeckNome.toLowerCase() === "outro" || finalDeckNome.toLowerCase() === "outros") {
+      setErrorMessage("Por favor, selecione ou digite o nome específico do baralho que irá jogar (a palavra 'Outro' não é permitida como nome de deck).");
       return;
     }
 

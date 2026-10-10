@@ -231,19 +231,61 @@ export function calculatePokemonCategory(birthDateStr?: string | null): {
   const age = currentYear - birthYear;
 
   // Regras Oficiais Play! Pokémon (Temporada 2026/2027):
-  // Junior: Nascidos a partir de 2013 (<12 anos)
-  // Senior: Nascidos entre 2009 e 2012 (12 a 15 anos)
-  // Master: Nascidos até 2008 (16+ anos)
+  // Junior: Nascidos a partir de 2014
+  // Senior: Nascidos entre 2010 e 2013
+  // Master: Nascidos até 2009
   let categoria: "Master" | "Senior" | "Junior" = "Master";
-  if (birthYear >= 2013) {
+  if (birthYear >= 2014) {
     categoria = "Junior";
-  } else if (birthYear >= 2009) {
+  } else if (birthYear >= 2010) {
     categoria = "Senior";
   } else {
     categoria = "Master";
   }
 
   return { isValid: true, categoria, age };
+}
+
+// 5.1 Validação de Titularidade (Cruzamento Rigoroso de Nome, Ano de Nascimento e Categoria)
+export function verifyAthleteIdentity(
+  athlete: { nome: string; categoria?: string | null; dataNascimento?: string | null },
+  input: { nome: string; dataNascimento: string }
+): { isValid: boolean; error?: string } {
+  if (!input.nome || !input.nome.trim()) {
+    return { isValid: false, error: "Informe seu Nome Completo (Nome e Sobrenome) para validar sua titularidade." };
+  }
+
+  const nameVal = validatePlayerName(input.nome);
+  if (!nameVal.isValid) {
+    return { isValid: false, error: nameVal.error };
+  }
+
+  const match = matchPlayerIdentity(nameVal.cleanName, athlete.nome);
+  if (!match.isMatch) {
+    return {
+      isValid: false,
+      error: "O Nome Completo informado não confere com o titular cadastrado para este POP ID. Por segurança, digite seu nome e sobrenome exatamente como no cadastro oficial ou procure o organizador da Liga.",
+    };
+  }
+
+  if (!input.dataNascimento) {
+    return { isValid: false, error: "Data de nascimento é obrigatória para validar sua titularidade na Liga." };
+  }
+
+  const catCheck = calculatePokemonCategory(input.dataNascimento);
+  if (!catCheck.isValid) {
+    return { isValid: false, error: catCheck.error };
+  }
+
+  const expectedCat = athlete.categoria || "Master";
+  if (catCheck.categoria.toLowerCase() !== expectedCat.toLowerCase()) {
+    return {
+      isValid: false,
+      error: `A Data de Nascimento informada resulta na categoria "${catCheck.categoria}", que diverge da categoria oficial deste atleta no ranking da Liga ("${expectedCat}"). Verifique sua data de nascimento ou contate o organizador.`,
+    };
+  }
+
+  return { isValid: true };
 }
 
 // 6. Criptografia de PIN (Hash SHA-256 com Salt)

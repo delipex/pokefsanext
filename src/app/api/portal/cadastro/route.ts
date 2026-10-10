@@ -93,35 +93,32 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Validação de Nome Completo
-    let cleanName = "";
-    if (existingAthlete && existingAthlete.nome && !nome) {
-      cleanName = existingAthlete.nome;
-    } else {
-      const nameCheck = validatePlayerName(nome || (existingAthlete ? existingAthlete.nome : ""));
-      if (!nameCheck.isValid) {
+    // 4. Validação de Titularidade para Atleta Pré-Cadastrado
+    if (existingAthlete) {
+      const { verifyAthleteIdentity } = await import("@/lib/security");
+      const idCheck = verifyAthleteIdentity(existingAthlete, {
+        nome: String(nome || ""),
+        dataNascimento: String(dataNascimento || ""),
+      });
+      if (!idCheck.isValid) {
         return NextResponse.json(
-          { error: `Não foi possível se cadastrar devido a: ${nameCheck.error}` },
+          { error: `Validação de Titularidade: ${idCheck.error}` },
           { status: 400 }
         );
       }
-      cleanName = nameCheck.cleanName!;
     }
 
-    // Se existe atleta e informou nome diferente, valida compatibilidade
-    if (existingAthlete && existingAthlete.nome && cleanName) {
-      const identityCheck = matchPlayerIdentity(cleanName, existingAthlete.nome);
-      if (!identityCheck.isMatch) {
-        return NextResponse.json(
-          {
-            error: `Não foi possível se cadastrar devido a: o nome informado (${cleanName}) não confere com o titular cadastrado para este POP ID (${existingAthlete.nome}). Verifique a digitação ou contate o organizador.`,
-          },
-          { status: 403 }
-        );
-      }
+    // 4.1 Validação de Nome Completo
+    const nameCheck = validatePlayerName(nome || "");
+    if (!nameCheck.isValid) {
+      return NextResponse.json(
+        { error: `Não foi possível se cadastrar devido a: ${nameCheck.error}` },
+        { status: 400 }
+      );
     }
+    const cleanName = nameCheck.cleanName!;
 
-    // 5. Validação de WhatsApp (opcional para quem já é atleta da Liga)
+    // 5. Validação de WhatsApp (com DDD obrigatório)
     let cleanPhone: string | null = null;
     if (whatsapp && String(whatsapp).trim()) {
       const phoneCheck = validateWhatsApp(whatsapp);
@@ -132,31 +129,29 @@ export async function POST(req: Request) {
         );
       }
       cleanPhone = phoneCheck.cleanPhone!;
-    } else if (!existingAthlete) {
+    } else {
       return NextResponse.json(
-        { error: "Não foi possível se cadastrar devido a: WhatsApp com DDD é obrigatório para novos competidores." },
+        { error: "Não foi possível se cadastrar devido a: WhatsApp com DDD é obrigatório para contato e segurança." },
         { status: 400 }
       );
     }
 
-    // 6. Categoria e Nascimento (se já é atleta oficial, preserva categoria cadastrada)
-    let categoria = existingAthlete?.categoria || "Master";
-    if (dataNascimento && String(dataNascimento).trim()) {
-      const catCheck = calculatePokemonCategory(dataNascimento);
-      if (catCheck.isValid) {
-        categoria = catCheck.categoria;
-      } else if (!existingAthlete) {
-        return NextResponse.json(
-          { error: `Não foi possível se cadastrar devido a: ${catCheck.error}` },
-          { status: 400 }
-        );
-      }
-    } else if (!existingAthlete) {
+    // 6. Categoria e Nascimento
+    if (!dataNascimento || !String(dataNascimento).trim()) {
       return NextResponse.json(
-        { error: "Não foi possível se cadastrar devido a: Data de nascimento é obrigatória para definir sua categoria oficial (Master, Senior ou Junior)." },
+        { error: "Não foi possível se cadastrar devido a: Data de nascimento é obrigatória para definir e validar sua categoria oficial (Master, Senior ou Junior)." },
         { status: 400 }
       );
     }
+
+    const catCheck = calculatePokemonCategory(dataNascimento);
+    if (!catCheck.isValid) {
+      return NextResponse.json(
+        { error: `Não foi possível se cadastrar devido a: ${catCheck.error}` },
+        { status: 400 }
+      );
+    }
+    const categoria = catCheck.categoria;
 
     // 7. Validação de PIN de Acesso (Exatamente 4 dígitos numéricos)
     const cleanPin = String(pin || "").trim().replace(/\D/g, "");

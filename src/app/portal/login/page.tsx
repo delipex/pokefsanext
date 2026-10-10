@@ -32,11 +32,13 @@ export default function PlayerLoginPage() {
   // Estado de Ativação Instantânea (quando atleta oficial é reconhecido no login)
   const [activationData, setActivationData] = useState<{
     popId: string;
-    nome: string;
-    categoria: string;
+    categoria?: string;
     pinEntered: string;
     message?: string;
   } | null>(null);
+  const [activationNome, setActivationNome] = useState("");
+  const [activationDataNasc, setActivationDataNasc] = useState("");
+  const [activationWhatsapp, setActivationWhatsapp] = useState("");
   const [activationPin, setActivationPin] = useState("");
   const [activationConfirmPin, setActivationConfirmPin] = useState("");
   const [activationLoading, setActivationLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function PlayerLoginPage() {
 
   // Detecção de atleta oficial na aba de cadastro
   const [detectedRosterAthlete, setDetectedRosterAthlete] = useState<{
-    nome: string;
+    nome?: string;
     categoria: string;
     hasPin: boolean;
   } | null>(null);
@@ -79,9 +81,6 @@ export default function PlayerLoginPage() {
             categoria: data.athlete.categoria,
             hasPin: data.athlete.hasPin,
           });
-          if (!cadNome) {
-            setCadNome(data.athlete.nome);
-          }
         } else {
           setDetectedRosterAthlete(null);
         }
@@ -111,16 +110,18 @@ export default function PlayerLoginPage() {
       if (res.ok && data.success) {
         window.location.href = "/portal";
       } else if (data.needActivation) {
-        // Atleta oficial reconhecido! Abre tela de ativação instantânea sem mudar de aba
+        // Atleta oficial reconhecido! Abre tela de validação de titularidade e ativação
         setActivationData({
           popId: data.popId || loginPopId,
-          nome: data.athlete?.nome || data.nome || "Treinador Oficial",
-          categoria: data.athlete?.categoria || data.categoria || "Master",
+          categoria: data.athlete?.categoria || data.categoria,
           pinEntered: data.pinEntered || loginPin,
           message: data.message,
         });
         setActivationPin(data.pinEntered || loginPin);
         setActivationConfirmPin(data.pinEntered || loginPin);
+        setActivationNome("");
+        setActivationDataNasc("");
+        setActivationWhatsapp("");
         setActivationError("");
       } else {
         setLoginError(data.error || "POP ID ou PIN incorreto.");
@@ -132,10 +133,20 @@ export default function PlayerLoginPage() {
     }
   };
 
-  // Executar Ativação Direta de PIN (1 clique)
+  // Executar Ativação com Verificação de Titularidade
   const handleActivationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activationData) return;
+
+    if (!activationNome.trim()) {
+      setActivationError("Informe seu Nome Completo (Nome e Sobrenome) para validar a titularidade.");
+      return;
+    }
+
+    if (!activationDataNasc) {
+      setActivationError("Informe sua Data de Nascimento para validar sua titularidade na categoria oficial.");
+      return;
+    }
 
     if (activationPin.length !== 4) {
       setActivationError("O PIN deve conter exatamente 4 números (Ex: 1234).");
@@ -156,6 +167,9 @@ export default function PlayerLoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           popId: activationData.popId,
+          nome: activationNome,
+          dataNascimento: activationDataNasc,
+          whatsapp: activationWhatsapp,
           pin: activationPin,
           confirmPin: activationConfirmPin,
           activate: true,
@@ -271,19 +285,19 @@ export default function PlayerLoginPage() {
             </div>
           )}
 
-          {/* 1. MODO DE ATIVAÇÃO DE PRIMEIRO ACESSO (Atleta Oficial Reconhecido) */}
+          {/* 1. MODO DE ATIVAÇÃO DE PRIMEIRO ACESSO (Atleta Oficial com Validação de Titularidade) */}
           {activationData ? (
             <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
               <div className="p-4 rounded-2xl border border-blue-500/30 bg-gradient-to-br from-blue-950/60 to-indigo-950/60 shadow-inner space-y-3">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-400/30 text-blue-400">
-                    <Sparkles className="h-5 w-5 text-amber-300" />
+                    <Shield className="h-5 w-5 text-amber-300" />
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400">
-                      Atleta Oficial Reconhecido
+                      Validação de Titularidade • Primeiro Acesso
                     </span>
-                    <h3 className="text-sm font-black text-white">{activationData.nome}</h3>
+                    <h3 className="text-sm font-black text-white">Confirmação de Dados Oficiais</h3>
                   </div>
                 </div>
 
@@ -291,13 +305,15 @@ export default function PlayerLoginPage() {
                   <span className="px-2 py-0.5 rounded-lg bg-slate-900 border border-white/10 font-mono text-blue-300 font-bold">
                     POP ID: {activationData.popId}
                   </span>
-                  <span className="px-2 py-0.5 rounded-lg bg-slate-900 border border-white/10 text-emerald-400 font-bold">
-                    {activationData.categoria}
-                  </span>
+                  {activationData.categoria && (
+                    <span className="px-2 py-0.5 rounded-lg bg-slate-900 border border-white/10 text-emerald-400 font-bold">
+                      Divisão: {activationData.categoria}
+                    </span>
+                  )}
                 </div>
 
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Identificamos seu cadastro oficial na Liga! Como este é o seu primeiro acesso ao Portal, basta confirmar o PIN de 4 dígitos abaixo para ativar sua conta e entrar diretamente.
+                  Identificamos que seu POP ID já consta na base oficial da Liga. Por segurança e para garantir a posse exclusiva do seu histórico, confirme seu <strong>Nome Completo</strong> e <strong>Data de Nascimento</strong> para ativar seu PIN.
                 </p>
               </div>
 
@@ -309,6 +325,56 @@ export default function PlayerLoginPage() {
               )}
 
               <form onSubmit={handleActivationSubmit} className="space-y-3.5">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold uppercase text-slate-300">
+                    Nome Completo (Nome e Sobrenome):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Digite seu nome e sobrenome oficial"
+                    value={activationNome}
+                    onChange={(e) => setActivationNome(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs font-semibold text-white focus:border-blue-500 focus:outline-none font-sans"
+                    required
+                    autoFocus
+                  />
+                  <span className="text-[10px] text-slate-400 block">
+                    Deve coincidir com o titular cadastrado na Liga.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-300">
+                      Data de Nascimento:
+                    </label>
+                    <input
+                      type="date"
+                      value={activationDataNasc}
+                      onChange={(e) => setActivationDataNasc(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans"
+                      required
+                    />
+                    <span className="text-[10px] text-slate-400 block">
+                      Valida a categoria oficial do atleta.
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold uppercase text-slate-300">
+                      WhatsApp (com DDD):
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="Ex: 75999999999"
+                      value={activationWhatsapp}
+                      onChange={(e) => setActivationWhatsapp(e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold uppercase text-slate-300">
@@ -323,7 +389,6 @@ export default function PlayerLoginPage() {
                       onChange={(e) => setActivationPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                       className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm tabular-nums font-semibold text-white focus:border-blue-500 focus:outline-none font-sans"
                       required
-                      autoFocus
                     />
                   </div>
 
@@ -354,7 +419,7 @@ export default function PlayerLoginPage() {
                   ) : (
                     <>
                       <CheckCircle2 className="h-4 w-4" />
-                      <span>Ativar Meu Perfil & Entrar</span>
+                      <span>Validar Titularidade & Entrar</span>
                     </>
                   )}
                 </button>
@@ -453,13 +518,12 @@ export default function PlayerLoginPage() {
                 <div className="flex items-center gap-2 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-bold animate-in fade-in">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
                   <div>
-                    <span>Atleta oficial localizado: </span>
-                    <strong className="text-white">{detectedRosterAthlete.nome}</strong>{" "}
+                    <span>POP ID localizado no ranking da Liga: </span>
                     <span className="text-[11px] text-emerald-400">({detectedRosterAthlete.categoria})</span>
                     <span className="block font-normal text-[10px] text-slate-300 mt-0.5">
                       {detectedRosterAthlete.hasPin
-                        ? "Você já possui um PIN. Acesse a aba 'Já sou Cadastrado'."
-                        : "Basta definir seu PIN de 4 dígitos abaixo para ativar seu primeiro acesso."}
+                        ? "Este atleta já possui um PIN cadastrado. Acesse a aba 'Já sou Cadastrado'."
+                        : "Por segurança, digite seu Nome Completo e Data de Nascimento para validar sua titularidade e criar seu PIN."}
                     </span>
                   </div>
                 </div>
@@ -494,7 +558,7 @@ export default function PlayerLoginPage() {
 
                 <div className="space-y-1">
                   <label className="block text-[11px] font-bold uppercase text-slate-300">
-                    WhatsApp {detectedRosterAthlete ? "(Opcional)" : "(com DDD)"}:
+                    WhatsApp (com DDD):
                   </label>
                   <input
                     type="tel"
@@ -502,7 +566,7 @@ export default function PlayerLoginPage() {
                     value={cadWhatsapp}
                     onChange={(e) => setCadWhatsapp(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans"
-                    required={!detectedRosterAthlete}
+                    required
                   />
                 </div>
               </div>
@@ -516,10 +580,7 @@ export default function PlayerLoginPage() {
                   placeholder="Nome e Sobrenome"
                   value={cadNome}
                   onChange={(e) => setCadNome(e.target.value)}
-                  readOnly={Boolean(detectedRosterAthlete)}
-                  className={`w-full rounded-xl border border-white/10 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans ${
-                    detectedRosterAthlete ? "bg-slate-800/80 text-slate-300 cursor-not-allowed" : "bg-slate-950/80"
-                  }`}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans"
                   required
                 />
               </div>
@@ -527,18 +588,18 @@ export default function PlayerLoginPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="block text-[11px] font-bold uppercase text-slate-300">
-                    Data de Nascimento {detectedRosterAthlete ? "(Opcional)" : ""}:
+                    Data de Nascimento:
                   </label>
                   <input
                     type="date"
                     value={cadDataNasc}
                     onChange={(e) => setCadDataNasc(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans"
-                    required={!detectedRosterAthlete}
+                    required
                   />
                   <span className="text-[10px] text-slate-400 block">
                     {detectedRosterAthlete
-                      ? `Categoria já definida como ${detectedRosterAthlete.categoria}`
+                      ? `Cruza com a categoria (${detectedRosterAthlete.categoria}) para validação.`
                       : "Define automaticamente Master/Senior/Junior"}
                   </span>
                 </div>
@@ -572,7 +633,7 @@ export default function PlayerLoginPage() {
                   <>
                     <UserPlus className="h-4 w-4" />
                     <span>
-                      {detectedRosterAthlete ? "Ativar Meu Perfil & Acessar" : "Concluir Cadastro & Acessar"}
+                      {detectedRosterAthlete ? "Validar & Ativar Primeiro Acesso" : "Concluir Cadastro & Acessar"}
                     </span>
                   </>
                 )}

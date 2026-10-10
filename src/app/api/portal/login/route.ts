@@ -79,8 +79,10 @@ export async function POST(req: Request) {
 
     const athlete = player[0];
 
-    // MODO DE ATIVAÇÃO DE PRIMEIRO ACESSO
+    // MODO DE ATIVAÇÃO DE PRIMEIRO ACESSO (Com Verificação de Titularidade Rigorosa)
     if (activate) {
+      const { nome, dataNascimento, whatsapp } = body;
+
       if (confirmPin) {
         const cleanConfirm = String(confirmPin).trim().replace(/\D/g, "");
         if (cleanPin !== cleanConfirm) {
@@ -98,12 +100,45 @@ export async function POST(req: Request) {
         );
       }
 
+      // Validação de Titularidade: Cruzamento de Nome Completo, Data de Nascimento e Categoria Oficial
+      const { verifyAthleteIdentity, validateWhatsApp } = await import("@/lib/security");
+      const identityCheck = verifyAthleteIdentity(athlete, {
+        nome: String(nome || ""),
+        dataNascimento: String(dataNascimento || ""),
+      });
+
+      if (!identityCheck.isValid) {
+        return NextResponse.json(
+          { error: `Validação de Titularidade Falhou: ${identityCheck.error}` },
+          { status: 400 }
+        );
+      }
+
+      // Validação de WhatsApp com DDD
+      let cleanPhone: string | null = null;
+      if (whatsapp) {
+        const phoneCheck = validateWhatsApp(whatsapp);
+        if (!phoneCheck.isValid) {
+          return NextResponse.json(
+            { error: `WhatsApp Inválido: ${phoneCheck.error}` },
+            { status: 400 }
+          );
+        }
+        cleanPhone = phoneCheck.cleanPhone!;
+      }
+
       const hashedPin = hashPin(cleanPin);
 
-      // Salva no banco de dados
+      // Salva no banco de dados com segurança
       await db
         .update(jogadores)
-        .set({ pinHash: hashedPin, status: "ativo", ativo: true })
+        .set({
+          pinHash: hashedPin,
+          whatsapp: cleanPhone || athlete.whatsapp || null,
+          dataNascimento: dataNascimento ? String(dataNascimento).trim() : (athlete.dataNascimento || null),
+          status: "ativo",
+          ativo: true,
+        })
         .where(eq(jogadores.id, cleanId));
 
       // Sincroniza em jogadores.json se gravável
@@ -115,7 +150,12 @@ export async function POST(req: Request) {
           const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
           const idx = raw.findIndex((j: any) => String(j.id || j.ID || "").trim() === cleanId);
           if (idx >= 0) {
-            raw[idx] = { ...raw[idx], pinHash: hashedPin };
+            raw[idx] = {
+              ...raw[idx],
+              pinHash: hashedPin,
+              whatsapp: cleanPhone || raw[idx].whatsapp,
+              dataNascimento: dataNascimento ? String(dataNascimento).trim() : raw[idx].dataNascimento,
+            };
             fs.writeFileSync(filePath, JSON.stringify(raw, null, 4), "utf-8");
           }
         }
@@ -124,7 +164,7 @@ export async function POST(req: Request) {
       // Cria sessão segura de 30 dias
       const resObj = NextResponse.json({
         success: true,
-        message: `PIN ativado com sucesso! Bem-vindo(a), ${athlete.nome}!`,
+        message: `Titularidade confirmada e PIN ativado com sucesso! Bem-vindo(a), ${athlete.nome}!`,
         player: {
           id: athlete.id,
           nome: athlete.nome,
@@ -143,18 +183,17 @@ export async function POST(req: Request) {
       return resObj;
     }
 
-    // Se o atleta oficial ainda não definiu PIN, retorna instrução com dados completos
+    // Se o atleta oficial ainda não definiu PIN, solicita ativação com verificação de segurança
     if (!athlete.pinHash) {
       return NextResponse.json({
         needActivation: true,
         popId: cleanId,
         athlete: {
           id: athlete.id,
-          nome: athlete.nome,
           categoria: athlete.categoria,
         },
         pinEntered: cleanPin,
-        message: `Olá, ${athlete.nome}! Identificamos seu cadastro oficial na Liga. Como este é o seu primeiro acesso ao Portal, confirme seu PIN de 4 dígitos para ativar sua conta e entrar diretamente.`,
+        message: `Identificamos que o POP ID ${cleanId} já consta no ranking oficial da Liga. Por segurança, confirme seus dados cadastrais (Nome Completo, Data de Nascimento e WhatsApp) para ativar seu acesso exclusivo.`,
       });
     }
 
@@ -226,13 +265,14 @@ export async function GET(req: Request) {
           const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
           const found = raw.find((j: any) => String(j.id || j.ID || "").trim() === cleanId);
           if (found) {
+            const hasPin = Boolean(found.pinHash);
             return NextResponse.json({
               exists: true,
               athlete: {
                 id: cleanId,
-                nome: found.jogador || found.Jogador || found.nome || "Treinador Oficial",
+                nome: hasPin ? (found.jogador || found.Jogador || found.nome) : undefined,
                 categoria: found.categoria || found.Categoria || "Master",
-                hasPin: Boolean(found.pinHash),
+                hasPin,
               },
             });
           }
@@ -243,13 +283,14 @@ export async function GET(req: Request) {
     }
 
     const athlete = player[0];
+    const hasPin = Boolean(athlete.pinHash);
     return NextResponse.json({
       exists: true,
       athlete: {
         id: athlete.id,
-        nome: athlete.nome,
+        nome: hasPin ? athlete.nome : undefined,
         categoria: athlete.categoria,
-        hasPin: Boolean(athlete.pinHash),
+        hasPin,
       },
     });
   } catch (error) {
