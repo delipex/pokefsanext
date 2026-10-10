@@ -78,7 +78,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     dataNascimento?: string;
     deckAtivoNome?: string;
     decklistTexto?: string;
+    activeRegistration?: any;
   } | null>(null);
+  const [existingRegistration, setExistingRegistration] = useState<any | null>(null);
 
   // UI / Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -171,11 +173,23 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
             if (user.whatsapp) {
               setWhatsapp((prev) => (!prev ? user.whatsapp : prev));
             }
-            if (user.deckAtivoNome) {
-              setSelectedDeck((prev) => (!prev ? user.deckAtivoNome : prev));
-            }
-            if (user.decklistTexto) {
-              setDecklistRaw((prev) => (!prev ? user.decklistTexto : prev));
+            if (user.activeRegistration) {
+              setExistingRegistration(user.activeRegistration);
+              setSelectedDeck(user.activeRegistration.deckNome || user.deckAtivoNome || "");
+              setDecklistRaw(user.activeRegistration.decklistRaw || user.decklistTexto || "");
+              if (
+                user.activeRegistration.statusPix === "Pagar no Local" ||
+                user.activeRegistration.statusPix === "Presencial"
+              ) {
+                setMetodoPagamento("presencial");
+              }
+            } else {
+              if (user.deckAtivoNome) {
+                setSelectedDeck((prev) => (!prev ? user.deckAtivoNome : prev));
+              }
+              if (user.decklistTexto) {
+                setDecklistRaw((prev) => (!prev ? user.decklistTexto : prev));
+              }
             }
           }
         })
@@ -601,8 +615,25 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                   </motion.div>
                 )}
 
-                {/* Banner de Sessão Ativa / Auto-Preenchimento */}
-                {loggedInUser && (
+                {/* Banner de Sessão Ativa / Auto-Preenchimento / Inscrição Existente */}
+                {existingRegistration ? (
+                  <div className="flex items-center gap-3 rounded-2xl border border-blue-500/40 bg-blue-500/10 p-3.5 text-xs text-blue-300 shadow-sm">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-white flex flex-wrap items-center gap-1.5 truncate">
+                        <span>Inscrição Existente Detectada</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono font-bold">
+                          {existingRegistration.protocolo || "Confirmada"}
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-blue-300/80 truncate">
+                        Você já possui vaga garantida! Altere seu deck, lista ou dados e salve abaixo.
+                      </p>
+                    </div>
+                  </div>
+                ) : loggedInUser ? (
                   <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 shadow-sm">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                       <Sparkles className="h-4 w-4" />
@@ -619,7 +650,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                       </p>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {/* Formulário Interativo */}
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -939,6 +970,11 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         </>
                       ) : !isAbertas ? (
                         <span>Inscrições Encerradas para este Torneio</span>
+                      ) : existingRegistration ? (
+                        <>
+                          <Sparkles className="h-4 w-4 text-blue-300" />
+                          <span>Salvar Alterações na Inscrição</span>
+                        </>
                       ) : (
                         <>
                           <Sparkles className="h-4 w-4 text-amber-300" />

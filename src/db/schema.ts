@@ -149,6 +149,8 @@ export const jogadorDecklists = sqliteTable("jogador_decklists", {
   jogadorId: text("jogador_id"),
   jogadorNome: text("jogador_nome").notNull(),
   categoria: text("categoria").default("Master"),
+  dataNascimento: text("data_nascimento"),
+  whatsapp: text("whatsapp"),
   eventoNome: text("evento_nome"),
   etapaData: text("etapa_data").notNull(),
   deckNome: text("deck_nome").notNull(),
@@ -157,6 +159,8 @@ export const jogadorDecklists = sqliteTable("jogador_decklists", {
   totalCartas: integer("total_cartas").default(60),
   validada: integer("validada", { mode: "boolean" }).default(false),
   statusPix: text("status_pix").default("Pendente"),
+  updatedAt: text("updated_at"),
+  historicoEdicoes: text("historico_edicoes").default("[]"),
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });
 

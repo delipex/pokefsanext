@@ -151,14 +151,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Geração de Protocolo Oficial Único
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const protocolo = `LA-${dateStr}-${randomSuffix}`;
-
     const finalEventName = eventoNome || configMap.premierNome || "League Challenge — Liga Atlântica";
-    const finalEventDate = etapaData || configMap.premierData || now.toISOString().split("T")[0];
+    const finalEventDate = etapaData || configMap.premierData || new Date().toISOString().split("T")[0];
     
     // Calcula categoria oficial Play! Pokémon com base no ano de nascimento (Temporada Oficial)
     let finalCategory = categoria || "Master";
@@ -186,50 +180,174 @@ export async function POST(req: Request) {
     const isPresencial = metodoPagamento === "presencial" || metodoPagamento === "local";
     const initialStatusPix = isPresencial ? "Pagar no Local" : "Pendente";
 
-    // 5. Inserção na Tabela de Decklists / Inscrições (com proteção contra discrepâncias de esquema)
-    let insertedItem: any = null;
+    // 4. Verificação de Inscrição Existente para o Mesmo Evento (Unificação & Atualização)
+    let existingItem: any = null;
     try {
-      const [inserted] = await db
-        .insert(jogadorDecklists)
-        .values({
-          protocolo,
-          jogadorId: popVal.cleanId,
-          jogadorNome: nameVal.cleanName!,
-          categoria: finalCategory,
-          eventoNome: finalEventName,
-          etapaData: finalEventDate,
-          deckNome: finalDeckNome,
-          tipoEnergia: finalTipoEnergia,
-          decklistRaw: rawDecklistText || (limitlessUrl ? `Link: ${limitlessUrl}` : ""),
-          totalCartas: totalCartas || (rawDecklistText ? 60 : 0),
-          validada: isValidDeck,
-          statusPix: initialStatusPix,
-        })
-        .returning();
-      insertedItem = inserted;
-    } catch (drizzleErr) {
-      // Fallback robusto via client direto SQL do Turso
-      const res = await client.execute({
-        sql: `INSERT INTO jogador_decklists (
-          protocolo, jogador_id, jogador_nome, categoria, evento_nome, etapa_data,
-          deck_nome, tipo_energia, decklist_raw, total_cartas, validada, status_pix, cards_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]') RETURNING *;`,
-        args: [
-          protocolo,
-          popVal.cleanId,
-          nameVal.cleanName!,
-          finalCategory,
-          finalEventName,
-          finalEventDate,
-          finalDeckNome,
-          finalTipoEnergia,
-          rawDecklistText || (limitlessUrl ? `Link: ${limitlessUrl}` : ""),
-          totalCartas || (rawDecklistText ? 60 : 0),
-          isValidDeck ? 1 : 0,
-          initialStatusPix,
-        ],
+      const existingList = await db
+        .select()
+        .from(jogadorDecklists)
+        .where(eq(jogadorDecklists.jogadorId, popVal.cleanId!));
+
+      existingItem = existingList.find((item: any) => {
+        if (finalEventDate && item.etapaData === finalEventDate) return true;
+        if (finalEventName && item.eventoNome && item.eventoNome.toLowerCase().includes(finalEventName.toLowerCase())) return true;
+        return false;
       });
-      insertedItem = res.rows[0] || { protocolo, jogadorNome: nameVal.cleanName };
+    } catch {
+      try {
+        const res = await client.execute({
+          sql: `SELECT * FROM jogador_decklists WHERE jogador_id = ?;`,
+          args: [popVal.cleanId!],
+        });
+        existingItem = (res.rows as any[]).find((item: any) => {
+          if (finalEventDate && (item.etapaData === finalEventDate || item.etapa_data === finalEventDate)) return true;
+          const ev = item.eventoNome || item.evento_nome || "";
+          if (finalEventName && ev && ev.toLowerCase().includes(finalEventName.toLowerCase())) return true;
+          return false;
+        });
+      } catch {}
+    }
+
+    const isUpdate = Boolean(existingItem);
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const protocolo = existingItem?.protocolo || `LA-${dateStr}-${randomSuffix}`;
+
+    let savedItem: any = null;
+
+    if (isUpdate && existingItem) {
+      // 5A. Registro no Histórico de Edições / Log para o Organizador
+      const alteracoes: string[] = [];
+      const oldDeck = existingItem.deckNome || existingItem.deck_nome || "";
+      if (oldDeck !== finalDeckNome) {
+        alteracoes.push(`Baralho: "${oldDeck}" ➔ "${finalDeckNome}"`);
+      }
+      const oldDl = existingItem.decklistRaw || existingItem.decklist_raw || "";
+      if (rawDecklistText && oldDl !== rawDecklistText) {
+        alteracoes.push(`Decklist de 60 cartas atualizada (${totalCartas} cartas)`);
+      }
+      const oldCat = existingItem.categoria || "";
+      if (oldCat !== finalCategory) {
+        alteracoes.push(`Categoria: "${oldCat}" ➔ "${finalCategory}"`);
+      }
+      if (body.whatsapp && existingItem.whatsapp !== body.whatsapp) {
+        alteracoes.push(`WhatsApp atualizado`);
+      }
+
+      let history: any[] = [];
+      try {
+        const rawHist = existingItem.historicoEdicoes || existingItem.historico_edicoes || "[]";
+        history = JSON.parse(rawHist);
+        if (!Array.isArray(history)) history = [];
+      } catch {
+        history = [];
+      }
+
+      if (alteracoes.length > 0) {
+        history.push({
+          dataHora: now.toISOString(),
+          editadoPor: "jogador",
+          alteracoes,
+          deckAnterior: oldDeck,
+          deckNovo: finalDeckNome,
+        });
+      }
+
+      const updatedHistoryStr = JSON.stringify(history);
+
+      try {
+        const [updated] = await db
+          .update(jogadorDecklists)
+          .set({
+            jogadorNome: nameVal.cleanName!,
+            categoria: finalCategory,
+            dataNascimento: dataNascimento || existingItem.dataNascimento,
+            whatsapp: body.whatsapp || existingItem.whatsapp,
+            deckNome: finalDeckNome,
+            tipoEnergia: finalTipoEnergia,
+            decklistRaw: rawDecklistText || existingItem.decklistRaw,
+            totalCartas: totalCartas || existingItem.totalCartas,
+            validada: isValidDeck ? true : existingItem.validada,
+            updatedAt: now.toISOString(),
+            historicoEdicoes: updatedHistoryStr,
+          })
+          .where(eq(jogadorDecklists.id, existingItem.id))
+          .returning();
+        savedItem = updated;
+      } catch {
+        await client.execute({
+          sql: `UPDATE jogador_decklists SET
+            jogador_nome = ?, categoria = ?, data_nascimento = ?, whatsapp = ?,
+            deck_nome = ?, tipo_energia = ?, decklist_raw = ?, total_cartas = ?,
+            validada = ?, updated_at = ?, historico_edicoes = ?
+          WHERE id = ?;`,
+          args: [
+            nameVal.cleanName!,
+            finalCategory,
+            dataNascimento || existingItem.dataNascimento || null,
+            body.whatsapp || existingItem.whatsapp || null,
+            finalDeckNome,
+            finalTipoEnergia,
+            rawDecklistText || existingItem.decklistRaw || "",
+            totalCartas || existingItem.totalCartas || 60,
+            isValidDeck ? 1 : 0,
+            now.toISOString(),
+            updatedHistoryStr,
+            existingItem.id,
+          ],
+        });
+        savedItem = { ...existingItem, deckNome: finalDeckNome, decklistRaw: rawDecklistText };
+      }
+    } else {
+      // 5B. Inserção Nova na Tabela de Decklists
+      try {
+        const [inserted] = await db
+          .insert(jogadorDecklists)
+          .values({
+            protocolo,
+            jogadorId: popVal.cleanId,
+            jogadorNome: nameVal.cleanName!,
+            categoria: finalCategory,
+            dataNascimento: dataNascimento || null,
+            whatsapp: body.whatsapp || null,
+            eventoNome: finalEventName,
+            etapaData: finalEventDate,
+            deckNome: finalDeckNome,
+            tipoEnergia: finalTipoEnergia,
+            decklistRaw: rawDecklistText || (limitlessUrl ? `Link: ${limitlessUrl}` : ""),
+            totalCartas: totalCartas || (rawDecklistText ? 60 : 0),
+            validada: isValidDeck,
+            statusPix: initialStatusPix,
+            historicoEdicoes: "[]",
+          })
+          .returning();
+        savedItem = inserted;
+      } catch (drizzleErr) {
+        const res = await client.execute({
+          sql: `INSERT INTO jogador_decklists (
+            protocolo, jogador_id, jogador_nome, categoria, data_nascimento, whatsapp, evento_nome, etapa_data,
+            deck_nome, tipo_energia, decklist_raw, total_cartas, validada, status_pix, cards_json, historico_edicoes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', '[]') RETURNING *;`,
+          args: [
+            protocolo,
+            popVal.cleanId,
+            nameVal.cleanName!,
+            finalCategory,
+            dataNascimento || null,
+            body.whatsapp || null,
+            finalEventName,
+            finalEventDate,
+            finalDeckNome,
+            finalTipoEnergia,
+            rawDecklistText || (limitlessUrl ? `Link: ${limitlessUrl}` : ""),
+            totalCartas || (rawDecklistText ? 60 : 0),
+            isValidDeck ? 1 : 0,
+            initialStatusPix,
+          ],
+        });
+        savedItem = res.rows[0] || { protocolo, jogadorNome: nameVal.cleanName };
+      }
     }
 
     // 6. Atualização/Registro do Atleta na Tabela de Jogadores (se não existir)
@@ -306,13 +424,16 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
+      isUpdate,
       protocolo,
-      item: insertedItem,
+      item: savedItem,
       waUrl,
       chavePix: configMap.premierPix || "",
       titularPix: configMap.premierTitular || "",
       valor: configMap.premierValor || "0,00",
-      message: "Inscrição confirmada com sucesso! Guarde seu protocolo e envie o comprovante PIX.",
+      message: isUpdate
+        ? "Inscrição atualizada com sucesso! Suas alterações foram registradas no sistema."
+        : "Inscrição confirmada com sucesso! Guarde seu protocolo e envie o comprovante PIX.",
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

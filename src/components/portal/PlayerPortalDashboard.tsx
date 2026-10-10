@@ -968,8 +968,101 @@ export function PlayerPortalDashboard({
               </button>
             </form>
           </div>
+        ) : submittedDecklist ? (
+          /* B. CARD DE ACOMPANHAMENTO DA INSCRIÇÃO ATIVA DO ATLETA */
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                    submittedDecklist.statusPix === "Confirmado" || submittedDecklist.statusPix === "Pago"
+                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                      : submittedDecklist.statusPix === "Pagar no Local" || submittedDecklist.statusPix === "Presencial"
+                      ? "bg-blue-500/20 text-blue-300 border-blue-500/40"
+                      : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                  }`}>
+                    <CheckCircle2 className="h-3 w-3" />
+                    {submittedDecklist.statusPix === "Confirmado" || submittedDecklist.statusPix === "Pago"
+                      ? "Inscrição Confirmada / Pago"
+                      : submittedDecklist.statusPix === "Pagar no Local" || submittedDecklist.statusPix === "Presencial"
+                      ? "Pagamento no Local"
+                      : "PIX Pendente"}
+                  </span>
+                  {submittedDecklist.protocolo && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-white/10 font-bold">
+                      Protocolo: #{submittedDecklist.protocolo}
+                    </span>
+                  )}
+                  {submittedDecklist.updatedAt && (
+                    <span className="text-[10px] text-blue-300/80 font-medium">
+                      (Última alteração: {new Date(submittedDecklist.updatedAt).toLocaleDateString("pt-BR")})
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white">
+                  {submittedDecklist.eventoNome || config.premierNome || "Torneio Oficial"}
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.dispatchEvent(new CustomEvent("open-inscricao-modal"));
+                    }
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                  <span>Editar Inscrição / Deck</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Detalhes da Inscrição */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Baralho Registrado</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white">{submittedDecklist.deckNome || "Sem deck"}</span>
+                  {submittedDecklist.tipoEnergia && <EnergyBadge energyRaw={submittedDecklist.tipoEnergia} />}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Data & Horário</span>
+                <p className="text-xs font-bold text-white">
+                  {submittedDecklist.etapaData || config.premierData || "A definir"} • {config.premierHorario || "14:00"}
+                </p>
+                <p className="text-[11px] text-slate-400">{config.premierLocal || "Livraria Atlântica"}</p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Decklist (60 Cartas)</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-emerald-400">
+                    {submittedDecklist.totalCartas || 60}/60 Cartas {submittedDecklist.validada ? "✅" : ""}
+                  </span>
+                  {submittedDecklist.decklistRaw && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(submittedDecklist.decklistRaw);
+                        setCopiedRaw(true);
+                        setTimeout(() => setCopiedRaw(false), 2000);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 text-[10px] font-bold text-slate-300 hover:text-white border border-white/10 cursor-pointer"
+                    >
+                      {copiedRaw ? "Copiado!" : "Copiar Lista"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         ) : config.premierAbertas === "true" || config.premierAbertas === true || config.inscricoesAtivas === "true" ? (
-          /* B. TORNEIO OFICIAL COM INSCRIÇÕES ABERTAS (PREENCHIMENTO RÁPIDO) */
+          /* C. TORNEIO OFICIAL COM INSCRIÇÕES ABERTAS (PREENCHIMENTO RÁPIDO) */
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="space-y-2.5">
               <div className="flex flex-wrap items-center gap-2">
@@ -1021,7 +1114,7 @@ export function PlayerPortalDashboard({
             </div>
           </div>
         ) : (
-          /* C. SESSÃO REGULAR DE LIGA: MENU FECHADO, APENAS INFORMAÇÕES DO PRÓXIMO TORNEIO */
+          /* D. SESSÃO REGULAR DE LIGA: MENU FECHADO, APENAS INFORMAÇÕES DO PRÓXIMO TORNEIO */
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-amber-400 text-xs font-black uppercase tracking-wider">

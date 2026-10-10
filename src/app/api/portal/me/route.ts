@@ -59,24 +59,25 @@ export async function GET() {
 
     let decklistTexto = athlete.decklistTexto || "";
     let deckAtivoNome = athlete.deckAtivoNome || "";
+    let activeRegistration: any = null;
 
-    // Se não tiver decklist salvo no registro, busca da última decklist enviada
-    if (!decklistTexto) {
-      try {
-        const dls = await db
-          .select()
-          .from(jogadorDecklists)
-          .where(eq(jogadorDecklists.jogadorId, cleanId))
-          .orderBy(desc(jogadorDecklists.createdAt))
-          .limit(1);
-        if (dls && dls.length > 0) {
+    try {
+      const dls = await db
+        .select()
+        .from(jogadorDecklists)
+        .where(eq(jogadorDecklists.jogadorId, cleanId))
+        .orderBy(desc(jogadorDecklists.createdAt))
+        .limit(1);
+      if (dls && dls.length > 0) {
+        activeRegistration = dls[0];
+        if (!decklistTexto) {
           decklistTexto = dls[0].decklistRaw || "";
-          if (!deckAtivoNome) {
-            deckAtivoNome = dls[0].deckNome || "";
-          }
         }
-      } catch {}
-    }
+        if (!deckAtivoNome) {
+          deckAtivoNome = dls[0].deckNome || "";
+        }
+      }
+    } catch {}
 
     return NextResponse.json({
       loggedIn: true,
@@ -88,6 +89,7 @@ export async function GET() {
       cidade: athlete.cidade || "",
       deckAtivoNome: deckAtivoNome || "",
       decklistTexto: decklistTexto || "",
+      activeRegistration,
     });
   } catch (error) {
     return NextResponse.json({ loggedIn: false });

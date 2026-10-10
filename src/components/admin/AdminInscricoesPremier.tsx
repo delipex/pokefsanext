@@ -115,6 +115,7 @@ export function AdminInscricoesPremier({
   // Modais e Feedback
   const [isNewRegistrationModalOpen, setIsNewRegistrationModalOpen] = useState(false);
   const [viewingDecklist, setViewingDecklist] = useState<any | null>(null);
+  const [viewingEditLog, setViewingEditLog] = useState<any | null>(null);
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [isUpdatingFromSheets, setIsUpdatingFromSheets] = useState(false);
   const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -890,9 +891,25 @@ export function AdminInscricoesPremier({
                       </td>
                       <td className="py-3 px-4">
                         <div className="font-bold text-white text-sm">{item.jogadorNome}</div>
-                        {item.jogadorId && (
-                          <div className="text-[11px] text-slate-400 font-mono">ID: {item.jogadorId}</div>
-                        )}
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                          {item.jogadorId && (
+                            <span className="text-[11px] text-slate-400 font-mono">ID: {item.jogadorId}</span>
+                          )}
+                          {((item.historicoEdicoes && item.historicoEdicoes !== "[]") ||
+                            (item.historico_edicoes && item.historico_edicoes !== "[]") ||
+                            item.updatedAt ||
+                            item.updated_at) && (
+                            <button
+                              type="button"
+                              onClick={() => setViewingEditLog(item)}
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30 transition-all cursor-pointer shadow-sm"
+                              title="Ver histórico de edições desta inscrição"
+                            >
+                              <Sparkles className="h-2.5 w-2.5 text-purple-400" />
+                              <span>Editado ✏️</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-3">
                         <div className="font-semibold text-amber-300 text-xs truncate max-w-[140px]">
@@ -1189,6 +1206,91 @@ export function AdminInscricoesPremier({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal de Histórico de Edições / Auditoria */}
+      {viewingEditLog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-400" />
+                  Histórico de Edições da Inscrição
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {viewingEditLog.jogadorNome} (POP ID: {viewingEditLog.jogadorId || "N/A"}) • #{viewingEditLog.protocolo}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingEditLog(null)}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {(() => {
+                let history: any[] = [];
+                try {
+                  const raw = viewingEditLog.historicoEdicoes || viewingEditLog.historico_edicoes || "[]";
+                  history = typeof raw === "string" ? JSON.parse(raw) : raw;
+                  if (!Array.isArray(history)) history = [];
+                } catch {
+                  history = [];
+                }
+
+                if (history.length === 0) {
+                  return (
+                    <div className="p-4 rounded-2xl bg-slate-950 border border-white/5 text-center text-xs text-slate-400">
+                      Inscrição atualizada em{" "}
+                      {viewingEditLog.updatedAt || viewingEditLog.updated_at
+                        ? new Date(viewingEditLog.updatedAt || viewingEditLog.updated_at).toLocaleString("pt-BR")
+                        : "data recente"}
+                      , sem histórico detalhado anterior.
+                    </div>
+                  );
+                }
+
+                return history.map((entry, idx) => (
+                  <div key={idx} className="p-3.5 rounded-2xl bg-slate-950 border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-purple-300">
+                        Alteração #{history.length - idx} •{" "}
+                        {entry.dataHora ? new Date(entry.dataHora).toLocaleString("pt-BR") : "Data N/A"}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase font-mono">
+                        {entry.editadoPor === "jogador" ? "Pelo Atleta" : "Admin"}
+                      </span>
+                    </div>
+
+                    {entry.alteracoes && entry.alteracoes.length > 0 && (
+                      <ul className="space-y-1 text-xs text-slate-300">
+                        {entry.alteracoes.map((alt: string, aIdx: number) => (
+                          <li key={aIdx} className="flex items-start gap-1.5">
+                            <span className="text-purple-400 font-bold">•</span>
+                            <span>{alt}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ));
+              })()}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setViewingEditLog(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -184,6 +184,8 @@ export async function ensureDatabaseSchema() {
       jogador_id TEXT,
       jogador_nome TEXT NOT NULL,
       categoria TEXT DEFAULT 'Master',
+      data_nascimento TEXT,
+      whatsapp TEXT,
       evento_nome TEXT,
       etapa_data TEXT NOT NULL,
       deck_nome TEXT NOT NULL,
@@ -193,6 +195,8 @@ export async function ensureDatabaseSchema() {
       total_cartas INTEGER DEFAULT 60,
       validada INTEGER DEFAULT 0,
       status_pix TEXT DEFAULT 'Pendente',
+      updated_at TEXT,
+      historico_edicoes TEXT DEFAULT '[]',
       created_at TEXT DEFAULT (datetime('now'))
     );`,
     `CREATE TABLE IF NOT EXISTS solicitacoes_decks (
@@ -259,6 +263,10 @@ export async function ensureDatabaseSchema() {
     `ALTER TABLE jogador_decklists ADD COLUMN total_cartas INTEGER DEFAULT 60;`,
     `ALTER TABLE jogador_decklists ADD COLUMN validada INTEGER DEFAULT 0;`,
     `ALTER TABLE jogador_decklists ADD COLUMN status_pix TEXT DEFAULT 'Pendente';`,
+    `ALTER TABLE jogador_decklists ADD COLUMN data_nascimento TEXT;`,
+    `ALTER TABLE jogador_decklists ADD COLUMN whatsapp TEXT;`,
+    `ALTER TABLE jogador_decklists ADD COLUMN updated_at TEXT;`,
+    `ALTER TABLE jogador_decklists ADD COLUMN historico_edicoes TEXT DEFAULT '[]';`,
   ];
 
 
