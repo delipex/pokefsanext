@@ -238,14 +238,19 @@ export async function getRanking(categoria?: string) {
         };
       });
 
-      // Deduplicação defensiva do ranking por ID ou Nome
+      // Deduplicação defensiva do ranking por ID e Nome
       const rankMap = new Map<string, any>();
       for (const p of enriched) {
         const rawId = String(p.jogadorId || "").trim();
         const rawName = String(p.jogadorNome || "").trim().toLowerCase();
-        const key = rawId ? `id_${rawId}` : `name_${rawName}`;
+        const key = (rawId && !rawId.startsWith("sem-id")) ? `id_${rawId}` : `name_${rawName}`;
         if (!rankMap.has(key)) {
           rankMap.set(key, p);
+        } else {
+          const existing = rankMap.get(key);
+          if (existing && (!existing.jogadorId || existing.jogadorId.startsWith("sem-id")) && rawId && !rawId.startsWith("sem-id")) {
+            rankMap.set(key, p);
+          }
         }
       }
       return Array.from(rankMap.values());

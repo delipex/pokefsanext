@@ -43,7 +43,7 @@ export async function recalculateRankingConsolidado(targetSeason?: number) {
       canonicalMaps
     );
 
-    const key = canonical.id ? canonical.id : canonical.nome.toLowerCase().trim();
+    const key = canonical.id && !canonical.id.startsWith("sem-id") ? canonical.id : canonical.nome.toLowerCase().trim();
 
     if (!playerStatsMap[key]) {
       playerStatsMap[key] = {
@@ -58,6 +58,8 @@ export async function recalculateRankingConsolidado(targetSeason?: number) {
         ultimoDeck: null as string | null,
         etapaColocacoes: new Map<string, number>(),
       };
+    } else if (canonical.id && !canonical.id.startsWith("sem-id") && (!playerStatsMap[key].jogadorId || playerStatsMap[key].jogadorId.startsWith("sem-id"))) {
+      playerStatsMap[key].jogadorId = canonical.id;
     }
 
     const mult = etapaInfo.multiplicador ? Number(etapaInfo.multiplicador) : 1.0;

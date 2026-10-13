@@ -37,8 +37,18 @@ export async function getCanonicalPlayersMap(): Promise<{
       };
 
       if (cleanId) byId.set(cleanId, item);
-      if (normalizedName) byNormalizedName.set(normalizedName, item);
-      if (cleanName) byNormalizedName.set(cleanName.toLowerCase().trim(), item);
+
+      // Priorizar atleta com POP ID real sobre dummy "sem-id"
+      const existing = normalizedName ? byNormalizedName.get(normalizedName) : undefined;
+      const shouldSet =
+        !existing ||
+        (existing.id.startsWith("sem-id") && !cleanId.startsWith("sem-id")) ||
+        (!existing.deckAtivoNome && item.deckAtivoNome);
+
+      if (shouldSet) {
+        if (normalizedName) byNormalizedName.set(normalizedName, item);
+        if (cleanName) byNormalizedName.set(cleanName.toLowerCase().trim(), item);
+      }
     }
   } catch (err) {
     console.warn("Aviso ao carregar mapa canônico de jogadores:", err);
@@ -66,7 +76,19 @@ export function resolveCanonicalPlayer(
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
-  // 1. Busca por POP ID (Chave primária imutável)
+  // 1. Busca por Nome Normalizado primeiro se o ID recebido for nulo ou temporário ("sem-id")
+  if (!cleanId || cleanId.startsWith("sem-id")) {
+    const foundByName = maps.byNormalizedName.get(lowerName) || maps.byNormalizedName.get(normName);
+    if (foundByName && foundByName.id && !foundByName.id.startsWith("sem-id")) {
+      return {
+        id: foundByName.id,
+        nome: foundByName.nome,
+        categoria: (raw.categoria as any) || foundByName.categoria,
+      };
+    }
+  }
+
+  // 2. Busca por POP ID oficial (Chave primária imutável)
   if (cleanId && maps.byId.has(cleanId)) {
     const found = maps.byId.get(cleanId)!;
     return {
@@ -76,11 +98,11 @@ export function resolveCanonicalPlayer(
     };
   }
 
-  // 2. Busca por Nome Normalizado / Case-Insensitive
+  // 3. Busca por Nome Normalizado / Case-Insensitive
   if (maps.byNormalizedName.has(lowerName)) {
     const found = maps.byNormalizedName.get(lowerName)!;
     return {
-      id: cleanId || found.id,
+      id: (found.id && !found.id.startsWith("sem-id")) ? found.id : (cleanId || found.id),
       nome: found.nome,
       categoria: (raw.categoria as any) || found.categoria,
     };
@@ -89,7 +111,7 @@ export function resolveCanonicalPlayer(
   if (maps.byNormalizedName.has(normName)) {
     const found = maps.byNormalizedName.get(normName)!;
     return {
-      id: cleanId || found.id,
+      id: (found.id && !found.id.startsWith("sem-id")) ? found.id : (cleanId || found.id),
       nome: found.nome,
       categoria: (raw.categoria as any) || found.categoria,
     };
