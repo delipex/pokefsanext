@@ -38,6 +38,7 @@ import {
   KeyRound,
   Smartphone,
   Info,
+  Swords,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { CategoryBadge } from "../ui/CategoryBadge";
@@ -48,6 +49,7 @@ import { AdminInscricoesPremier } from "./AdminInscricoesPremier";
 import { AdminTemporadasManager } from "./AdminTemporadasManager";
 import { AdminAuditoria } from "./AdminAuditoria";
 import { AdminRegrasManager } from "./AdminRegrasManager";
+import { AdminBracketManager } from "./AdminBracketManager";
 
 interface AdminToast {
   id: string;
@@ -108,7 +110,7 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
-    "tdf" | "etapas" | "jogadores" | "decks" | "metagame" | "inscricoes" | "temporadas" | "calendario" | "config"
+    "tdf" | "etapas" | "jogadores" | "decks" | "metagame" | "inscricoes" | "temporadas" | "calendario" | "config" | "bracket"
   >("tdf");
 
   const formatDateBR = (dateStr: string) => {
@@ -1630,6 +1632,18 @@ export function AdminDashboard({
           >
             <Trophy className="h-3.5 w-3.5" />
             <span>Temporadas & Hall</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("bracket")}
+            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              activeTab === "bracket"
+                ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black shadow-md shadow-purple-600/30"
+                : "text-purple-400/90 hover:text-purple-300 hover:bg-purple-500/10"
+            }`}
+          >
+            <Swords className="h-3.5 w-3.5" />
+            <span>Finais / Top Cut</span>
           </button>
 
 
@@ -3865,6 +3879,11 @@ export function AdminDashboard({
           onChampionsUpdated={() => router.refresh()}
           onScoresUpdated={() => router.refresh()}
         />
+      )}
+
+      {/* 7. ABA FINAIS / TOP CUT CHAVEAMENTO */}
+      {activeTab === "bracket" && (
+        <AdminBracketManager />
       )}
 
       {/* Modal de Diagnóstico do Banco de Dados */}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Flame, Calendar, BookOpen, Menu, X, Shield, User } from "lucide-react";
+import { Trophy, Flame, Calendar, BookOpen, Menu, X, Shield, User, Swords } from "lucide-react";
 import { PokeballIcon, HeaderLogoSvg } from "@/components/ui/BrandLogo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
@@ -41,6 +41,7 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal 
     { href: "/ranking", label: "Ranking", icon: Trophy },
     { href: "/metagame", label: "Metagame", icon: Flame },
     { href: "/calendario", label: "Calendário", icon: Calendar },
+    { href: "/final", label: "Top Cut", icon: Swords },
     { href: "/campeoes", label: "Campeões", icon: Shield },
     { href: "/regras", label: "Regras", icon: BookOpen },
   ];
@@ -65,7 +66,7 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal 
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative flex items-center gap-1.5 rounded-full px-4 py-2 text-xs sm:text-sm font-semibold tracking-tight transition-colors duration-200"
+                className="relative flex items-center gap-1.5 rounded-full px-3 xl:px-4 py-2 text-xs sm:text-sm font-semibold tracking-tight transition-colors duration-200"
               >
                 {isActive && (
                   <motion.span
