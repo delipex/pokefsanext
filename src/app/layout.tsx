@@ -27,14 +27,14 @@ export const metadata: Metadata = {
   description: "Acompanhe o ranking oficial, histórico de etapas, pódios e metagame do Pokémon Trading Card Game em Feira de Santana - BA.",
   icons: {
     icon: [
-      { url: "/icon.png", type: "image/png" },
-      { url: "/icon.png", sizes: "32x32", type: "image/png" },
-      { url: "/icon.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
       { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
     ],
-    shortcut: "/icon.png",
+    shortcut: "/favicon.ico",
   },
 };
 

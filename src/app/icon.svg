@@ -1,0 +1,43 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="redGlow" cx="40%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FF552B" />
+      <stop offset="60%" stop-color="#FF4216" />
+      <stop offset="100%" stop-color="#D92E04" />
+    </radialGradient>
+    <radialGradient id="whiteGlow" cx="40%" cy="70%" r="70%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="70%" stop-color="#F1F5F9" />
+      <stop offset="100%" stop-color="#CBD5E1" />
+    </radialGradient>
+    <linearGradient id="bandGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+  </defs>
+
+  <!-- Borda Externa de Alto Contraste (para visibilidade em abas claras e escuras) -->
+  <circle cx="50" cy="50" r="47" fill="#090A0F" />
+
+  <!-- Metade Inferior (Branca) -->
+  <path d="M 6,50 A 44,44 0 0 0 94,50 Z" fill="url(#whiteGlow)" />
+
+  <!-- Metade Superior (Vermelha Oficial Pokémon) -->
+  <path d="M 6,50 A 44,44 0 0 1 94,50 Z" fill="url(#redGlow)" />
+
+  <!-- Brilho / Reflexo 3D na Cúpula Superior -->
+  <ellipse cx="50" cy="23" rx="20" ry="8" fill="#FFFFFF" opacity="0.25" />
+
+  <!-- Faixa Central Divisória -->
+  <rect x="5.5" y="46" width="89" height="8" fill="url(#bandGrad)" />
+
+  <!-- Botão Central: Aro Externo -->
+  <circle cx="50" cy="50" r="16" fill="url(#bandGrad)" />
+
+  <!-- Botão Central: Miolo Branco -->
+  <circle cx="50" cy="50" r="10.5" fill="#FFFFFF" />
+
+  <!-- Botão Central: Anel de Detalhe Interno -->
+  <circle cx="50" cy="50" r="5.5" fill="none" stroke="#94A3B8" stroke-width="1.8" />
+  <circle cx="50" cy="50" r="3" fill="#E2E8F0" />
+</svg>
