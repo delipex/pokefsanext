@@ -17,10 +17,9 @@ import {
   BookOpen,
   Gamepad2,
   ExternalLink,
-  ChevronDown,
-  Info,
   Shield,
   Layers,
+  ChevronRight,
 } from "lucide-react";
 
 interface TcgGameOption {
@@ -93,13 +92,65 @@ const TCG_OPTIONS: TcgGameOption[] = [
   },
 ];
 
+interface TurnoItem {
+  id: string;
+  diaNumero: string;
+  diaSemana: string;
+  dataExtenso: string;
+  turnoNome: string;
+  horario: string;
+  descricao: string;
+  accentBorder: string;
+  accentBg: string;
+  accentText: string;
+}
+
+const TURNOS_OPTIONS: TurnoItem[] = [
+  {
+    id: "21_noite",
+    diaNumero: "21",
+    diaSemana: "Quarta-feira",
+    dataExtenso: "21 de Outubro",
+    turnoNome: "Turno Noite",
+    horario: "17:00 às 22:00",
+    descricao: "Início dos torneios oficiais e bancadas de oficinas didáticas",
+    accentBorder: "border-cyan-500/50",
+    accentBg: "bg-cyan-950/40",
+    accentText: "text-cyan-300",
+  },
+  {
+    id: "22_tarde",
+    diaNumero: "22",
+    diaSemana: "Quinta-feira",
+    dataExtenso: "22 de Outubro",
+    turnoNome: "Turno Tarde",
+    horario: "14:00 às 18:00",
+    descricao: "Rodadas eliminatórias, free play e demonstrações para novatos",
+    accentBorder: "border-fuchsia-500/50",
+    accentBg: "bg-fuchsia-950/40",
+    accentText: "text-fuchsia-300",
+  },
+  {
+    id: "22_noite",
+    diaNumero: "22",
+    diaSemana: "Quinta-feira",
+    dataExtenso: "22 de Outubro",
+    turnoNome: "Turno Noite",
+    horario: "18:00 às 20:00",
+    descricao: "Finais dos torneios, premiações e encerramento da Arena Geek",
+    accentBorder: "border-amber-500/50",
+    accentBg: "bg-amber-950/40",
+    accentText: "text-amber-300",
+  },
+];
+
 export function FincRegistrationView() {
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
   const [tipoParticipante, setTipoParticipante] = useState<"externo" | "unef" | "unifan" | "outra">("externo");
   const [selectedGames, setSelectedGames] = useState<string[]>(["pokemon"]);
-  const [selectedDays, setSelectedDays] = useState<string[]>(["21", "22"]);
+  const [selectedTurnos, setSelectedTurnos] = useState<string[]>(["21_noite", "22_tarde", "22_noite"]);
   const [intencao, setIntencao] = useState<"torneio" | "casual" | "oficina_aprender">("torneio");
   const [possuiDeck, setPossuiDeck] = useState<"sim" | "nao" | "preciso_demo">("sim");
   const [observacoes, setObservacoes] = useState("");
@@ -111,7 +162,7 @@ export function FincRegistrationView() {
     nome: string;
     whatsappLink: string;
     jogos: string[];
-    dias: string[];
+    turnos: string[];
   } | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
 
@@ -132,10 +183,22 @@ export function FincRegistrationView() {
     );
   };
 
-  const toggleDay = (day: string) => {
-    setSelectedDays((prev) =>
-      prev.includes(day) ? (prev.length > 1 ? prev.filter((d) => d !== day) : prev) : [...prev, day]
+  const toggleTurno = (id: string) => {
+    setSelectedTurnos((prev) =>
+      prev.includes(id) ? (prev.length > 1 ? prev.filter((t) => t !== id) : prev) : [...prev, id]
     );
+  };
+
+  const selectAllTurnos = () => {
+    setSelectedTurnos(["21_noite", "22_tarde", "22_noite"]);
+  };
+
+  const selectOnly21 = () => {
+    setSelectedTurnos(["21_noite"]);
+  };
+
+  const selectOnly22 = () => {
+    setSelectedTurnos(["22_tarde", "22_noite"]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,12 +217,12 @@ export function FincRegistrationView() {
     }
 
     if (selectedGames.length === 0) {
-      setErrorMessage("Selecione ao menos um Card Game.");
+      setErrorMessage("Selecione ao menos um Card Game de seu interesse.");
       return;
     }
 
-    if (selectedDays.length === 0) {
-      setErrorMessage("Selecione ao menos um dia de participação.");
+    if (selectedTurnos.length === 0) {
+      setErrorMessage("Selecione ao menos um turno de participação.");
       return;
     }
 
@@ -174,7 +237,7 @@ export function FincRegistrationView() {
           email: email.trim(),
           tipoParticipante,
           jogos: selectedGames,
-          dias: selectedDays,
+          dias: selectedTurnos,
           intencao,
           possuiDeck,
           observacoes: observacoes.trim(),
@@ -191,10 +254,9 @@ export function FincRegistrationView() {
         nome: nome.trim(),
         whatsappLink: data.whatsappLink,
         jogos: selectedGames,
-        dias: selectedDays,
+        turnos: selectedTurnos,
       });
 
-      // Scroll para o topo suavemente
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
       setErrorMessage(err.message || "Erro de conexão. Tente novamente.");
@@ -211,124 +273,137 @@ export function FincRegistrationView() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-10 sm:space-y-12">
-      {/* 1. HERO BANNER PRINCIPAL COM AS MARCAS OFICIAIS */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-950 p-6 sm:p-10 shadow-2xl backdrop-blur-xl">
+    <div className="mx-auto max-w-4xl space-y-8 sm:space-y-10">
+      {/* 0. BARRA SUPERIOR EXCLUSIVA FINC • ARENA GEEK (SEM MENU DA LIGA) */}
+      <header className="rounded-2xl border border-white/10 bg-slate-900/80 p-3 sm:p-4 backdrop-blur-xl shadow-xl flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="relative h-8 sm:h-9 w-auto">
+            <Image
+              src="/finc/finc-logo.png"
+              alt="FINC 2026"
+              width={140}
+              height={50}
+              className="h-full w-auto object-contain"
+              priority
+            />
+          </div>
+          <span className="text-white/20 hidden sm:inline-block">•</span>
+          <div className="relative h-9 sm:h-11 w-auto">
+            <Image
+              src="/finc/arena-geek-logo.png"
+              alt="Arena Geek"
+              width={180}
+              height={70}
+              className="h-full w-auto object-contain"
+              priority
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] sm:text-xs font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 rounded-full">
+            Espaço TCG • Atlântica Mais
+          </span>
+        </div>
+      </header>
+
+      {/* 1. HERO BANNER PRINCIPAL (CENTRALIZADO, SEM CARD LATERAL) */}
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-950 p-6 sm:p-10 shadow-2xl backdrop-blur-xl text-center">
         {/* Efeitos de Luz Atmosférica Neon */}
-        <div className="pointer-events-none absolute -top-32 -left-20 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -right-20 h-72 w-72 rounded-full bg-fuchsia-600/25 blur-3xl" />
+        <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-fuchsia-600/25 blur-3xl" />
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Coluna Texto / Título */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* Logos Oficiais: FINC & ARENA GEEK */}
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6 pb-1">
-              <div className="relative h-11 sm:h-13 w-auto max-w-[170px] sm:max-w-[210px]">
-                <Image
-                  src="/finc/finc-logo.png"
-                  alt="Marca Oficial FINC 2026"
-                  width={240}
-                  height={80}
-                  className="h-full w-auto object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.45)]"
-                  priority
-                />
-              </div>
-              <div className="h-7 w-px bg-white/20 hidden sm:block" />
-              <div className="relative h-14 sm:h-18 w-auto max-w-[210px] sm:max-w-[280px]">
-                <Image
-                  src="/finc/arena-geek-logo.png"
-                  alt="Marca Oficial Arena Geek"
-                  width={360}
-                  height={140}
-                  className="h-full w-auto object-contain drop-shadow-[0_0_16px_rgba(168,85,247,0.5)]"
-                  priority
-                />
-              </div>
+        <div className="relative z-10 max-w-3xl mx-auto space-y-6">
+          {/* Marcas Principais em Destaque Central */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 pb-2">
+            <div className="relative h-12 sm:h-14 w-auto">
+              <Image
+                src="/finc/finc-logo.png"
+                alt="Marca Oficial FINC 2026"
+                width={260}
+                height={85}
+                className="h-full w-auto object-contain drop-shadow-[0_0_14px_rgba(6,182,212,0.45)]"
+                priority
+              />
             </div>
-
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-cyan-300 shadow-sm">
-                <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-                FINC 2026 • 21 e 22 de Outubro
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-[1.1]">
-                ESPAÇO TCG{" "}
-                <span className="bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-pink-500 bg-clip-text text-transparent">
-                  Atlântica +Mais
-                </span>
-                <span className="block text-xl sm:text-2xl text-slate-300 font-bold mt-1">
-                  Torneios & Oficinas • Inscrições Abertas
-                </span>
-              </h1>
-            </div>
-
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-              Inscrições gratuitas para os torneios competitivos e oficinas de iniciação dos maiores card games do mundo na 
-              <strong> 12ª edição da Feira Internacional do Conhecimento (FINC)</strong>.
-            </p>
-
-            {/* Badges de Dias e Horários com Alto Destaque */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div className="rounded-2xl border border-cyan-500/30 bg-cyan-950/40 p-4 space-y-1">
-                <div className="flex items-center gap-2 text-cyan-300 font-black text-sm">
-                  <Calendar className="h-4 w-4" />
-                  Quarta-feira • 21 de Outubro
-                </div>
-                <div className="flex items-center gap-2 text-white font-bold text-xs">
-                  <Clock className="h-3.5 w-3.5 text-slate-400" />
-                  Das 17:00 às 22:00
-                </div>
-                <p className="text-[11px] text-slate-400 pt-1">
-                  Rodadas de torneios e bancadas de oficinas práticas.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-950/40 p-4 space-y-1">
-                <div className="flex items-center gap-2 text-fuchsia-300 font-black text-sm">
-                  <Calendar className="h-4 w-4" />
-                  Quinta-feira • 22 de Outubro
-                </div>
-                <div className="flex items-center gap-2 text-white font-bold text-xs">
-                  <Clock className="h-3.5 w-3.5 text-slate-400" />
-                  Das 14:00 às 20:00
-                </div>
-                <p className="text-[11px] text-slate-400 pt-1">
-                  Finais, partidas livres e demonstrações para novatos.
-                </p>
-              </div>
-            </div>
-
-            {/* Local & Realização */}
-            <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-slate-400">
-              <div className="flex items-center gap-1.5 text-slate-300 font-medium">
-                <MapPin className="h-4 w-4 text-rose-400 shrink-0" />
-                <span>Arena Geek • Cajueiro Convenções (Feira de Santana - BA)</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-slate-300 font-medium">
-                <Shield className="h-4 w-4 text-blue-400 shrink-0" />
-                <span>Gestão Técnica: <strong>Atlântica Mais</strong></span>
-              </div>
+            <div className="h-8 w-px bg-white/20 hidden sm:block" />
+            <div className="relative h-16 sm:h-20 w-auto">
+              <Image
+                src="/finc/arena-geek-logo.png"
+                alt="Marca Oficial Arena Geek"
+                width={380}
+                height={150}
+                className="h-full w-auto object-contain drop-shadow-[0_0_18px_rgba(168,85,247,0.5)]"
+                priority
+              />
             </div>
           </div>
 
-          {/* Coluna Arte Oficial em Destaque */}
-          <div className="lg:col-span-5 flex justify-center">
-            <div className="relative group w-full max-w-sm rounded-3xl overflow-hidden border border-white/15 bg-slate-900 shadow-2xl transition-all duration-300 hover:scale-[1.02] hover:border-cyan-400/40">
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10 opacity-70" />
-              <Image
-                src="/finc/arena-geek-tcg.png"
-                alt="Arena Geek Espaço TCG FINC 2026"
-                width={700}
-                height={900}
-                className="w-full h-auto object-cover"
-                priority
-              />
-              <div className="absolute bottom-3 left-4 right-4 z-20 text-center">
-                <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase bg-black/60 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
-                  Realização: UNEF & UNIFAN • Grupo Nobre
-                </span>
-              </div>
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-cyan-300 shadow-sm">
+              <Sparkles className="h-4 w-4 text-cyan-400" />
+              Inscrições Abertas • Espaço TCG Atlântica +Mais
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-[1.1]">
+              TORNEIOS & OFICINAS DE{" "}
+              <span className="bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-pink-500 bg-clip-text text-transparent">
+                CARD GAMES
+              </span>
+            </h1>
+
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal max-w-2xl mx-auto">
+              Participe das disputas e oficinas de <strong>Pokémon TCG, Yu-Gi-Oh!, One Piece, Digimon e Riftbound</strong> no 
+              Espaço TCG da Arena Geek durante a <strong>FINC 2026</strong>.
+            </p>
+          </div>
+
+          {/* SEPARAÇÃO OFICIAL DE TURNOS & DATAS */}
+          <div className="space-y-2 pt-2 text-left">
+            <div className="text-xs font-black uppercase tracking-wider text-slate-400 text-center flex items-center justify-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-cyan-400" />
+              <span>Programação Oficial dos Turnos</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {TURNOS_OPTIONS.map((t) => (
+                <div
+                  key={t.id}
+                  className={`rounded-2xl border ${t.accentBorder} ${t.accentBg} p-4 space-y-1.5 shadow-lg`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-400">{t.diaSemana}</span>
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${t.accentBorder} bg-black/40 ${t.accentText}`}>
+                      {t.turnoNome}
+                    </span>
+                  </div>
+
+                  <div className={`font-black text-sm text-white`}>
+                    {t.dataExtenso}
+                  </div>
+
+                  <div className={`text-xs font-bold ${t.accentText} flex items-center gap-1.5`}>
+                    <Clock className="h-3.5 w-3.5 shrink-0" />
+                    <span>{t.horario}</span>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 pt-1 leading-snug">
+                    {t.descricao}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Local & Realização */}
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs text-slate-400 border-t border-white/10">
+            <div className="flex items-center gap-1.5 text-slate-300 font-medium">
+              <MapPin className="h-4 w-4 text-rose-400 shrink-0" />
+              <span>Arena Geek • Cajueiro Convenções (Feira de Santana - BA)</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-300 font-medium">
+              <Shield className="h-4 w-4 text-cyan-400 shrink-0" />
+              <span>Gestão Técnica & Arbitragem: <strong>Atlântica Mais</strong></span>
             </div>
           </div>
         </div>
@@ -401,33 +476,40 @@ export function FincRegistrationView() {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="space-y-2 text-xs">
               <div>
-                <span className="text-slate-400 text-[10px] uppercase">Dias Marcados:</span>
-                <p className="font-bold text-white mt-0.5">
-                  {confirmedData.dias.map((d) => (d === "21" ? "Dia 21 (17h-22h)" : "Dia 22 (14h-20h)")).join(" & ")}
-                </p>
+                <span className="text-slate-400 text-[10px] uppercase font-bold">Turnos Selecionados:</span>
+                <div className="flex flex-col gap-1 mt-1">
+                  {confirmedData.turnos.map((tid) => {
+                    const match = TURNOS_OPTIONS.find((t) => t.id === tid);
+                    return (
+                      <div
+                        key={tid}
+                        className="flex items-center justify-between rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-slate-200"
+                      >
+                        <span className="font-bold">{match?.dataExtenso || tid}</span>
+                        <span className="text-cyan-300 font-mono text-[11px]">{match?.horario} ({match?.turnoNome})</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase">Local:</span>
-                <p className="font-bold text-white mt-0.5">Arena Geek • FINC</p>
-              </div>
-            </div>
 
-            <div>
-              <span className="text-slate-400 text-[10px] uppercase">Jogos Selecionados:</span>
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {confirmedData.jogos.map((j) => {
-                  const match = TCG_OPTIONS.find((t) => t.id === j);
-                  return (
-                    <span
-                      key={j}
-                      className="px-2.5 py-0.5 rounded-lg text-xs font-bold border border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
-                    >
-                      {match?.name || j}
-                    </span>
-                  );
-                })}
+              <div className="pt-2 border-t border-white/10">
+                <span className="text-slate-400 text-[10px] uppercase font-bold">Card Games:</span>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {confirmedData.jogos.map((j) => {
+                    const match = TCG_OPTIONS.find((t) => t.id === j);
+                    return (
+                      <span
+                        key={j}
+                        className="px-2.5 py-0.5 rounded-lg text-xs font-bold border border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+                      >
+                        {match?.name || j}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -468,10 +550,10 @@ export function FincRegistrationView() {
               Formulário Oficial de Credenciamento
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">
-              Escolha seus Card Games e Horários
+              Escolha seus Card Games e Turnos de Presença
             </h2>
             <p className="text-slate-300 text-xs sm:text-sm mt-1">
-              Preencha os dados abaixo. As vagas de mesas e torneios são dimensionadas por demanda de inscritos pela equipe da Atlântica Mais.
+              Preencha os dados abaixo. O número de mesas e vagas dos torneios será dimensionado por demanda de inscritos pela equipe da Atlântica Mais.
             </p>
           </div>
 
@@ -479,7 +561,7 @@ export function FincRegistrationView() {
             {/* ETAPA 1: ESCOLHA DOS JOGOS (TCGS) */}
             <div className="space-y-4">
               <label className="block text-sm font-black text-white uppercase tracking-wider flex items-center justify-between">
-                <span>1. Quais TCGs você quer jogar? *</span>
+                <span>1. Quais TCGs você tem interesse em participar? *</span>
                 <span className="text-xs text-slate-400 normal-case font-normal">(Pode marcar mais de um)</span>
               </label>
 
@@ -525,58 +607,82 @@ export function FincRegistrationView() {
               </div>
             </div>
 
-            {/* ETAPA 2: DIAS DE PRESENÇA */}
+            {/* ETAPA 2: SEPARAÇÃO DE TURNOS NAS DATAS */}
             <div className="space-y-4">
-              <label className="block text-sm font-black text-white uppercase tracking-wider">
-                2. Em quais dias você comparecerá? *
-              </label>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="block text-sm font-black text-white uppercase tracking-wider">
+                  2. Em quais turnos você comparecerá? *
+                </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div
-                  onClick={() => toggleDay("21")}
-                  className={`rounded-2xl border p-4 cursor-pointer transition-all flex items-center justify-between ${
-                    selectedDays.includes("21")
-                      ? "border-cyan-500/80 bg-cyan-950/30 text-white ring-1 ring-cyan-400/40"
-                      : "border-white/10 bg-slate-950/60 text-slate-400 hover:bg-slate-800/30"
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <div className="font-bold text-sm text-cyan-300">Quarta • 21 de Outubro</div>
-                    <div className="text-xs text-slate-300">Horário: 17:00 às 22:00</div>
-                  </div>
-                  <div
-                    className={`h-5 w-5 rounded-md flex items-center justify-center border ${
-                      selectedDays.includes("21")
-                        ? "bg-cyan-500 border-cyan-400 text-slate-950 font-black"
-                        : "border-white/20"
-                    }`}
+                {/* Atalhos de Seleção Rápida */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={selectAllTurnos}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/10 bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer transition-colors"
                   >
-                    {selectedDays.includes("21") && <Check className="h-3.5 w-3.5 stroke-[3]" />}
-                  </div>
+                    Todos os Turnos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectOnly21}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-cyan-500/30 bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300 cursor-pointer transition-colors"
+                  >
+                    Apenas 21 (Noite)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={selectOnly22}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-fuchsia-500/30 bg-fuchsia-950/40 hover:bg-fuchsia-900/40 text-fuchsia-300 cursor-pointer transition-colors"
+                  >
+                    Apenas 22 (Tarde/Noite)
+                  </button>
                 </div>
+              </div>
 
-                <div
-                  onClick={() => toggleDay("22")}
-                  className={`rounded-2xl border p-4 cursor-pointer transition-all flex items-center justify-between ${
-                    selectedDays.includes("22")
-                      ? "border-fuchsia-500/80 bg-fuchsia-950/30 text-white ring-1 ring-fuchsia-400/40"
-                      : "border-white/10 bg-slate-950/60 text-slate-400 hover:bg-slate-800/30"
-                  }`}
-                >
-                  <div className="space-y-1">
-                    <div className="font-bold text-sm text-fuchsia-300">Quinta • 22 de Outubro</div>
-                    <div className="text-xs text-slate-300">Horário: 14:00 às 20:00</div>
-                  </div>
-                  <div
-                    className={`h-5 w-5 rounded-md flex items-center justify-center border ${
-                      selectedDays.includes("22")
-                        ? "bg-fuchsia-500 border-fuchsia-400 text-slate-950 font-black"
-                        : "border-white/20"
-                    }`}
-                  >
-                    {selectedDays.includes("22") && <Check className="h-3.5 w-3.5 stroke-[3]" />}
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {TURNOS_OPTIONS.map((turno) => {
+                  const isSelected = selectedTurnos.includes(turno.id);
+                  return (
+                    <div
+                      key={turno.id}
+                      onClick={() => toggleTurno(turno.id)}
+                      className={`rounded-2xl border p-4 cursor-pointer transition-all flex flex-col justify-between gap-3 select-none ${
+                        isSelected
+                          ? `${turno.accentBorder} ${turno.accentBg} text-white ring-1 ring-cyan-400/40 shadow-lg`
+                          : "border-white/10 bg-slate-950/60 text-slate-400 hover:bg-slate-800/30"
+                      }`}
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-slate-400">{turno.diaSemana}</span>
+                          <div
+                            className={`h-5 w-5 rounded-md flex items-center justify-center border ${
+                              isSelected
+                                ? "bg-cyan-500 border-cyan-400 text-slate-950 font-black"
+                                : "border-white/20 bg-slate-800/40"
+                            }`}
+                          >
+                            {isSelected && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                          </div>
+                        </div>
+
+                        <div className="font-black text-sm text-white">
+                          {turno.dataExtenso}
+                        </div>
+
+                        <div className={`text-xs font-bold ${turno.accentText} flex items-center gap-1`}>
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>{turno.turnoNome} ({turno.horario})</span>
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-slate-400 leading-snug border-t border-white/5 pt-2">
+                        {turno.descricao}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -754,11 +860,23 @@ export function FincRegistrationView() {
               Arbitragem Oficial
             </div>
             <p className="text-slate-400 leading-relaxed">
-              Gestão técnica e arbitragem geral conduzida por <strong>Lucas Araújo</strong> (CEO Atlântica Mais) e representantes técnicos oficiais para cada jogo.
+              Gestão técnica e arbitragem geral conduzida por <strong>Lucas Araújo</strong> (CEO Atlântica Mais) e representantes técnicos oficiais para cada modalidade.
             </p>
           </div>
         </div>
       </section>
+
+      {/* 4. FOOTER EXCLUSIVO DA FINC • ARENA GEEK (SEM REFERÊNCIAS APENAS A POKÉMON) */}
+      <footer className="border-t border-white/10 pt-6 pb-10 text-center space-y-3 text-xs text-slate-400">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-slate-300 font-semibold">
+          <span>FINC 2026 • Feira Internacional do Conhecimento</span>
+          <span className="text-white/20">•</span>
+          <span>Arena Geek • Espaço TCG</span>
+        </div>
+        <p className="text-[11px] text-slate-500">
+          Realização: Centro Universitário UNEF & UNIFAN (Grupo Nobre) • Gestão Técnica: Atlântica Mais (Livraria Atlântica)
+        </p>
+      </footer>
     </div>
   );
 }

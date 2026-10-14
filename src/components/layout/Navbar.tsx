@@ -16,6 +16,8 @@ interface NavbarProps {
 
 export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal = true }: NavbarProps) {
   const pathname = usePathname();
+  if (pathname === "/finc") return null;
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loggedInAthlete, setLoggedInAthlete] = useState<{ popId: string; nome: string } | null>(null);
 

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { FooterLogoSvg } from "@/components/ui/BrandLogo";
 
 interface FooterProps {
@@ -14,6 +17,9 @@ export function Footer({
   linkTwitch = "https://www.twitch.tv/atlanticamais",
   linkYouTube = "",
 }: FooterProps) {
+  const pathname = usePathname();
+  if (pathname === "/finc") return null;
+
   const whatsappUrl = linkWhatsApp && linkWhatsApp.trim() !== "" ? linkWhatsApp : "https://chat.whatsapp.com/EpUEb62hq1bKs6iDtQ3ena";
   const instagramUrl = linkInstagram && linkInstagram.trim() !== "" ? linkInstagram : "https://www.instagram.com/atlanticamais/";
   const twitchUrl = linkTwitch && linkTwitch.trim() !== "" ? linkTwitch : "https://www.twitch.tv/atlanticamais";

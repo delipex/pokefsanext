@@ -33,6 +33,9 @@ export async function GET(request: Request) {
     // Métricas para a coordenação do evento
     const stats = {
       total: rows.length,
+      dia21_noite: 0,
+      dia22_tarde: 0,
+      dia22_noite: 0,
       dia21: 0,
       dia22: 0,
       ambosDias: 0,
@@ -55,20 +58,29 @@ export async function GET(request: Request) {
     };
 
     rows.forEach((r) => {
-      // Dias
+      // Dias e Turnos
       try {
         const diasParsed: string[] = JSON.parse(r.dias || "[]");
-        if (diasParsed.includes("21") && diasParsed.includes("22")) {
+        const has21 = diasParsed.some((d) => d.includes("21"));
+        const has22 = diasParsed.some((d) => d.includes("22"));
+
+        if (has21 && has22) stats.ambosDias += 1;
+        if (has21) stats.dia21 += 1;
+        if (has22) stats.dia22 += 1;
+
+        if (diasParsed.some((d) => d === "21_noite" || d === "21")) stats.dia21_noite += 1;
+        if (diasParsed.some((d) => d === "22_tarde")) stats.dia22_tarde += 1;
+        if (diasParsed.some((d) => d === "22_noite")) stats.dia22_noite += 1;
+      } catch {
+        if (r.dias === "ambos") {
           stats.ambosDias += 1;
-        } else if (diasParsed.includes("21")) {
           stats.dia21 += 1;
-        } else if (diasParsed.includes("22")) {
+          stats.dia22 += 1;
+        } else if (r.dias.includes("21")) {
+          stats.dia21 += 1;
+        } else if (r.dias.includes("22")) {
           stats.dia22 += 1;
         }
-      } catch {
-        if (r.dias === "ambos") stats.ambosDias += 1;
-        else if (r.dias === "21") stats.dia21 += 1;
-        else if (r.dias === "22") stats.dia22 += 1;
       }
 
       // Jogos
@@ -167,7 +179,14 @@ export async function POST(request: Request) {
     const inserted = await db.insert(inscricoesFinc).values(newRow).returning();
 
     // Mensagem de confirmação para abrir no WhatsApp da Atlântica Mais
-    const diasFormatados = diasArray.map((d: string) => (d === "21" ? "21/10 (17h-22h)" : "22/10 (14h-20h)")).join(" e ");
+    const mapTurnoLabel = (d: string) => {
+      if (d === "21_noite" || d === "21") return "21/10 Noite (17h-22h)";
+      if (d === "22_tarde") return "22/10 Tarde (14h-18h)";
+      if (d === "22_noite") return "22/10 Noite (18h-20h)";
+      if (d === "22") return "22/10 (14h-20h)";
+      return d;
+    };
+    const diasFormatados = diasArray.map(mapTurnoLabel).join(" + ");
     const jogosFormatados = jogos.join(", ");
     const zapText = encodeURIComponent(
       `Olá! Me inscrevi para o Espaço TCG na ARENA GEEK (FINC 2026).\n\n` +

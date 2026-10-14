@@ -86,13 +86,19 @@ export function AdminFincManager() {
         }
       }
 
-      // Filtro de dia
+      // Filtro de dia / turno
       if (selectedDayFilter !== "todos") {
         try {
           const dias: string[] = JSON.parse(item.dias || "[]");
-          if (!dias.includes(selectedDayFilter)) return false;
+          if (selectedDayFilter === "21") {
+            if (!dias.some((d) => d.includes("21"))) return false;
+          } else if (selectedDayFilter === "22") {
+            if (!dias.some((d) => d.includes("22"))) return false;
+          } else {
+            if (!dias.includes(selectedDayFilter)) return false;
+          }
         } catch {
-          if (item.dias !== selectedDayFilter && item.dias !== "ambos") return false;
+          if (!item.dias.includes(selectedDayFilter)) return false;
         }
       }
 
@@ -230,9 +236,12 @@ export function AdminFincManager() {
               onChange={(e) => setSelectedDayFilter(e.target.value)}
               className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white focus:border-cyan-400 focus:outline-none"
             >
-              <option value="todos">Todos os Dias</option>
-              <option value="21">Dia 21 de Outubro (17h-22h)</option>
-              <option value="22">Dia 22 de Outubro (14h-20h)</option>
+              <option value="todos">Todos os Turnos / Dias</option>
+              <option value="21">Dia 21 de Outubro (Qualquer turno)</option>
+              <option value="21_noite">Quarta 21 • Noite (17h-22h)</option>
+              <option value="22">Dia 22 de Outubro (Qualquer turno)</option>
+              <option value="22_tarde">Quinta 22 • Tarde (14h-18h)</option>
+              <option value="22_noite">Quinta 22 • Noite (18h-20h)</option>
             </select>
           </div>
         </div>
@@ -315,7 +324,39 @@ export function AdminFincManager() {
                       </td>
 
                       <td className="py-3 px-4 font-medium text-slate-300">
-                        {parsedDays.map((d) => (d === "21" ? "Dia 21 (17h)" : "Dia 22 (14h)")).join(" & ")}
+                        <div className="flex flex-col gap-1">
+                          {parsedDays.map((d) => {
+                            if (d === "21_noite" || d === "21") {
+                              return (
+                                <span key={d} className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-300 bg-cyan-950/40 border border-cyan-800/40 px-2 py-0.5 rounded">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                                  21/10 • Noite (17h-22h)
+                                </span>
+                              );
+                            }
+                            if (d === "22_tarde") {
+                              return (
+                                <span key={d} className="inline-flex items-center gap-1 text-[11px] font-semibold text-fuchsia-300 bg-fuchsia-950/40 border border-fuchsia-800/40 px-2 py-0.5 rounded">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400"></span>
+                                  22/10 • Tarde (14h-18h)
+                                </span>
+                              );
+                            }
+                            if (d === "22_noite") {
+                              return (
+                                <span key={d} className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300 bg-amber-950/40 border border-amber-800/40 px-2 py-0.5 rounded">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                  22/10 • Noite (18h-20h)
+                                </span>
+                              );
+                            }
+                            return (
+                              <span key={d} className="text-xs text-slate-300">
+                                {d}
+                              </span>
+                            );
+                          })}
+                        </div>
                       </td>
 
                       <td className="py-3 px-4">
