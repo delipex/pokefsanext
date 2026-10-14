@@ -752,7 +752,7 @@ export function FincRegistrationView() {
                 )}
               </button>
               <p className="text-center text-[11px] text-slate-400 mt-2.5">
-                Inscrição 100% gratuita. Ao enviar, você receberá um protocolo oficial e confirmação imediata.
+                Inscrição 100% gratuita. Ao enviar, seu <strong>Passaporte Digital com Protocolo Oficial</strong> é gerado na hora aqui na tela.
               </p>
             </div>
           </form>
