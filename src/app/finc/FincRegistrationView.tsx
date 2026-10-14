@@ -296,17 +296,6 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
     );
   };
 
-  const selectAllTurnos = () => {
-    setSelectedTurnos(["21_noite", "22_tarde", "22_noite"]);
-  };
-
-  const selectOnly21 = () => {
-    setSelectedTurnos(["21_noite"]);
-  };
-
-  const selectOnly22 = () => {
-    setSelectedTurnos(["22_tarde", "22_noite"]);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -881,37 +870,15 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
               </div>
             </div>
 
-            {/* ETAPA 3: TURNOS DE PRESENÇA (CAIXINHAS COM ATALHOS) */}
+            {/* ETAPA 3: TURNOS DE PRESENÇA (CAIXINHAS) */}
             <div className="space-y-3.5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
                 <label className="block text-sm font-black text-white uppercase tracking-wider">
                   3. Em quais turnos você comparecerá? *
                 </label>
-
-                {/* Atalhos rápidos */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={selectAllTurnos}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/10 bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer transition-colors"
-                  >
-                    Todos os Turnos
-                  </button>
-                  <button
-                    type="button"
-                    onClick={selectOnly21}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-cyan-500/30 bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300 cursor-pointer transition-colors"
-                  >
-                    21 (Noite)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={selectOnly22}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-fuchsia-500/30 bg-fuchsia-950/40 hover:bg-fuchsia-900/40 text-fuchsia-300 cursor-pointer transition-colors"
-                  >
-                    22 (Tarde/Noite)
-                  </button>
-                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Clique diretamente nas caixinhas para marcar ou desmarcar seus turnos.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
