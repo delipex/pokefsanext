@@ -248,6 +248,20 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
     setSelectedTurnos(["22_tarde", "22_noite"]);
   };
 
+  const handleIntencaoChange = (newIntencao: "torneio" | "casual" | "oficina_aprender") => {
+    setIntencao(newIntencao);
+    if (newIntencao === "torneio") {
+      setPossuiDeck("sim");
+    }
+  };
+
+  const handlePossuiDeckChange = (newPossuiDeck: "sim" | "nao" | "preciso_demo") => {
+    setPossuiDeck(newPossuiDeck);
+    if (newPossuiDeck !== "sim" && intencao === "torneio") {
+      setIntencao("oficina_aprender");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -270,6 +284,14 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
 
     if (selectedTurnos.length === 0) {
       setErrorMessage("Selecione ao menos um turno de participação.");
+      return;
+    }
+
+    // Regra Oficial FINC: só poderá participar de torneio quem tiver deck próprio no formato padrão
+    if (intencao === "torneio" && possuiDeck !== "sim") {
+      setErrorMessage(
+        "Atenção: Para disputar os Torneios Competitivos, é obrigatório possuir deck próprio montado no formato padrão de cada jogo. Para participar sem deck, selecione a modalidade Casual ou Oficina Didática."
+      );
       return;
     }
 
@@ -768,36 +790,61 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
             </div>
 
             {/* ETAPA 3: MODALIDADE & SITUAÇÃO DO DECK */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-300 uppercase">
-                  Qual é o seu objetivo no evento?
-                </label>
-                <select
-                  value={intencao}
-                  onChange={(e: any) => setIntencao(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                >
-                  <option value="torneio">Quero disputar o Torneio Competitivo</option>
-                  <option value="casual">Jogar Free Play / Casual com outros players</option>
-                  <option value="oficina_aprender">Quero aprender a jogar do zero (Oficinas Práticas)</option>
-                </select>
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-300 uppercase">
+                    Qual é o seu objetivo no evento? *
+                  </label>
+                  <select
+                    value={intencao}
+                    onChange={(e: any) => handleIntencaoChange(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                  >
+                    <option value="torneio">Quero disputar o Torneio Competitivo (Exige Deck Próprio)</option>
+                    <option value="casual">Jogar Free Play / Casual com outros players</option>
+                    <option value="oficina_aprender">Quero aprender a jogar do zero (Oficinas Práticas)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-300 uppercase">
+                    Você possui Deck no Formato Padrão? *
+                  </label>
+                  <select
+                    value={possuiDeck}
+                    onChange={(e: any) => handlePossuiDeckChange(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                  >
+                    <option value="sim">Sim, levarei meu próprio deck no Formato Padrão</option>
+                    <option value="nao">Não tenho deck (Válido para Casual ou Oficina Didática)</option>
+                    <option value="preciso_demo">Preciso de deck emprestado (Oficinas Práticas)</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-300 uppercase">
-                  Você já possui Deck montado?
-                </label>
-                <select
-                  value={possuiDeck}
-                  onChange={(e: any) => setPossuiDeck(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                >
-                  <option value="sim">Sim, levarei meu próprio deck</option>
-                  <option value="nao">Não tenho deck (vou para aprender / demonstração)</option>
-                  <option value="preciso_demo">Preciso de deck emprestado / oficina didática</option>
-                </select>
-              </div>
+              {/* Box Informativo de Regra dos Torneios */}
+              {intencao === "torneio" ? (
+                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-xs text-amber-200 flex items-start gap-2.5">
+                  <Trophy className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-amber-300 block">Regra Oficial dos Torneios:</span>
+                    <span>
+                      Só poderá participar dos torneios competitivos quem tiver <strong>deck próprio regulamentado no formato padrão de cada jogo</strong>. A organização não disponibilizará decks para disputa de torneio oficial.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/40 p-3.5 text-xs text-cyan-200 flex items-start gap-2.5">
+                  <BookOpen className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-cyan-300 block">Oficinas de Iniciação & Jogos Casuais:</span>
+                    <span>
+                      Não tem deck? Monitores e juízes da Atlântica Mais estarão presentes com decks didáticos de demonstração para ensinar as regras a quem deseja aprender do zero!
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ETAPA 4: DADOS DE CONTATO */}
@@ -918,10 +965,10 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
           <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-4 space-y-2">
             <div className="font-bold text-white text-sm flex items-center gap-1.5 text-cyan-300">
               <Trophy className="h-4 w-4 text-amber-400" />
-              Torneios em Fase Única
+              Torneios Oficiais (Deck Próprio)
             </div>
             <p className="text-slate-400 leading-relaxed">
-              Disputas oficiais sob diretrizes oficiais de cada TCG. O número de rodadas e corte de mesas será ajustado dinamicamente para acomodar todos os inscritos.
+              Disputas competitivas sob diretrizes oficiais. <strong>Exclusivo para quem possuir deck próprio no formato padrão de cada jogo.</strong> Rodadas e cortes definidos pela coordenação técnica.
             </p>
           </div>
 

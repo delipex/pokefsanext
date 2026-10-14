@@ -158,6 +158,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Selecione os dias em que você estará presente (Dia 21, 22 ou Ambos)." }, { status: 400 });
     }
 
+    // Regra Oficial FINC: só poderá participar de torneio quem tiver deck próprio no formato padrão
+    if (intencao === "torneio" && possuiDeck !== "sim") {
+      return NextResponse.json(
+        {
+          error:
+            "Para participar dos Torneios Competitivos é obrigatório possuir deck próprio montado no formato padrão de cada jogo. Para participar sem deck próprio, selecione o modo Casual ou Oficina Didática.",
+        },
+        { status: 400 }
+      );
+    }
+
     // Gerar protocolo legível exclusivo
     const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
     const protocolo = `FINC-TCG-${randomHex}`;
