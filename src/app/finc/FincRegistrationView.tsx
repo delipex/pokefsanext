@@ -274,40 +274,7 @@ export function FincRegistrationView() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 sm:space-y-10">
-      {/* 0. BARRA SUPERIOR EXCLUSIVA FINC • ARENA GEEK (SEM MENU DA LIGA) */}
-      <header className="rounded-2xl border border-white/10 bg-slate-900/80 p-3 sm:p-4 backdrop-blur-xl shadow-xl flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="relative h-8 sm:h-9 w-auto">
-            <Image
-              src="/finc/finc-logo.png"
-              alt="FINC 2026"
-              width={140}
-              height={50}
-              className="h-full w-auto object-contain"
-              priority
-            />
-          </div>
-          <span className="text-white/20 hidden sm:inline-block">•</span>
-          <div className="relative h-9 sm:h-11 w-auto">
-            <Image
-              src="/finc/arena-geek-logo.png"
-              alt="Arena Geek"
-              width={180}
-              height={70}
-              className="h-full w-auto object-contain"
-              priority
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] sm:text-xs font-bold text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 rounded-full">
-            Espaço TCG • Atlântica Mais
-          </span>
-        </div>
-      </header>
-
-      {/* 1. HERO BANNER PRINCIPAL (CENTRALIZADO, SEM CARD LATERAL) */}
+      {/* 1. HERO BANNER PRINCIPAL (CENTRALIZADO, SEM DUPLICIDADE) */}
       <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-950 p-6 sm:p-10 shadow-2xl backdrop-blur-xl text-center">
         {/* Efeitos de Luz Atmosférica Neon */}
         <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl" />
