@@ -1535,8 +1535,8 @@ export function AdminDashboard({
       </div>
 
       {/* Navegação por Abas Segmentada & Responsiva (Design System) */}
-      <div className="w-full overflow-x-auto pb-1 no-scrollbar">
-        <div className="inline-flex min-w-full sm:min-w-0 items-center justify-between sm:justify-start gap-1.5 bg-slate-900/80 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl">
+      <div className="w-full overflow-x-auto pb-1.5 no-scrollbar">
+        <div className="inline-flex min-w-max items-center justify-start gap-1.5 bg-slate-900/80 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl">
           <button
             onClick={() => setActiveTab("tdf")}
             className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
