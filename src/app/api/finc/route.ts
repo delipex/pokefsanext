@@ -274,3 +274,121 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erro ao processar sua inscrição. Tente novamente." }, { status: 500 });
   }
 }
+
+export async function PUT(request: Request) {
+  await ensureDatabaseSchema();
+
+  try {
+    const body = await request.json();
+    const {
+      id,
+      nome,
+      whatsapp,
+      email = "",
+      tipoParticipante = "externo",
+      jogosTorneio = [],
+      jogosOficina = [],
+      dias = [],
+      observacoes = "",
+      status = "confirmado",
+    } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "ID da inscrição é obrigatório." }, { status: 400 });
+    }
+
+    if (!nome || typeof nome !== "string" || nome.trim().length < 3) {
+      return NextResponse.json({ error: "Nome completo é obrigatório (mínimo 3 letras)." }, { status: 400 });
+    }
+
+    const cleanWhatsapp = String(whatsapp || "").replace(/\D/g, "");
+    if (cleanWhatsapp.length < 10) {
+      return NextResponse.json({ error: "WhatsApp válido com DDD é obrigatório." }, { status: 400 });
+    }
+
+    const cleanTorneio = Array.isArray(jogosTorneio)
+      ? jogosTorneio.filter((j: any) => typeof j === "string" && j.trim() !== "")
+      : [];
+    const cleanOficina = Array.isArray(jogosOficina)
+      ? jogosOficina.filter((j: any) => typeof j === "string" && j.trim() !== "")
+      : [];
+    const allGames = [...new Set([...cleanTorneio, ...cleanOficina])];
+
+    const diasArray = Array.isArray(dias) ? dias : [String(dias)];
+
+    const computedIntencao =
+      cleanTorneio.length > 0 && cleanOficina.length > 0
+        ? "ambos"
+        : cleanTorneio.length > 0
+        ? "torneio"
+        : "oficina_aprender";
+
+    const computedPossuiDeck = cleanTorneio.length > 0 ? "sim" : "nao";
+
+    const updated = await db
+      .update(inscricoesFinc)
+      .set({
+        nome: nome.trim(),
+        whatsapp: cleanWhatsapp,
+        email: email ? email.trim() : null,
+        tipoParticipante,
+        jogos: JSON.stringify({
+          torneio: cleanTorneio,
+          oficinas: cleanOficina,
+          lista: allGames,
+        }),
+        dias: JSON.stringify(diasArray),
+        intencao: computedIntencao,
+        possuiDeck: computedPossuiDeck,
+        observacoes: observacoes ? observacoes.trim() : null,
+        status,
+      })
+      .where(eq(inscricoesFinc.id, Number(id)))
+      .returning();
+
+    if (!updated || updated.length === 0) {
+      return NextResponse.json({ error: "Inscrição não encontrada para atualização." }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Inscrição atualizada com sucesso!",
+      inscricao: updated[0],
+    });
+  } catch (err: any) {
+    console.error("Erro ao atualizar inscrição FINC:", err);
+    return NextResponse.json({ error: err.message || "Erro ao atualizar inscrição." }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  await ensureDatabaseSchema();
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "ID da inscrição é obrigatório para exclusão." }, { status: 400 });
+    }
+
+    const deleted = await db
+      .delete(inscricoesFinc)
+      .where(eq(inscricoesFinc.id, Number(id)))
+      .returning();
+
+    if (!deleted || deleted.length === 0) {
+      return NextResponse.json({ error: "Inscrição não encontrada para exclusão." }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Inscrição (${deleted[0].protocolo} - ${deleted[0].nome}) excluída com sucesso!`,
+      deleted: deleted[0],
+    });
+  } catch (err: any) {
+    console.error("Erro ao excluir inscrição FINC:", err);
+    return NextResponse.json({ error: err.message || "Erro ao excluir inscrição." }, { status: 500 });
+  }
+}
+

@@ -15,6 +15,16 @@ import {
   Check,
   CheckCircle2,
   Filter,
+  Pencil,
+  Trash2,
+  X,
+  Save,
+  AlertCircle,
+  Trophy,
+  BookOpen,
+  Globe,
+  GraduationCap,
+  Building,
 } from "lucide-react";
 
 interface FincInscricao {
@@ -33,6 +43,20 @@ interface FincInscricao {
   createdAt: string;
 }
 
+const ALL_GAMES = [
+  { id: "pokemon", name: "Pokémon TCG", color: "text-amber-400" },
+  { id: "yugioh", name: "Yu-Gi-Oh! TCG", color: "text-purple-400" },
+  { id: "onepiece", name: "One Piece Card Game", color: "text-rose-400" },
+  { id: "digimon", name: "Digimon Card Game", color: "text-blue-400" },
+  { id: "riftbound", name: "Riftbound TCG", color: "text-emerald-400" },
+];
+
+const ALL_TURNOS = [
+  { id: "21_noite", label: "21/10 (Quarta) • Noite (17h-22h)" },
+  { id: "22_tarde", label: "22/10 (Quinta) • Tarde (14h-18h)" },
+  { id: "22_noite", label: "22/10 (Quinta) • Noite (18h-20h)" },
+];
+
 export function AdminFincManager() {
   const [inscricoes, setInscricoes] = useState<FincInscricao[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -41,6 +65,26 @@ export function AdminFincManager() {
   const [selectedGameFilter, setSelectedGameFilter] = useState("todos");
   const [selectedDayFilter, setSelectedDayFilter] = useState("todos");
   const [copiedProtocol, setCopiedProtocol] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Estado do Modal de Edição
+  const [editingInscricao, setEditingInscricao] = useState<FincInscricao | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editNome, setEditNome] = useState("");
+  const [editWhatsapp, setEditWhatsapp] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editTipo, setEditTipo] = useState("externo");
+  const [editTorneio, setEditTorneio] = useState<string[]>([]);
+  const [editOficina, setEditOficina] = useState<string[]>([]);
+  const [editTurnos, setEditTurnos] = useState<string[]>([]);
+  const [editStatus, setEditStatus] = useState("confirmado");
+  const [editObs, setEditObs] = useState("");
+
+  const showNotification = (text: string, type: "success" | "error" = "success") => {
+    setStatusMessage({ type, text });
+    setTimeout(() => setStatusMessage(null), 5000);
+  };
 
   const fetchInscricoes = async () => {
     setIsLoading(true);
@@ -53,6 +97,7 @@ export function AdminFincManager() {
       }
     } catch (err) {
       console.error("Erro ao carregar inscricoes FINC:", err);
+      showNotification("Erro ao carregar inscrições", "error");
     } finally {
       setIsLoading(false);
     }
@@ -61,6 +106,155 @@ export function AdminFincManager() {
   useEffect(() => {
     fetchInscricoes();
   }, []);
+
+  // Excluir inscrição
+  const handleDelete = async (item: FincInscricao) => {
+    const confirmDelete = window.confirm(
+      `Deseja realmente EXCLUIR a inscrição de "${item.nome}" (${item.protocolo})?\n\nEsta ação é irreversível!`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`/api/finc?id=${item.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Erro ao excluir inscrição");
+      }
+
+      setInscricoes((prev) => prev.filter((i) => i.id !== item.id));
+      showNotification(`Inscrição de ${item.nome} (${item.protocolo}) excluída com sucesso!`, "success");
+      fetchInscricoes();
+    } catch (err: any) {
+      showNotification(err.message || "Erro ao excluir inscrição", "error");
+    }
+  };
+
+  // Abrir Modal de Edição
+  const handleOpenEdit = (item: FincInscricao) => {
+    setEditingInscricao(item);
+    setEditNome(item.nome || "");
+    setEditWhatsapp(item.whatsapp || "");
+    setEditEmail(item.email || "");
+    setEditTipo(item.tipoParticipante || "externo");
+    setEditStatus(item.status || "confirmado");
+    setEditObs(item.observacoes || "");
+
+    let tGames: string[] = [];
+    let oGames: string[] = [];
+    try {
+      const parsed = JSON.parse(item.jogos || "{}");
+      if (Array.isArray(parsed)) {
+        tGames = parsed;
+      } else if (parsed && typeof parsed === "object") {
+        tGames = parsed.torneio || [];
+        oGames = parsed.oficinas || [];
+      }
+    } catch {
+      tGames = [item.jogos];
+    }
+    setEditTorneio(tGames);
+    setEditOficina(oGames);
+
+    let dDays: string[] = [];
+    try {
+      dDays = JSON.parse(item.dias || "[]");
+    } catch {
+      dDays = [item.dias];
+    }
+    setEditTurnos(dDays);
+
+    setIsEditModalOpen(true);
+  };
+
+  const handleToggleEditTorneio = (gameId: string) => {
+    if (editTorneio.includes(gameId)) {
+      setEditTorneio((prev) => prev.filter((g) => g !== gameId));
+    } else {
+      if (editTorneio.length >= 3) {
+        alert("Máximo de 3 opções para Torneios.");
+        return;
+      }
+      setEditTorneio((prev) => [...prev, gameId]);
+    }
+  };
+
+  const handleToggleEditOficina = (gameId: string) => {
+    if (editOficina.includes(gameId)) {
+      setEditOficina((prev) => prev.filter((g) => g !== gameId));
+    } else {
+      if (editOficina.length >= 3) {
+        alert("Máximo de 3 opções para Oficinas.");
+        return;
+      }
+      setEditOficina((prev) => [...prev, gameId]);
+    }
+  };
+
+  const handleToggleEditTurno = (turnoId: string) => {
+    setEditTurnos((prev) =>
+      prev.includes(turnoId) ? prev.filter((t) => t !== turnoId) : [...prev, turnoId]
+    );
+  };
+
+  // Salvar Edição
+  const handleSaveEdit = async () => {
+    if (!editingInscricao) return;
+
+    if (!editNome.trim() || editNome.trim().length < 3) {
+      alert("Por favor, informe o nome completo do jogador.");
+      return;
+    }
+
+    const cleanPhone = editWhatsapp.replace(/\D/g, "");
+    if (cleanPhone.length < 10) {
+      alert("Por favor, informe um WhatsApp válido com DDD.");
+      return;
+    }
+
+    if (editTorneio.length === 0 && editOficina.length === 0) {
+      alert("Selecione ao menos uma opção de Torneio ou Oficina.");
+      return;
+    }
+
+    if (editTurnos.length === 0) {
+      alert("Selecione ao menos um turno de presença.");
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch("/api/finc", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingInscricao.id,
+          nome: editNome.trim(),
+          whatsapp: cleanPhone,
+          email: editEmail.trim(),
+          tipoParticipante: editTipo,
+          jogosTorneio: editTorneio,
+          jogosOficina: editOficina,
+          dias: editTurnos,
+          status: editStatus,
+          observacoes: editObs.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Erro ao salvar alterações");
+      }
+
+      showNotification(`Inscrição de ${editNome} atualizada com sucesso!`, "success");
+      setIsEditModalOpen(false);
+      setEditingInscricao(null);
+      fetchInscricoes();
+    } catch (err: any) {
+      alert(err.message || "Erro ao salvar alterações");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   const filteredList = useMemo(() => {
     return inscricoes.filter((item) => {
@@ -77,8 +271,11 @@ export function AdminFincManager() {
       // Filtro de jogo
       if (selectedGameFilter !== "todos") {
         try {
-          const jogos: string[] = JSON.parse(item.jogos || "[]");
-          if (!jogos.some((j) => j.toLowerCase().includes(selectedGameFilter))) {
+          const parsed = JSON.parse(item.jogos || "{}");
+          const all = Array.isArray(parsed)
+            ? parsed
+            : [...(parsed.torneio || []), ...(parsed.oficinas || []), ...(parsed.lista || [])];
+          if (!all.some((j: string) => j.toLowerCase().includes(selectedGameFilter))) {
             return false;
           }
         } catch {
@@ -134,7 +331,7 @@ export function AdminFincManager() {
             Inscrições Arena Geek • Espaço TCG
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Controle de participantes por jogo e dimensionamento de mesas para os dias 21 (17h-22h) e 22 (14h-20h).
+            Gerencie, edite ou exclua participantes, dimensione mesas e acompanhe o quórum por dia e turno.
           </p>
         </div>
 
@@ -144,7 +341,7 @@ export function AdminFincManager() {
             target="_blank"
             className="flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 px-3.5 py-2 text-xs font-bold text-cyan-300 transition-all cursor-pointer"
           >
-            <span>Ver Página Pública</span>
+            <span>Ver Formulário Público</span>
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
 
@@ -158,6 +355,24 @@ export function AdminFincManager() {
           </button>
         </div>
       </div>
+
+      {/* FEEDBACK DE STATUS / SUCESSO */}
+      {statusMessage && (
+        <div
+          className={`p-4 rounded-2xl border text-xs sm:text-sm flex items-center gap-3 transition-all ${
+            statusMessage.type === "success"
+              ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-200"
+              : "bg-rose-950/60 border-rose-500/50 text-rose-200"
+          }`}
+        >
+          {statusMessage.type === "success" ? (
+            <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0" />
+          ) : (
+            <AlertCircle className="h-5 w-5 text-rose-400 shrink-0" />
+          )}
+          <span>{statusMessage.text}</span>
+        </div>
+      )}
 
       {/* MÉTRICAS RÁPIDAS */}
       {stats && (
@@ -271,8 +486,8 @@ export function AdminFincManager() {
                   <th className="py-3 px-4">WhatsApp</th>
                   <th className="py-3 px-4">TCGs Pretendidos</th>
                   <th className="py-3 px-4">Presença</th>
-                  <th className="py-3 px-4">Objetivo</th>
                   <th className="py-3 px-4">Deck</th>
+                  <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Ações</th>
                 </tr>
               </thead>
@@ -311,7 +526,11 @@ export function AdminFincManager() {
                         <div className="text-[10px] text-slate-400 font-normal">
                           {item.tipoParticipante === "externo"
                             ? "Público Externo"
-                            : item.tipoParticipante.toUpperCase()}
+                            : item.tipoParticipante === "unef"
+                            ? "Aluno UNEF"
+                            : item.tipoParticipante === "unifan"
+                            ? "Aluno UNIFAN"
+                            : "Outra Instituição"}
                         </div>
                       </td>
 
@@ -402,38 +621,34 @@ export function AdminFincManager() {
                         </div>
                       </td>
 
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            item.intencao === "torneio"
-                              ? "bg-amber-500/10 text-amber-300 border border-amber-500/30"
-                              : item.intencao === "casual"
-                              ? "bg-blue-500/10 text-blue-300 border border-blue-500/30"
-                              : "bg-emerald-500/10 text-emerald-300 border border-emerald-500/30"
-                          }`}
-                        >
-                          {item.intencao === "torneio"
-                            ? "Torneio"
-                            : item.intencao === "casual"
-                            ? "Casual"
-                            : "Aprender"}
-                        </span>
-                      </td>
-
                       <td className="py-3 px-4 text-[11px]">
                         {item.possuiDeck === "sim" ? (
-                          <span className="text-emerald-400">Tem deck</span>
+                          <span className="text-emerald-400 font-bold">Deck Próprio</span>
                         ) : (
-                          <span className="text-amber-400 font-bold">Precisa de deck</span>
+                          <span className="text-cyan-400">Usa da Oficina</span>
                         )}
                       </td>
 
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            item.status === "cancelado"
+                              ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                              : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          }`}
+                        >
+                          {item.status || "confirmado"}
+                        </span>
+                      </td>
+
+                      {/* AÇÕES: COPIAR, WHATSAPP, EDITAR, EXCLUIR */}
                       <td className="py-3 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
+                          {/* COPIAR PROTOCOLO */}
                           <button
                             onClick={() => handleCopy(item.protocolo)}
                             title="Copiar Protocolo"
-                            className="p-1.5 rounded-lg border border-white/10 bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer"
+                            className="p-1.5 rounded-lg border border-white/10 bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer transition-colors"
                           >
                             {copiedProtocol === item.protocolo ? (
                               <Check className="h-3.5 w-3.5 text-emerald-400" />
@@ -442,15 +657,34 @@ export function AdminFincManager() {
                             )}
                           </button>
 
+                          {/* WHATSAPP */}
                           <a
                             href={getDirectWhatsAppLink(item.whatsapp, item.nome, item.protocolo)}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Conversar no WhatsApp"
-                            className="p-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 cursor-pointer"
+                            className="p-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 cursor-pointer transition-colors"
                           >
                             <MessageCircle className="h-3.5 w-3.5" />
                           </a>
+
+                          {/* EDITAR */}
+                          <button
+                            onClick={() => handleOpenEdit(item)}
+                            title="Editar Inscrição"
+                            className="p-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 cursor-pointer transition-colors"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+
+                          {/* EXCLUIR */}
+                          <button
+                            onClick={() => handleDelete(item)}
+                            title="Excluir Inscrição"
+                            className="p-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 cursor-pointer transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -461,6 +695,239 @@ export function AdminFincManager() {
           </div>
         )}
       </div>
+
+      {/* MODAL DE EDIÇÃO DE INSCRIÇÃO */}
+      {isEditModalOpen && editingInscricao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-cyan-500/30 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 p-6 sm:p-8 shadow-2xl space-y-6 text-left">
+            {/* CABEÇALHO DO MODAL */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div>
+                <span className="text-[10px] uppercase font-black tracking-wider text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-0.5 rounded-full">
+                  Editar Participante • FINC 2026
+                </span>
+                <h3 className="text-xl font-black text-white mt-1">
+                  {editNome || "Inscrição"}
+                </h3>
+                <span className="text-xs font-mono text-cyan-300">
+                  Protocolo: {editingInscricao.protocolo}
+                </span>
+              </div>
+
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-2 rounded-xl border border-white/10 bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* CAMPOS DO FORMULÁRIO */}
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-300">Nome Completo *</label>
+                  <input
+                    type="text"
+                    value={editNome}
+                    onChange={(e) => setEditNome(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2 text-white focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-300">WhatsApp (com DDD) *</label>
+                  <input
+                    type="text"
+                    value={editWhatsapp}
+                    onChange={(e) => setEditWhatsapp(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2 text-white font-mono focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-300">Vínculo / Tipo de Participante</label>
+                  <select
+                    value={editTipo}
+                    onChange={(e) => setEditTipo(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-white focus:border-cyan-400 focus:outline-none"
+                  >
+                    <option value="externo">Público Externo / Comunidade</option>
+                    <option value="unef">Aluno(a) ou Egresso(a) UNEF</option>
+                    <option value="unifan">Aluno(a) ou Egresso(a) UNIFAN</option>
+                    <option value="outra">Estudante de Outra Instituição</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-300">Status da Inscrição</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-white focus:border-cyan-400 focus:outline-none"
+                  >
+                    <option value="confirmado">Confirmado</option>
+                    <option value="cancelado">Cancelado</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-300">E-mail (opcional)</label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2 text-white focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+
+              {/* SELEÇÃO DE TORNEIOS (COM PRIORIDADE) */}
+              <div className="space-y-2 rounded-2xl border border-amber-500/20 bg-amber-950/20 p-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                    <Trophy className="h-3.5 w-3.5" />
+                    Torneios Competitivos (Até 3 Opções por clique)
+                  </span>
+                  <span className="text-[10px] text-amber-400/80 font-mono">
+                    {editTorneio.length}/3 selecionados
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {ALL_GAMES.map((g) => {
+                    const idx = editTorneio.indexOf(g.id);
+                    const isSelected = idx !== -1;
+                    return (
+                      <div
+                        key={g.id}
+                        onClick={() => handleToggleEditTorneio(g.id)}
+                        className={`p-2.5 rounded-xl border cursor-pointer select-none transition-all flex items-center justify-between ${
+                          isSelected
+                            ? "border-amber-400 bg-amber-950/60 text-white font-bold"
+                            : "border-white/10 bg-slate-950/60 text-slate-400 hover:bg-slate-850"
+                        }`}
+                      >
+                        <span className="text-xs">{g.name}</span>
+                        {isSelected && (
+                          <span className="text-[10px] font-black bg-amber-400 text-slate-950 px-1.5 py-0.5 rounded-full">
+                            {idx + 1}º
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* SELEÇÃO DE OFICINAS (COM PRIORIDADE) */}
+              <div className="space-y-2 rounded-2xl border border-cyan-500/20 bg-cyan-950/20 p-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-cyan-300 flex items-center gap-1.5">
+                    <BookOpen className="h-3.5 w-3.5" />
+                    Oficinas Didáticas (Até 3 Opções por clique)
+                  </span>
+                  <span className="text-[10px] text-cyan-400/80 font-mono">
+                    {editOficina.length}/3 selecionadas
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {ALL_GAMES.map((g) => {
+                    const idx = editOficina.indexOf(g.id);
+                    const isSelected = idx !== -1;
+                    return (
+                      <div
+                        key={g.id}
+                        onClick={() => handleToggleEditOficina(g.id)}
+                        className={`p-2.5 rounded-xl border cursor-pointer select-none transition-all flex items-center justify-between ${
+                          isSelected
+                            ? "border-cyan-400 bg-cyan-950/60 text-white font-bold"
+                            : "border-white/10 bg-slate-950/60 text-slate-400 hover:bg-slate-850"
+                        }`}
+                      >
+                        <span className="text-xs">{g.name}</span>
+                        {isSelected && (
+                          <span className="text-[10px] font-black bg-cyan-400 text-slate-950 px-1.5 py-0.5 rounded-full">
+                            {idx + 1}º
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* TURNOS DE PRESENÇA */}
+              <div className="space-y-2 rounded-2xl border border-white/10 bg-slate-950/60 p-3.5">
+                <span className="font-bold text-white flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-cyan-400" />
+                  Turnos Autorizados
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {ALL_TURNOS.map((t) => {
+                    const isSelected = editTurnos.includes(t.id);
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => handleToggleEditTurno(t.id)}
+                        className={`p-2.5 rounded-xl border cursor-pointer select-none transition-all flex items-center justify-between ${
+                          isSelected
+                            ? "border-cyan-400 bg-cyan-950/60 text-white font-bold"
+                            : "border-white/10 bg-slate-900/60 text-slate-400 hover:bg-slate-800"
+                        }`}
+                      >
+                        <span className="text-[11px] leading-tight">{t.label}</span>
+                        {isSelected && <Check className="h-3.5 w-3.5 text-cyan-400 stroke-[3]" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* OBSERVAÇÕES */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-300">Observações Internas</label>
+                <textarea
+                  rows={2}
+                  value={editObs}
+                  onChange={(e) => setEditObs(e.target.value)}
+                  placeholder="Informações adicionais da organização..."
+                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2 text-white focus:border-cyan-400 focus:outline-none resize-none"
+                />
+              </div>
+            </div>
+
+            {/* BOTÕES DE AÇÃO DO MODAL */}
+            <div className="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveEdit}
+                disabled={isSavingEdit}
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-xs font-black text-white shadow-lg shadow-cyan-600/20 cursor-pointer transition-all disabled:opacity-50"
+              >
+                {isSavingEdit ? (
+                  <>
+                    <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Salvando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-3.5 w-3.5" />
+                    <span>Salvar Alterações</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
