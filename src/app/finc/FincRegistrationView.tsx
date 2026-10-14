@@ -444,7 +444,7 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
             </div>
             <p className="leading-relaxed text-center sm:text-left">
               <strong className="text-white block sm:inline">Termo de Credenciamento: </strong>
-              Esta página de inscrição é <strong>destinada exclusivamente aos jogadores externos</strong> (público geral e comunidade gamer que <u>não</u> são alunos da UNEF ou UNIFAN).
+              Esta página de inscrição é <strong>destinada exclusivamente aos jogadores externos</strong> (público geral e comunidade TCG que <u>não</u> são alunos da UNEF ou UNIFAN).
             </p>
           </div>
 
