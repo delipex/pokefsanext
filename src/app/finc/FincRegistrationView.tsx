@@ -437,6 +437,17 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
             </p>
           </div>
 
+          {/* TERMO DE CREDENCIAMENTO: DESTINADO A JOGADORES EXTERNOS */}
+          <div className="mx-auto max-w-2xl rounded-2xl border border-cyan-400/40 bg-gradient-to-r from-cyan-950/70 via-slate-900/80 to-blue-950/70 p-3.5 sm:p-4 text-xs text-cyan-200 flex flex-col sm:flex-row items-center justify-center gap-3 shadow-xl">
+            <div className="h-8 w-8 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0">
+              <Globe className="h-4 w-4 text-cyan-400" />
+            </div>
+            <p className="leading-relaxed text-center sm:text-left">
+              <strong className="text-white block sm:inline">Termo de Credenciamento: </strong>
+              Esta página de inscrição é <strong>destinada exclusivamente aos jogadores externos</strong> (público geral e comunidade gamer que <u>não</u> são alunos da UNEF ou UNIFAN).
+            </p>
+          </div>
+
           {/* Local e Realização */}
           <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-6 pt-2 text-xs text-slate-300 border-t border-white/10">
             <div className="flex items-center gap-1.5 font-medium">
@@ -699,11 +710,11 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
         <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 sm:space-y-8">
           <div className="border-b border-white/10 pb-4">
             <div className="flex items-center gap-2 text-cyan-400 font-black text-xs uppercase tracking-wider">
-              <Gamepad2 className="h-4 w-4" />
-              Credenciamento Oficial
+              <Globe className="h-4 w-4" />
+              Credenciamento • Participantes Externos
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
-              Selecione suas preferências e turnos
+              Selecione suas preferências e turnos de presença
             </h2>
           </div>
 
