@@ -279,9 +279,18 @@ export function AdminFincManager() {
               <tbody className="divide-y divide-white/5">
                 {filteredList.map((item) => {
                   let parsedGames: string[] = [];
+                  let torneioGames: string[] = [];
+                  let oficinaGames: string[] = [];
                   let parsedDays: string[] = [];
                   try {
-                    parsedGames = JSON.parse(item.jogos);
+                    const parsed = JSON.parse(item.jogos);
+                    if (Array.isArray(parsed)) {
+                      parsedGames = parsed;
+                    } else if (parsed && typeof parsed === "object") {
+                      torneioGames = parsed.torneio || [];
+                      oficinaGames = parsed.oficinas || [];
+                      parsedGames = parsed.lista || [...torneioGames, ...oficinaGames];
+                    }
                   } catch {
                     parsedGames = [item.jogos];
                   }
@@ -311,15 +320,49 @@ export function AdminFincManager() {
                       </td>
 
                       <td className="py-3 px-4">
-                        <div className="flex flex-wrap gap-1">
-                          {parsedGames.map((g) => (
-                            <span
-                              key={g}
-                              className="px-2 py-0.5 rounded-md text-[10px] font-bold border border-white/10 bg-slate-800 text-slate-200 uppercase"
-                            >
-                              {g}
-                            </span>
-                          ))}
+                        <div className="flex flex-col gap-1.5">
+                          {torneioGames.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30">
+                                🏆 Torneio
+                              </span>
+                              {torneioGames.map((g, idx) => (
+                                <span
+                                  key={g}
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-amber-500/30 bg-amber-950/40 text-amber-300 uppercase"
+                                >
+                                  {idx + 1}º {g}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {oficinaGames.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="text-[9px] font-black uppercase text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/30">
+                                📚 Oficina
+                              </span>
+                              {oficinaGames.map((g, idx) => (
+                                <span
+                                  key={g}
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-bold border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 uppercase"
+                                >
+                                  {idx + 1}º {g}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {torneioGames.length === 0 && oficinaGames.length === 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {parsedGames.map((g) => (
+                                <span
+                                  key={g}
+                                  className="px-2 py-0.5 rounded-md text-[10px] font-bold border border-white/10 bg-slate-800 text-slate-200 uppercase"
+                                >
+                                  {g}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </td>
 

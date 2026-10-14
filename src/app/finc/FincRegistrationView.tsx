@@ -154,10 +154,21 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
   const [tipoParticipante, setTipoParticipante] = useState<"externo" | "unef" | "unifan" | "outra">("externo");
-  const [selectedGames, setSelectedGames] = useState<string[]>(["pokemon"]);
+  
+  // TORNEIOS: Opção 1, 2 e 3 (por ordem de preferência)
+  const [torneioOp1, setTorneioOp1] = useState("pokemon");
+  const [torneioOp2, setTorneioOp2] = useState("");
+  const [torneioOp3, setTorneioOp3] = useState("");
+  const [termosTorneio, setTermosTorneio] = useState<Record<string, boolean>>({
+    pokemon: false,
+  });
+
+  // OFICINAS: Opção 1, 2 e 3 (por ordem de preferência)
+  const [oficinaOp1, setOficinaOp1] = useState("");
+  const [oficinaOp2, setOficinaOp2] = useState("");
+  const [oficinaOp3, setOficinaOp3] = useState("");
+
   const [selectedTurnos, setSelectedTurnos] = useState<string[]>(["21_noite", "22_tarde", "22_noite"]);
-  const [intencao, setIntencao] = useState<"torneio" | "casual" | "oficina_aprender">("torneio");
-  const [possuiDeck, setPossuiDeck] = useState<"sim" | "nao" | "preciso_demo">("sim");
   const [observacoes, setObservacoes] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,12 +178,65 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
     nome: string;
     whatsappLink: string;
     jogos: string[];
+    torneioJogos?: string[];
+    oficinaJogos?: string[];
     turnos: string[];
     tipoParticipante: "externo" | "unef" | "unifan" | "outra";
     intencao?: string;
     possuiDeck?: string;
   } | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
+
+  const getGameName = (id: string) => {
+    const match = TCG_OPTIONS.find((t) => t.id === id);
+    return match ? match.name : id;
+  };
+
+  const handleToggleTermo = (tcgId: string) => {
+    setTermosTorneio((prev) => ({
+      ...prev,
+      [tcgId]: !prev[tcgId],
+    }));
+  };
+
+  const handleTorneioOp1Change = (val: string) => {
+    setTorneioOp1(val);
+    if (val && termosTorneio[val] === undefined) {
+      setTermosTorneio((prev) => ({ ...prev, [val]: false }));
+    }
+    if (val && torneioOp2 === val) setTorneioOp2("");
+    if (val && torneioOp3 === val) setTorneioOp3("");
+  };
+
+  const handleTorneioOp2Change = (val: string) => {
+    setTorneioOp2(val);
+    if (val && termosTorneio[val] === undefined) {
+      setTermosTorneio((prev) => ({ ...prev, [val]: false }));
+    }
+    if (val && torneioOp3 === val) setTorneioOp3("");
+  };
+
+  const handleTorneioOp3Change = (val: string) => {
+    setTorneioOp3(val);
+    if (val && termosTorneio[val] === undefined) {
+      setTermosTorneio((prev) => ({ ...prev, [val]: false }));
+    }
+  };
+
+  const handleOficinaOp1Change = (val: string) => {
+    setOficinaOp1(val);
+    if (val && oficinaOp2 === val) setOficinaOp2("");
+    if (val && oficinaOp3 === val) setOficinaOp3("");
+  };
+
+  const handleOficinaOp2Change = (val: string) => {
+    setOficinaOp2(val);
+    if (val && oficinaOp3 === val) setOficinaOp3("");
+  };
+
+  const handleOficinaOp3Change = (val: string) => {
+    setOficinaOp3(val);
+  };
 
   // Carrega protocolo caso venha via URL (ex: scan do QR code ou link direto)
   useEffect(() => {
@@ -183,9 +247,18 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
           if (data?.inscricao) {
             const ins = data.inscricao;
             let parsedGames: string[] = [];
+            let torneioJogos: string[] = [];
+            let oficinaJogos: string[] = [];
             let parsedDays: string[] = [];
             try {
-              parsedGames = JSON.parse(ins.jogos || "[]");
+              const parsed = JSON.parse(ins.jogos || "[]");
+              if (Array.isArray(parsed)) {
+                parsedGames = parsed;
+              } else if (parsed && typeof parsed === "object") {
+                torneioJogos = parsed.torneio || [];
+                oficinaJogos = parsed.oficinas || [];
+                parsedGames = parsed.lista || [...torneioJogos, ...oficinaJogos];
+              }
             } catch {
               parsedGames = [ins.jogos];
             }
@@ -202,6 +275,8 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
                 `Olá! Segue minha credencial confirmada da Arena Geek TCG (FINC 2026):\n\n🎫 *Protocolo:* ${ins.protocolo}\n👤 *Nome:* ${ins.nome}`
               )}`,
               jogos: parsedGames,
+              torneioJogos,
+              oficinaJogos,
               turnos: parsedDays,
               tipoParticipante: (ins.tipoParticipante as any) || "externo",
               intencao: ins.intencao || "torneio",
@@ -224,12 +299,6 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
     setWhatsapp(formatPhoneInput(e.target.value));
   };
 
-  const toggleGame = (id: string) => {
-    setSelectedGames((prev) =>
-      prev.includes(id) ? (prev.length > 1 ? prev.filter((g) => g !== id) : prev) : [...prev, id]
-    );
-  };
-
   const toggleTurno = (id: string) => {
     setSelectedTurnos((prev) =>
       prev.includes(id) ? (prev.length > 1 ? prev.filter((t) => t !== id) : prev) : [...prev, id]
@@ -248,20 +317,6 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
     setSelectedTurnos(["22_tarde", "22_noite"]);
   };
 
-  const handleIntencaoChange = (newIntencao: "torneio" | "casual" | "oficina_aprender") => {
-    if (newIntencao !== "oficina_aprender" && possuiDeck !== "sim") {
-      setPossuiDeck("sim");
-    }
-    setIntencao(newIntencao);
-  };
-
-  const handlePossuiDeckChange = (newPossuiDeck: "sim" | "nao" | "preciso_demo") => {
-    setPossuiDeck(newPossuiDeck);
-    if (newPossuiDeck !== "sim") {
-      setIntencao("oficina_aprender");
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -277,29 +332,28 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
       return;
     }
 
-    if (selectedGames.length === 0) {
-      setErrorMessage("Selecione ao menos um Card Game de seu interesse.");
+    const cleanTorneio = [torneioOp1, torneioOp2, torneioOp3].filter((t) => t && t.trim() !== "");
+    const cleanOficina = [oficinaOp1, oficinaOp2, oficinaOp3].filter((o) => o && o.trim() !== "");
+
+    if (cleanTorneio.length === 0 && cleanOficina.length === 0) {
+      setErrorMessage("Por favor, selecione ao menos uma opção de Torneio ou de Oficina.");
       return;
+    }
+
+    // Validação OBRIGATÓRIA do termo de responsabilidade de cada torneio selecionado:
+    for (const tcg of cleanTorneio) {
+      if (!termosTorneio[tcg]) {
+        setErrorMessage(
+          `Termo Obrigatório Não Assinado: Para participar do torneio de ${getGameName(
+            tcg
+          )}, você deve assinar o termo de responsabilidade atestando que possui deck montado no formato padrão. Sem este termo sua inscrição é invalidada.`
+        );
+        return;
+      }
     }
 
     if (selectedTurnos.length === 0) {
       setErrorMessage("Selecione ao menos um turno de participação.");
-      return;
-    }
-
-    // Regra Oficial FINC: quem não tiver deck do jogo escolhido, obrigatoriamente só poderá participar das oficinas
-    if (possuiDeck !== "sim" && intencao !== "oficina_aprender") {
-      setErrorMessage(
-        "Atenção: Quem não possui deck do jogo escolhido só poderá participar obrigatoriamente das Oficinas Didáticas de Iniciação com os decks de demonstração da organização."
-      );
-      return;
-    }
-
-    // Regra Oficial FINC: só poderá participar de torneio quem tiver deck próprio no formato padrão
-    if (intencao === "torneio" && possuiDeck !== "sim") {
-      setErrorMessage(
-        "Atenção: Para disputar os Torneios Competitivos, é obrigatório possuir deck próprio montado no formato padrão de cada jogo."
-      );
       return;
     }
 
@@ -313,10 +367,11 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
           whatsapp: cleanPhone,
           email: email.trim(),
           tipoParticipante,
-          jogos: selectedGames,
+          jogosTorneio: cleanTorneio,
+          jogosOficina: cleanOficina,
+          termosTorneio,
+          jogos: [...new Set([...cleanTorneio, ...cleanOficina])],
           dias: selectedTurnos,
-          intencao,
-          possuiDeck,
           observacoes: observacoes.trim(),
         }),
       });
@@ -330,11 +385,13 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
         protocolo: data.protocolo,
         nome: nome.trim(),
         whatsappLink: data.whatsappLink,
-        jogos: selectedGames,
+        jogos: [...new Set([...cleanTorneio, ...cleanOficina])],
+        torneioJogos: cleanTorneio,
+        oficinaJogos: cleanOficina,
         turnos: selectedTurnos,
         tipoParticipante,
-        intencao,
-        possuiDeck,
+        intencao: cleanTorneio.length > 0 && cleanOficina.length > 0 ? "ambos" : cleanTorneio.length > 0 ? "torneio" : "oficina_aprender",
+        possuiDeck: cleanTorneio.length > 0 ? "sim" : "nao",
       });
 
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -576,22 +633,81 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
                 </div>
               </div>
 
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-black tracking-wider">Card Games Inscritos:</span>
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {confirmedData.jogos.map((j) => {
-                    const match = TCG_OPTIONS.find((t) => t.id === j);
-                    return (
-                      <span
-                        key={j}
-                        className="px-2.5 py-1 rounded-lg text-xs font-bold border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 uppercase"
-                      >
-                        {match?.name || j}
-                      </span>
-                    );
-                  })}
+              {/* Torneios com Termo Homologado */}
+              {confirmedData.torneioJogos && confirmedData.torneioJogos.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-amber-400 text-[10px] uppercase font-black tracking-wider flex items-center gap-1">
+                    <Trophy className="h-3.5 w-3.5 text-amber-400" />
+                    Torneios Inscritos (Ordem de Preferência):
+                  </span>
+                  <div className="flex flex-col gap-1">
+                    {confirmedData.torneioJogos.map((j, idx) => {
+                      const match = TCG_OPTIONS.find((t) => t.id === j);
+                      return (
+                        <div
+                          key={j}
+                          className="flex items-center justify-between rounded-lg bg-amber-950/40 border border-amber-500/30 px-3 py-1.5 text-xs"
+                        >
+                          <span className="font-bold text-amber-200">
+                            {idx + 1}ª Opção: {match?.name || j}
+                          </span>
+                          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded">
+                            Deck Próprio Homologado ✅
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Oficinas Didáticas */}
+              {confirmedData.oficinaJogos && confirmedData.oficinaJogos.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-cyan-400 text-[10px] uppercase font-black tracking-wider flex items-center gap-1">
+                    <BookOpen className="h-3.5 w-3.5 text-cyan-400" />
+                    Oficinas Didáticas (Ordem de Preferência):
+                  </span>
+                  <div className="flex flex-col gap-1">
+                    {confirmedData.oficinaJogos.map((j, idx) => {
+                      const match = TCG_OPTIONS.find((t) => t.id === j);
+                      return (
+                        <div
+                          key={j}
+                          className="flex items-center justify-between rounded-lg bg-cyan-950/40 border border-cyan-500/30 px-3 py-1.5 text-xs"
+                        >
+                          <span className="font-bold text-cyan-200">
+                            {idx + 1}ª Opção: {match?.name || j}
+                          </span>
+                          <span className="text-[10px] text-cyan-300 font-medium bg-cyan-950/60 border border-cyan-500/20 px-2 py-0.5 rounded">
+                            Decks da Organização
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {(!confirmedData.torneioJogos || confirmedData.torneioJogos.length === 0) &&
+                (!confirmedData.oficinaJogos || confirmedData.oficinaJogos.length === 0) && (
+                  <div>
+                    <span className="text-slate-400 text-[10px] uppercase font-black tracking-wider">Card Games Inscritos:</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {confirmedData.jogos.map((j) => {
+                        const match = TCG_OPTIONS.find((t) => t.id === j);
+                        return (
+                          <span
+                            key={j}
+                            className="px-2.5 py-1 rounded-lg text-xs font-bold border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 uppercase"
+                          >
+                            {match?.name || j}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
               {/* Informações Adicionais */}
               <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
@@ -669,60 +785,353 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* ETAPA 1: ESCOLHA DOS JOGOS (TCGS) */}
-            <div className="space-y-4">
-              <label className="block text-sm font-black text-white uppercase tracking-wider flex items-center justify-between">
-                <span>1. Quais TCGs você tem interesse em participar? *</span>
-                <span className="text-xs text-slate-400 normal-case font-normal">(Pode marcar mais de um)</span>
-              </label>
+            {/* ETAPA 1: TORNEIOS COMPETITIVOS */}
+            <div className="space-y-5 rounded-3xl border border-amber-500/30 bg-gradient-to-b from-amber-950/20 via-slate-900/60 to-slate-950 p-5 sm:p-7 shadow-xl">
+              <div className="border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2 text-amber-400 font-black text-xs uppercase tracking-wider">
+                  <Trophy className="h-4 w-4" />
+                  Modalidade Competitiva Oficial
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white mt-1 flex flex-wrap items-center gap-2">
+                  <span>1. Torneios Competitivos</span>
+                  <span className="text-[11px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                    Até 3 Opções
+                  </span>
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                  Exclusivo para quem possui <strong>deck próprio regulamentado no formato padrão</strong> de cada jogo.
+                </p>
+              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {TCG_OPTIONS.map((game) => {
-                  const isSelected = selectedGames.includes(game.id);
-                  return (
+              {/* AVISO OBRIGATÓRIO DE CRONOGRAMA */}
+              <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-xs text-amber-200 flex items-start gap-2.5">
+                <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Aviso Oficial de Cronograma:</strong> A escolha dos torneios é por <strong>ordem de preferência (1ª, 2ª e 3ª opção)</strong>, pois a grade oficial poderá passar por alterações e remanejamentos de horário conforme a quantidade de participantes e fluxo das mesas.
+                </span>
+              </div>
+
+              {/* OPÇÃO 1 DE TORNEIO */}
+              <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase text-white flex items-center gap-2">
+                    <span className="h-5 w-5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black flex items-center justify-center">1</span>
+                    1ª Opção de Torneio (Principal)
+                  </label>
+                  {torneioOp1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleTorneioOp1Change("")}
+                      className="text-[11px] font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Limpar escolha
+                    </button>
+                  )}
+                </div>
+
+                <select
+                  value={torneioOp1}
+                  onChange={(e) => handleTorneioOp1Change(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                >
+                  <option value="">-- Não desejo participar de Torneio como 1ª opção --</option>
+                  {TCG_OPTIONS.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} ({g.format})
+                    </option>
+                  ))}
+                </select>
+
+                {/* TERMO OBRIGATÓRIO RADIO BOX / CHECKBOX */}
+                {torneioOp1 && (
+                  <div
+                    onClick={() => handleToggleTermo(torneioOp1)}
+                    className={`rounded-xl border p-3.5 cursor-pointer select-none transition-all flex items-start gap-3 ${
+                      termosTorneio[torneioOp1]
+                        ? "border-emerald-500/60 bg-emerald-950/40 text-emerald-200 ring-1 ring-emerald-500/30"
+                        : "border-rose-500/60 bg-rose-950/20 text-rose-200 hover:bg-rose-950/30 ring-1 ring-rose-500/30"
+                    }`}
+                  >
                     <div
-                      key={game.id}
-                      onClick={() => toggleGame(game.id)}
-                      className={`relative rounded-2xl border p-4 cursor-pointer transition-all duration-200 select-none ${
-                        isSelected
-                          ? `bg-slate-800/90 border-cyan-400/80 shadow-md shadow-cyan-500/10 ring-1 ring-cyan-400/40`
-                          : `bg-slate-950/60 border-white/10 ${game.borderHover} hover:bg-slate-800/40`
+                      className={`h-5 w-5 rounded-full flex items-center justify-center border shrink-0 mt-0.5 transition-all ${
+                        termosTorneio[torneioOp1]
+                          ? "bg-emerald-500 border-emerald-400 text-slate-950"
+                          : "border-rose-400 bg-slate-900"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className={`text-sm font-black ${isSelected ? "text-white" : "text-slate-200"}`}>
-                            {game.name}
-                          </h3>
-                          <span className={`text-[11px] font-bold ${game.tagColor}`}>
-                            {game.subtitle}
-                          </span>
-                        </div>
-                        <div
-                          className={`h-5 w-5 rounded-md flex items-center justify-center border transition-all ${
-                            isSelected
-                              ? "bg-cyan-500 border-cyan-400 text-slate-950 font-black"
-                              : "border-white/20 bg-slate-800/40"
-                          }`}
-                        >
-                          {isSelected && <Check className="h-3.5 w-3.5 stroke-[3]" />}
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-slate-400 mt-2.5 leading-relaxed line-clamp-2">
-                        {game.description}
+                      {termosTorneio[torneioOp1] && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                    </div>
+                    <div className="text-xs leading-snug space-y-1">
+                      <span className="font-black uppercase tracking-wider block text-white">
+                        Termo de Responsabilidade Obrigatório • 1ª Opção ({getGameName(torneioOp1)}) *
+                      </span>
+                      <p className="text-[11px] opacity-90">
+                        Declaro e assumo total responsabilidade de que <strong>possuo deck próprio montado no formato padrão oficial de {getGameName(torneioOp1)}</strong> para jogar o torneio. Estou ciente de que sem este deck minha inscrição no torneio é sumariamente invalidada e não receberei deck da organização.
                       </p>
                     </div>
-                  );
-                })}
+                  </div>
+                )}
               </div>
+
+              {/* OPÇÃO 2 DE TORNEIO */}
+              {torneioOp1 && (
+                <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black uppercase text-white flex items-center gap-2">
+                      <span className="h-5 w-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black flex items-center justify-center">2</span>
+                      2ª Opção de Torneio (Secundária - Opcional)
+                    </label>
+                    {torneioOp2 && (
+                      <button
+                        type="button"
+                        onClick={() => handleTorneioOp2Change("")}
+                        className="text-[11px] font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        Limpar escolha
+                      </button>
+                    )}
+                  </div>
+
+                  <select
+                    value={torneioOp2}
+                    onChange={(e) => handleTorneioOp2Change(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                  >
+                    <option value="">-- Nenhuma 2ª opção de torneio --</option>
+                    {TCG_OPTIONS.filter((g) => g.id !== torneioOp1).map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} ({g.format})
+                      </option>
+                    ))}
+                  </select>
+
+                  {torneioOp2 && (
+                    <div
+                      onClick={() => handleToggleTermo(torneioOp2)}
+                      className={`rounded-xl border p-3.5 cursor-pointer select-none transition-all flex items-start gap-3 ${
+                        termosTorneio[torneioOp2]
+                          ? "border-emerald-500/60 bg-emerald-950/40 text-emerald-200 ring-1 ring-emerald-500/30"
+                          : "border-rose-500/60 bg-rose-950/20 text-rose-200 hover:bg-rose-950/30 ring-1 ring-rose-500/30"
+                      }`}
+                    >
+                      <div
+                        className={`h-5 w-5 rounded-full flex items-center justify-center border shrink-0 mt-0.5 transition-all ${
+                          termosTorneio[torneioOp2]
+                            ? "bg-emerald-500 border-emerald-400 text-slate-950"
+                            : "border-rose-400 bg-slate-900"
+                        }`}
+                      >
+                        {termosTorneio[torneioOp2] && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                      </div>
+                      <div className="text-xs leading-snug space-y-1">
+                        <span className="font-black uppercase tracking-wider block text-white">
+                          Termo de Responsabilidade Obrigatório • 2ª Opção ({getGameName(torneioOp2)}) *
+                        </span>
+                        <p className="text-[11px] opacity-90">
+                          Declaro e assumo total responsabilidade de que <strong>possuo deck próprio montado no formato padrão oficial de {getGameName(torneioOp2)}</strong> para jogar o torneio. Estou ciente de que sem este deck minha inscrição no torneio é sumariamente invalidada.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* OPÇÃO 3 DE TORNEIO */}
+              {torneioOp1 && torneioOp2 && (
+                <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black uppercase text-white flex items-center gap-2">
+                      <span className="h-5 w-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black flex items-center justify-center">3</span>
+                      3ª Opção de Torneio (Terceira - Opcional)
+                    </label>
+                    {torneioOp3 && (
+                      <button
+                        type="button"
+                        onClick={() => handleTorneioOp3Change("")}
+                        className="text-[11px] font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        Limpar escolha
+                      </button>
+                    )}
+                  </div>
+
+                  <select
+                    value={torneioOp3}
+                    onChange={(e) => handleTorneioOp3Change(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                  >
+                    <option value="">-- Nenhuma 3ª opção de torneio --</option>
+                    {TCG_OPTIONS.filter((g) => g.id !== torneioOp1 && g.id !== torneioOp2).map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} ({g.format})
+                      </option>
+                    ))}
+                  </select>
+
+                  {torneioOp3 && (
+                    <div
+                      onClick={() => handleToggleTermo(torneioOp3)}
+                      className={`rounded-xl border p-3.5 cursor-pointer select-none transition-all flex items-start gap-3 ${
+                        termosTorneio[torneioOp3]
+                          ? "border-emerald-500/60 bg-emerald-950/40 text-emerald-200 ring-1 ring-emerald-500/30"
+                          : "border-rose-500/60 bg-rose-950/20 text-rose-200 hover:bg-rose-950/30 ring-1 ring-rose-500/30"
+                      }`}
+                    >
+                      <div
+                        className={`h-5 w-5 rounded-full flex items-center justify-center border shrink-0 mt-0.5 transition-all ${
+                          termosTorneio[torneioOp3]
+                            ? "bg-emerald-500 border-emerald-400 text-slate-950"
+                            : "border-rose-400 bg-slate-900"
+                        }`}
+                      >
+                        {termosTorneio[torneioOp3] && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                      </div>
+                      <div className="text-xs leading-snug space-y-1">
+                        <span className="font-black uppercase tracking-wider block text-white">
+                          Termo de Responsabilidade Obrigatório • 3ª Opção ({getGameName(torneioOp3)}) *
+                        </span>
+                        <p className="text-[11px] opacity-90">
+                          Declaro e assumo total responsabilidade de que <strong>possuo deck próprio montado no formato padrão oficial de {getGameName(torneioOp3)}</strong> para jogar o torneio. Estou ciente de que sem este deck minha inscrição no torneio é sumariamente invalidada.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* ETAPA 2: SEPARAÇÃO DE TURNOS NAS DATAS */}
+            {/* ETAPA 2: OFICINAS DIDÁTICAS */}
+            <div className="space-y-5 rounded-3xl border border-cyan-500/30 bg-gradient-to-b from-cyan-950/20 via-slate-900/60 to-slate-950 p-5 sm:p-7 shadow-xl">
+              <div className="border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2 text-cyan-400 font-black text-xs uppercase tracking-wider">
+                  <BookOpen className="h-4 w-4" />
+                  Iniciação & Oficinas Práticas
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white mt-1 flex flex-wrap items-center gap-2">
+                  <span>2. Oficinas Didáticas de Iniciação</span>
+                  <span className="text-[11px] font-black text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-0.5 rounded-full">
+                    Até 3 Opções
+                  </span>
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                  Aprenda a jogar do zero! A organização fornecerá <strong>decks didáticos de demonstração</strong> e monitores.
+                </p>
+              </div>
+
+              {/* AVISO OBRIGATÓRIO DE CRONOGRAMA */}
+              <div className="rounded-2xl border border-cyan-500/40 bg-cyan-950/40 p-3.5 text-xs text-cyan-200 flex items-start gap-2.5">
+                <AlertCircle className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Aviso Oficial de Cronograma:</strong> A escolha das oficinas é por <strong>ordem de preferência (1ª, 2ª e 3ª opção)</strong>, pois as bancadas didáticas poderão passar por alterações de cronograma conforme a lotação das mesas.
+                </span>
+              </div>
+
+              {/* OPÇÃO 1 DE OFICINA */}
+              <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase text-white flex items-center gap-2">
+                    <span className="h-5 w-5 rounded-full bg-cyan-500 text-slate-950 text-[10px] font-black flex items-center justify-center">1</span>
+                    1ª Opção de Oficina (Principal)
+                  </label>
+                  {oficinaOp1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleOficinaOp1Change("")}
+                      className="text-[11px] font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Limpar escolha
+                    </button>
+                  )}
+                </div>
+
+                <select
+                  value={oficinaOp1}
+                  onChange={(e) => handleOficinaOp1Change(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                >
+                  <option value="">-- Não desejo participar de Oficina como 1ª opção --</option>
+                  {TCG_OPTIONS.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name} - {g.subtitle}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* OPÇÃO 2 DE OFICINA */}
+              {oficinaOp1 && (
+                <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black uppercase text-white flex items-center gap-2">
+                      <span className="h-5 w-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black flex items-center justify-center">2</span>
+                      2ª Opção de Oficina (Secundária - Opcional)
+                    </label>
+                    {oficinaOp2 && (
+                      <button
+                        type="button"
+                        onClick={() => handleOficinaOp2Change("")}
+                        className="text-[11px] font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        Limpar escolha
+                      </button>
+                    )}
+                  </div>
+
+                  <select
+                    value={oficinaOp2}
+                    onChange={(e) => handleOficinaOp2Change(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                  >
+                    <option value="">-- Nenhuma 2ª opção de oficina --</option>
+                    {TCG_OPTIONS.filter((g) => g.id !== oficinaOp1).map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} - {g.subtitle}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* OPÇÃO 3 DE OFICINA */}
+              {oficinaOp1 && oficinaOp2 && (
+                <div className="rounded-2xl border border-white/10 bg-slate-900/90 p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black uppercase text-white flex items-center gap-2">
+                      <span className="h-5 w-5 rounded-full bg-slate-700 text-slate-200 text-[10px] font-black flex items-center justify-center">3</span>
+                      3ª Opção de Oficina (Terceira - Opcional)
+                    </label>
+                    {oficinaOp3 && (
+                      <button
+                        type="button"
+                        onClick={() => handleOficinaOp3Change("")}
+                        className="text-[11px] font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        Limpar escolha
+                      </button>
+                    )}
+                  </div>
+
+                  <select
+                    value={oficinaOp3}
+                    onChange={(e) => handleOficinaOp3Change(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                  >
+                    <option value="">-- Nenhuma 3ª opção de oficina --</option>
+                    {TCG_OPTIONS.filter((g) => g.id !== oficinaOp1 && g.id !== oficinaOp2).map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} - {g.subtitle}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* ETAPA 3: SEPARAÇÃO DE TURNOS NAS DATAS */}
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label className="block text-sm font-black text-white uppercase tracking-wider">
-                  2. Em quais turnos você comparecerá? *
+                  3. Em quais turnos você comparecerá? *
                 </label>
 
                 {/* Atalhos de Seleção Rápida */}
@@ -795,83 +1204,6 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
                   );
                 })}
               </div>
-            </div>
-
-            {/* ETAPA 3: SITUAÇÃO DO DECK & MODALIDADE */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-300 uppercase">
-                    Você possui Deck no Formato Padrão? *
-                  </label>
-                  <select
-                    value={possuiDeck}
-                    onChange={(e: any) => handlePossuiDeckChange(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                  >
-                    <option value="sim">Sim, possuo deck próprio montado no Formato Padrão</option>
-                    <option value="nao">Não possuo deck (Obrigatório Oficina Didática)</option>
-                    <option value="preciso_demo">Preciso de deck emprestado (Obrigatório Oficina Didática)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-300 uppercase">
-                    Qual é o seu objetivo no evento? *
-                  </label>
-                  <select
-                    value={intencao}
-                    onChange={(e: any) => handleIntencaoChange(e.target.value)}
-                    disabled={possuiDeck !== "sim"}
-                    className={`w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 ${
-                      possuiDeck !== "sim" ? "opacity-75 cursor-not-allowed bg-slate-900" : ""
-                    }`}
-                  >
-                    <option value="torneio" disabled={possuiDeck !== "sim"}>
-                      Quero disputar o Torneio Competitivo {possuiDeck !== "sim" ? "(Bloqueado: exige deck próprio)" : ""}
-                    </option>
-                    <option value="casual" disabled={possuiDeck !== "sim"}>
-                      Jogar Free Play / Casual com outros players {possuiDeck !== "sim" ? "(Bloqueado: exige deck próprio)" : ""}
-                    </option>
-                    <option value="oficina_aprender">
-                      Oficinas Didáticas de Iniciação (Aprender com decks da organização)
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Box Informativo de Regra Oficial */}
-              {possuiDeck !== "sim" ? (
-                <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/40 p-3.5 text-xs text-cyan-200 flex items-start gap-2.5">
-                  <BookOpen className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-cyan-300 block">Regra Oficial da Arena Geek TCG:</span>
-                    <span>
-                      Quem não tiver deck do jogo escolhido, <strong>obrigatoriamente só poderá participar das Oficinas Didáticas</strong>. Nossos juízes e monitores da Atlântica Mais disponibilizarão decks de demonstração para ensinar as regras a você!
-                    </span>
-                  </div>
-                </div>
-              ) : intencao === "torneio" ? (
-                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-xs text-amber-200 flex items-start gap-2.5">
-                  <Trophy className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-amber-300 block">Regra Oficial dos Torneios:</span>
-                    <span>
-                      Só poderá participar dos torneios competitivos quem tiver <strong>deck próprio regulamentado no formato padrão de cada jogo</strong>. A organização não disponibilizará decks para disputa de torneio oficial.
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-blue-500/30 bg-blue-950/40 p-3.5 text-xs text-blue-200 flex items-start gap-2.5">
-                  <Gamepad2 className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-blue-300 block">Free Play & Casual:</span>
-                    <span>
-                      Mesas liberadas para você jogar e trocar cartas com outros duelistas e treinadores da comunidade geek usando seus próprios decks.
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* ETAPA 4: DADOS DE CONTATO */}

@@ -133,6 +133,9 @@ export async function POST(request: Request) {
       email = "",
       tipoParticipante = "externo",
       jogos = [],
+      jogosTorneio = [],
+      jogosOficina = [],
+      termosTorneio = {},
       dias = [],
       intencao = "torneio",
       possuiDeck = "sim",
@@ -149,25 +152,59 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Por favor, informe um WhatsApp válido com DDD." }, { status: 400 });
     }
 
-    if (!Array.isArray(jogos) || jogos.length === 0) {
-      return NextResponse.json({ error: "Selecione ao menos um Card Game (TCG) de seu interesse." }, { status: 400 });
+    // Filtrar opções válidas
+    const cleanTorneio = Array.isArray(jogosTorneio)
+      ? jogosTorneio.filter((j: any) => typeof j === "string" && j.trim() !== "")
+      : [];
+    const cleanOficina = Array.isArray(jogosOficina)
+      ? jogosOficina.filter((j: any) => typeof j === "string" && j.trim() !== "")
+      : [];
+
+    if (cleanTorneio.length > 3) {
+      return NextResponse.json({ error: "Você pode selecionar no máximo até 3 opções de torneio por ordem de preferência." }, { status: 400 });
+    }
+    if (cleanOficina.length > 3) {
+      return NextResponse.json({ error: "Você pode selecionar no máximo até 3 opções de oficina por ordem de preferência." }, { status: 400 });
+    }
+
+    // Validação obrigatória do termo de responsabilidade para cada torneio marcado
+    for (const tcg of cleanTorneio) {
+      const aceitouTermo = termosTorneio && (termosTorneio[tcg] === true || termosTorneio[tcg] === "true");
+      if (!aceitouTermo) {
+        return NextResponse.json(
+          {
+            error: `Termo Obrigatório Não Assinado: Para participar do torneio de ${tcg.toUpperCase()}, é obrigatório assinar o termo de responsabilidade atestando que você possui o deck montado no formato padrão. Sem isso a inscrição é invalidada.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Lista consolidada de todos os jogos
+    const fallbackJogos = Array.isArray(jogos) ? jogos : [];
+    const allGames = [...new Set([...cleanTorneio, ...cleanOficina, ...fallbackJogos])];
+
+    if (allGames.length === 0) {
+      return NextResponse.json(
+        { error: "Selecione ao menos uma opção de Torneio ou Oficina de seu interesse." },
+        { status: 400 }
+      );
     }
 
     const diasArray = Array.isArray(dias) ? dias : [String(dias)];
     if (diasArray.length === 0) {
-      return NextResponse.json({ error: "Selecione os dias em que você estará presente (Dia 21, 22 ou Ambos)." }, { status: 400 });
+      return NextResponse.json({ error: "Selecione os dias e turnos em que você estará presente." }, { status: 400 });
     }
 
-    // Regra Oficial FINC: quem não tiver deck do jogo escolhido, obrigatoriamente só poderá participar das oficinas
-    if (possuiDeck !== "sim" && intencao !== "oficina_aprender") {
-      return NextResponse.json(
-        {
-          error:
-            "Regra Oficial FINC: Quem não possui deck próprio do jogo escolhido só poderá participar obrigatoriamente das Oficinas Didáticas de Iniciação.",
-        },
-        { status: 400 }
-      );
-    }
+    // Definir intenção e deck de forma consistente
+    const computedIntencao =
+      cleanTorneio.length > 0 && cleanOficina.length > 0
+        ? "ambos"
+        : cleanTorneio.length > 0
+        ? "torneio"
+        : "oficina_aprender";
+
+    const computedPossuiDeck = cleanTorneio.length > 0 ? "sim" : possuiDeck || "nao";
 
     // Gerar protocolo legível exclusivo
     const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -179,10 +216,15 @@ export async function POST(request: Request) {
       whatsapp: cleanWhatsapp,
       email: email ? email.trim() : null,
       tipoParticipante,
-      jogos: JSON.stringify(jogos),
+      jogos: JSON.stringify({
+        torneio: cleanTorneio,
+        oficinas: cleanOficina,
+        termos: termosTorneio,
+        lista: allGames,
+      }),
       dias: JSON.stringify(diasArray),
-      intencao,
-      possuiDeck,
+      intencao: computedIntencao,
+      possuiDeck: computedPossuiDeck,
       observacoes: observacoes ? observacoes.trim() : null,
       status: "confirmado",
     };
@@ -198,15 +240,26 @@ export async function POST(request: Request) {
       return d;
     };
     const diasFormatados = diasArray.map(mapTurnoLabel).join(" + ");
-    const jogosFormatados = jogos.join(", ");
+
+    const formatJogosZap = () => {
+      let txt = "";
+      if (cleanTorneio.length > 0) {
+        txt += `🏆 *Torneios (Preferência):* ${cleanTorneio.map((t: string, idx: number) => `${idx + 1}º ${t.toUpperCase()}`).join(", ")} (Termo de Deck Assinado ✅)\n`;
+      }
+      if (cleanOficina.length > 0) {
+        txt += `📚 *Oficinas (Preferência):* ${cleanOficina.map((o: string, idx: number) => `${idx + 1}º ${o.toUpperCase()}`).join(", ")}\n`;
+      }
+      if (!txt) txt = `🃏 *Jogos:* ${allGames.join(", ")}\n`;
+      return txt;
+    };
+
     const zapText = encodeURIComponent(
       `Olá! Me inscrevi para o Espaço TCG na ARENA GEEK (FINC 2026).\n\n` +
       `🎫 *Protocolo:* ${protocolo}\n` +
       `👤 *Nome:* ${nome.trim()}\n` +
-      `🃏 *Jogos:* ${jogosFormatados}\n` +
+      formatJogosZap() +
       `📅 *Presença:* ${diasFormatados}\n` +
-      `🎯 *Modalidade:* ${intencao === "torneio" ? "Torneio Competitivo" : intencao === "casual" ? "Free Play / Casual" : "Oficina Didática (Aprender)"}\n` +
-      `📦 *Deck:* ${possuiDeck === "sim" ? "Tenho deck próprio" : "Preciso de deck emprestado / demo"}\n\n` +
+      `📦 *Deck:* ${computedPossuiDeck === "sim" ? "Deck próprio no formato padrão" : "Decks de demonstração (Oficinas)"}\n\n` +
       `Confirmando minha presença na Arena Geek!`
     );
 
