@@ -13,10 +13,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FincPage() {
+export default async function FincPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ protocolo?: string }>;
+}) {
+  const resolved = searchParams ? await searchParams : undefined;
   return (
     <div className="min-h-screen py-4 sm:py-8">
-      <FincRegistrationView />
+      <FincRegistrationView initialProtocol={resolved?.protocolo} />
     </div>
   );
 }

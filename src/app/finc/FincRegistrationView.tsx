@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   Sparkles,
@@ -20,6 +20,11 @@ import {
   Shield,
   Layers,
   ChevronRight,
+  QrCode,
+  Printer,
+  Globe,
+  GraduationCap,
+  Building,
 } from "lucide-react";
 
 interface TcgGameOption {
@@ -144,7 +149,7 @@ const TURNOS_OPTIONS: TurnoItem[] = [
   },
 ];
 
-export function FincRegistrationView() {
+export function FincRegistrationView({ initialProtocol }: { initialProtocol?: string }) {
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
@@ -163,8 +168,50 @@ export function FincRegistrationView() {
     whatsappLink: string;
     jogos: string[];
     turnos: string[];
+    tipoParticipante: "externo" | "unef" | "unifan" | "outra";
+    intencao?: string;
+    possuiDeck?: string;
   } | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
+
+  // Carrega protocolo caso venha via URL (ex: scan do QR code ou link direto)
+  useEffect(() => {
+    if (initialProtocol && initialProtocol.trim() !== "") {
+      fetch(`/api/finc?protocolo=${encodeURIComponent(initialProtocol.trim())}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.inscricao) {
+            const ins = data.inscricao;
+            let parsedGames: string[] = [];
+            let parsedDays: string[] = [];
+            try {
+              parsedGames = JSON.parse(ins.jogos || "[]");
+            } catch {
+              parsedGames = [ins.jogos];
+            }
+            try {
+              parsedDays = JSON.parse(ins.dias || "[]");
+            } catch {
+              parsedDays = [ins.dias];
+            }
+
+            setConfirmedData({
+              protocolo: ins.protocolo,
+              nome: ins.nome,
+              whatsappLink: `https://wa.me/5575992683072?text=${encodeURIComponent(
+                `Olá! Segue minha credencial confirmada da Arena Geek TCG (FINC 2026):\n\n🎫 *Protocolo:* ${ins.protocolo}\n👤 *Nome:* ${ins.nome}`
+              )}`,
+              jogos: parsedGames,
+              turnos: parsedDays,
+              tipoParticipante: (ins.tipoParticipante as any) || "externo",
+              intencao: ins.intencao || "torneio",
+              possuiDeck: ins.possuiDeck || "sim",
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [initialProtocol]);
 
   const formatPhoneInput = (val: string) => {
     const numbers = val.replace(/\D/g, "").slice(0, 11);
@@ -255,6 +302,9 @@ export function FincRegistrationView() {
         whatsappLink: data.whatsappLink,
         jogos: selectedGames,
         turnos: selectedTurnos,
+        tipoParticipante,
+        intencao,
+        possuiDeck,
       });
 
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -347,15 +397,12 @@ export function FincRegistrationView() {
 
       {/* CASO JÁ TENHA ENVIADO A INSCRIÇÃO: MOSTRA O PASSAPORTE DIGITAL */}
       {confirmedData ? (
-        <section className="relative overflow-hidden rounded-3xl border border-emerald-500/40 bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 p-6 sm:p-10 shadow-2xl text-center space-y-6">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 mb-2">
-            <CheckCircle2 className="h-10 w-10 animate-bounce" />
-          </div>
-
+        <section className="relative overflow-hidden rounded-3xl border border-cyan-500/40 bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 p-6 sm:p-10 shadow-2xl text-center space-y-6">
           <div className="space-y-2">
-            <span className="text-xs uppercase tracking-widest text-emerald-400 font-black">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-emerald-300">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
               Inscrição Homologada com Sucesso!
-            </span>
+            </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white">
               Passaporte do Jogador • Arena Geek
             </h2>
@@ -364,82 +411,150 @@ export function FincRegistrationView() {
             </p>
           </div>
 
-          {/* Ticket Visual */}
-          <div className="mx-auto max-w-md rounded-2xl border-2 border-dashed border-cyan-500/40 bg-slate-900/90 p-5 text-left space-y-4 shadow-xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2.5">
-                <Image
-                  src="/finc/finc-logo.png"
-                  alt="FINC"
-                  width={80}
-                  height={26}
-                  className="h-6 w-auto object-contain"
-                />
+          {/* CREDENCIAL FÍSICA DIGITALIZADA (ESTILO CRACHÁ VIP DE EVENTO) */}
+          <div className="mx-auto max-w-md rounded-3xl border-2 border-cyan-500/40 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 p-6 sm:p-7 text-left space-y-5 shadow-2xl relative overflow-hidden backdrop-blur-2xl">
+            {/* Efeito Glow e Furo do Cordão (Lanyard Slot) */}
+            <div className="w-16 h-2.5 rounded-full bg-slate-950 border border-white/20 mx-auto -mt-2 mb-2 shadow-inner" />
+            <div className="pointer-events-none absolute -top-20 -right-20 h-40 w-40 rounded-full bg-cyan-500/20 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-fuchsia-600/20 blur-2xl" />
+
+            {/* Cabeçalho da Credencial: Logos Oficiais */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="relative h-7 w-auto">
+                  <Image
+                    src="/finc/finc-logo.png"
+                    alt="FINC 2026"
+                    width={90}
+                    height={30}
+                    className="h-full w-auto object-contain"
+                  />
+                </div>
                 <span className="text-white/20">•</span>
-                <Image
-                  src="/finc/arena-geek-logo.png"
-                  alt="Arena Geek"
-                  width={100}
-                  height={35}
-                  className="h-7 w-auto object-contain"
-                />
+                <div className="relative h-8 w-auto">
+                  <Image
+                    src="/finc/arena-geek-logo.png"
+                    alt="Arena Geek"
+                    width={110}
+                    height={40}
+                    className="h-full w-auto object-contain"
+                  />
+                </div>
               </div>
-              <span className="text-[10px] uppercase font-black text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
-                Credencial
+              <span className="text-[10px] uppercase font-black text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1 rounded-full tracking-wider">
+                TCG VIP PASS
               </span>
             </div>
 
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-slate-400">Protocolo Oficial</span>
-                <div className="text-lg font-black font-mono text-cyan-300">{confirmedData.protocolo}</div>
-              </div>
-              <button
-                onClick={handleCopyProtocol}
-                className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 transition-all cursor-pointer"
-              >
-                {hasCopied ? (
-                  <>
-                    <Check className="h-3.5 w-3.5 text-emerald-400" />
-                    <span>Copiado!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5" />
-                    <span>Copiar</span>
-                  </>
-                )}
-              </button>
+            {/* BADGE DESTACADA DO TIPO DE PARTICIPANTE (EXTERNO vs ALUNOS) */}
+            <div>
+              {confirmedData.tipoParticipante === "externo" ? (
+                <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/50 px-3.5 py-2 text-xs font-black text-cyan-200 uppercase tracking-wide shadow-sm">
+                  <Globe className="h-4 w-4 text-cyan-400 shrink-0" />
+                  <span>Participante Externo • Comunidade Geek</span>
+                </div>
+              ) : confirmedData.tipoParticipante === "unef" ? (
+                <div className="inline-flex items-center gap-2 rounded-xl bg-blue-500/20 border border-blue-400/50 px-3.5 py-2 text-xs font-black text-blue-200 uppercase tracking-wide shadow-sm">
+                  <GraduationCap className="h-4 w-4 text-blue-400 shrink-0" />
+                  <span>Comunidade Acadêmica • UNEF</span>
+                </div>
+              ) : confirmedData.tipoParticipante === "unifan" ? (
+                <div className="inline-flex items-center gap-2 rounded-xl bg-purple-500/20 border border-purple-400/50 px-3.5 py-2 text-xs font-black text-purple-200 uppercase tracking-wide shadow-sm">
+                  <GraduationCap className="h-4 w-4 text-purple-400 shrink-0" />
+                  <span>Comunidade Acadêmica • UNIFAN</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 rounded-xl bg-slate-800 border border-white/20 px-3.5 py-2 text-xs font-black text-slate-200 uppercase tracking-wide shadow-sm">
+                  <Building className="h-4 w-4 text-slate-400 shrink-0" />
+                  <span>Visitante • Outra Instituição</span>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-2 text-xs">
+            {/* Nome do Participante */}
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-0.5">
+                Nome do Jogador / Atleta
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight">
+                {confirmedData.nome}
+              </h3>
+            </div>
+
+            {/* QR CODE + CÓDIGO ÚNICO DE PROTOCOLO */}
+            <div className="rounded-2xl border border-white/10 bg-slate-950/80 p-4 flex flex-col sm:flex-row items-center gap-4">
+              {/* QR Code Real Gerado para Leitura por Câmera */}
+              <div className="bg-white p-2 rounded-xl shadow-lg shrink-0">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(
+                    `https://pokefsa.vercel.app/finc?protocolo=${confirmedData.protocolo}`
+                  )}`}
+                  alt={`QR Code ${confirmedData.protocolo}`}
+                  className="w-28 h-28 object-contain"
+                />
+              </div>
+
+              {/* Informações de Validação & Protocolo */}
+              <div className="flex-1 space-y-2 text-center sm:text-left w-full">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Código Único de Protocolo</span>
+                  <div className="text-lg font-black font-mono text-cyan-300 tracking-wider">
+                    {confirmedData.protocolo}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-400 leading-snug">
+                  Apresente este QR Code ou protocolo na recepção do Espaço TCG para liberar seu acesso às mesas.
+                </p>
+
+                <button
+                  onClick={handleCopyProtocol}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 transition-all cursor-pointer"
+                >
+                  {hasCopied ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      <span>Copiar Protocolo</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Dados do Acesso: Turnos e Jogos */}
+            <div className="space-y-3 text-xs border-t border-white/10 pt-3">
               <div>
-                <span className="text-slate-400 text-[10px] uppercase font-bold">Turnos Selecionados:</span>
-                <div className="flex flex-col gap-1 mt-1">
+                <span className="text-slate-400 text-[10px] uppercase font-black tracking-wider">Turnos Autorizados:</span>
+                <div className="flex flex-col gap-1.5 mt-1.5">
                   {confirmedData.turnos.map((tid) => {
                     const match = TURNOS_OPTIONS.find((t) => t.id === tid);
                     return (
                       <div
                         key={tid}
-                        className="flex items-center justify-between rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-slate-200"
+                        className="flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-3 py-1.5 text-slate-200"
                       >
-                        <span className="font-bold">{match?.dataExtenso || tid}</span>
-                        <span className="text-cyan-300 font-mono text-[11px]">{match?.horario} ({match?.turnoNome})</span>
+                        <span className="font-bold text-white">{match?.dataExtenso || tid}</span>
+                        <span className="text-cyan-300 font-mono text-[11px] font-semibold">{match?.horario} ({match?.turnoNome})</span>
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-white/10">
-                <span className="text-slate-400 text-[10px] uppercase font-bold">Card Games:</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
+              <div>
+                <span className="text-slate-400 text-[10px] uppercase font-black tracking-wider">Card Games Inscritos:</span>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {confirmedData.jogos.map((j) => {
                     const match = TCG_OPTIONS.find((t) => t.id === j);
                     return (
                       <span
                         key={j}
-                        className="px-2.5 py-0.5 rounded-lg text-xs font-bold border border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 uppercase"
                       >
                         {match?.name || j}
                       </span>
@@ -447,10 +562,32 @@ export function FincRegistrationView() {
                   })}
                 </div>
               </div>
+
+              {/* Informações Adicionais */}
+              <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                <div className="rounded-lg bg-white/5 p-2 border border-white/5">
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Modalidade:</span>
+                  <span className="text-white font-semibold">
+                    {confirmedData.intencao === "torneio" ? "Torneio Oficial" : confirmedData.intencao === "casual" ? "Free Play / Casual" : "Oficina Didática"}
+                  </span>
+                </div>
+                <div className="rounded-lg bg-white/5 p-2 border border-white/5">
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Deck:</span>
+                  <span className="text-white font-semibold">
+                    {confirmedData.possuiDeck === "sim" ? "Deck Próprio" : "Precisa Emprestado"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Rodapé da Credencial */}
+            <div className="border-t border-white/10 pt-3 text-[10px] text-slate-400 flex items-center justify-between">
+              <span>Cajueiro Convenções • FSA</span>
+              <span className="text-cyan-400 font-semibold">Gestão: Atlântica Mais</span>
             </div>
           </div>
 
-          {/* Botões de Ação */}
+          {/* BOTÕES DE AÇÃO DO JOGADOR */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <a
               href={confirmedData.whatsappLink}
@@ -464,6 +601,14 @@ export function FincRegistrationView() {
             </a>
 
             <button
+              onClick={() => window.print()}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-slate-800 hover:bg-slate-700 px-5 py-3.5 text-xs font-bold text-white transition-all cursor-pointer"
+            >
+              <Printer className="h-4 w-4 text-cyan-400" />
+              <span>Salvar / Imprimir Passaporte</span>
+            </button>
+
+            <button
               onClick={() => {
                 setConfirmedData(null);
                 setNome("");
@@ -471,7 +616,7 @@ export function FincRegistrationView() {
                 setEmail("");
                 setObservacoes("");
               }}
-              className="w-full sm:w-auto rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-5 py-3 text-xs font-bold text-slate-300 transition-all cursor-pointer"
+              className="w-full sm:w-auto rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-5 py-3.5 text-xs font-bold text-slate-300 transition-all cursor-pointer"
             >
               Fazer outra inscrição
             </button>
