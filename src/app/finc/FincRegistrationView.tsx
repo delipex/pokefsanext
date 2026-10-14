@@ -220,18 +220,48 @@ export function FincRegistrationView() {
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Coluna Texto / Título */}
-          <div className="lg:col-span-7 space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-cyan-300 shadow-sm">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-              FINC 2026 • 20, 21 e 22 de Outubro
+          <div className="lg:col-span-7 space-y-6">
+            {/* Logos Oficiais: FINC & ARENA GEEK */}
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 pb-1">
+              <div className="relative h-11 sm:h-13 w-auto max-w-[170px] sm:max-w-[210px]">
+                <Image
+                  src="/finc/finc-logo.png"
+                  alt="Marca Oficial FINC 2026"
+                  width={240}
+                  height={80}
+                  className="h-full w-auto object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.45)]"
+                  priority
+                />
+              </div>
+              <div className="h-7 w-px bg-white/20 hidden sm:block" />
+              <div className="relative h-14 sm:h-18 w-auto max-w-[210px] sm:max-w-[280px]">
+                <Image
+                  src="/finc/arena-geek-logo.png"
+                  alt="Marca Oficial Arena Geek"
+                  width={360}
+                  height={140}
+                  className="h-full w-auto object-contain drop-shadow-[0_0_16px_rgba(168,85,247,0.5)]"
+                  priority
+                />
+              </div>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-[1.1]">
-              ARENA <span className="bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-pink-500 bg-clip-text text-transparent">GEEK</span>
-              <span className="block text-2xl sm:text-3xl lg:text-4xl text-slate-200 font-extrabold mt-1">
-                Espaço TCG <span className="text-cyan-400 font-light">| Atlântica +Mais</span>
-              </span>
-            </h1>
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-cyan-300 shadow-sm">
+                <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+                FINC 2026 • 21 e 22 de Outubro
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-[1.1]">
+                ESPAÇO TCG{" "}
+                <span className="bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-pink-500 bg-clip-text text-transparent">
+                  Atlântica +Mais
+                </span>
+                <span className="block text-xl sm:text-2xl text-slate-300 font-bold mt-1">
+                  Torneios & Oficinas • Inscrições Abertas
+                </span>
+              </h1>
+            </div>
 
             <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
               Inscrições gratuitas para os torneios competitivos e oficinas de iniciação dos maiores card games do mundo na 
@@ -325,6 +355,29 @@ export function FincRegistrationView() {
 
           {/* Ticket Visual */}
           <div className="mx-auto max-w-md rounded-2xl border-2 border-dashed border-cyan-500/40 bg-slate-900/90 p-5 text-left space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <Image
+                  src="/finc/finc-logo.png"
+                  alt="FINC"
+                  width={80}
+                  height={26}
+                  className="h-6 w-auto object-contain"
+                />
+                <span className="text-white/20">•</span>
+                <Image
+                  src="/finc/arena-geek-logo.png"
+                  alt="Arena Geek"
+                  width={100}
+                  height={35}
+                  className="h-7 w-auto object-contain"
+                />
+              </div>
+              <span className="text-[10px] uppercase font-black text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
+                Credencial
+              </span>
+            </div>
+
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400">Protocolo Oficial</span>
