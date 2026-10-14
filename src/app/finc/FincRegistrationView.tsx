@@ -325,52 +325,21 @@ export function FincRegistrationView() {
             </p>
           </div>
 
-          {/* SEPARAÇÃO OFICIAL DE TURNOS & DATAS */}
-          <div className="space-y-2 pt-2 text-left">
-            <div className="text-xs font-black uppercase tracking-wider text-slate-400 text-center flex items-center justify-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-cyan-400" />
-              <span>Programação Oficial dos Turnos</span>
+          {/* Informações Centrais de Local, Data e Realização */}
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 pt-2 text-xs text-slate-300 border-t border-white/10">
+            <div className="flex items-center gap-1.5 font-medium">
+              <Calendar className="h-4 w-4 text-cyan-400 shrink-0" />
+              <span>21 e 22 de Outubro de 2026</span>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {TURNOS_OPTIONS.map((t) => (
-                <div
-                  key={t.id}
-                  className={`rounded-2xl border ${t.accentBorder} ${t.accentBg} p-4 space-y-1.5 shadow-lg`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-400">{t.diaSemana}</span>
-                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${t.accentBorder} bg-black/40 ${t.accentText}`}>
-                      {t.turnoNome}
-                    </span>
-                  </div>
-
-                  <div className={`font-black text-sm text-white`}>
-                    {t.dataExtenso}
-                  </div>
-
-                  <div className={`text-xs font-bold ${t.accentText} flex items-center gap-1.5`}>
-                    <Clock className="h-3.5 w-3.5 shrink-0" />
-                    <span>{t.horario}</span>
-                  </div>
-
-                  <p className="text-[11px] text-slate-400 pt-1 leading-snug">
-                    {t.descricao}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Local & Realização */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs text-slate-400 border-t border-white/10">
-            <div className="flex items-center gap-1.5 text-slate-300 font-medium">
+            <span className="text-white/20 hidden sm:inline-block">•</span>
+            <div className="flex items-center gap-1.5 font-medium">
               <MapPin className="h-4 w-4 text-rose-400 shrink-0" />
               <span>Arena Geek • Cajueiro Convenções (Feira de Santana - BA)</span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-300 font-medium">
+            <span className="text-white/20 hidden sm:inline-block">•</span>
+            <div className="flex items-center gap-1.5 font-medium">
               <Shield className="h-4 w-4 text-cyan-400 shrink-0" />
-              <span>Gestão Técnica & Arbitragem: <strong>Atlântica Mais</strong></span>
+              <span>Gestão Técnica & Arbitragem: <strong className="text-white">Atlântica Mais</strong></span>
             </div>
           </div>
         </div>
