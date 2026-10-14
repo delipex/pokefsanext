@@ -249,15 +249,15 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
   };
 
   const handleIntencaoChange = (newIntencao: "torneio" | "casual" | "oficina_aprender") => {
-    setIntencao(newIntencao);
-    if (newIntencao === "torneio") {
+    if (newIntencao !== "oficina_aprender" && possuiDeck !== "sim") {
       setPossuiDeck("sim");
     }
+    setIntencao(newIntencao);
   };
 
   const handlePossuiDeckChange = (newPossuiDeck: "sim" | "nao" | "preciso_demo") => {
     setPossuiDeck(newPossuiDeck);
-    if (newPossuiDeck !== "sim" && intencao === "torneio") {
+    if (newPossuiDeck !== "sim") {
       setIntencao("oficina_aprender");
     }
   };
@@ -287,10 +287,18 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
       return;
     }
 
+    // Regra Oficial FINC: quem não tiver deck do jogo escolhido, obrigatoriamente só poderá participar das oficinas
+    if (possuiDeck !== "sim" && intencao !== "oficina_aprender") {
+      setErrorMessage(
+        "Atenção: Quem não possui deck do jogo escolhido só poderá participar obrigatoriamente das Oficinas Didáticas de Iniciação com os decks de demonstração da organização."
+      );
+      return;
+    }
+
     // Regra Oficial FINC: só poderá participar de torneio quem tiver deck próprio no formato padrão
     if (intencao === "torneio" && possuiDeck !== "sim") {
       setErrorMessage(
-        "Atenção: Para disputar os Torneios Competitivos, é obrigatório possuir deck próprio montado no formato padrão de cada jogo. Para participar sem deck, selecione a modalidade Casual ou Oficina Didática."
+        "Atenção: Para disputar os Torneios Competitivos, é obrigatório possuir deck próprio montado no formato padrão de cada jogo."
       );
       return;
     }
@@ -789,24 +797,9 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
               </div>
             </div>
 
-            {/* ETAPA 3: MODALIDADE & SITUAÇÃO DO DECK */}
+            {/* ETAPA 3: SITUAÇÃO DO DECK & MODALIDADE */}
             <div className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-300 uppercase">
-                    Qual é o seu objetivo no evento? *
-                  </label>
-                  <select
-                    value={intencao}
-                    onChange={(e: any) => handleIntencaoChange(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                  >
-                    <option value="torneio">Quero disputar o Torneio Competitivo (Exige Deck Próprio)</option>
-                    <option value="casual">Jogar Free Play / Casual com outros players</option>
-                    <option value="oficina_aprender">Quero aprender a jogar do zero (Oficinas Práticas)</option>
-                  </select>
-                </div>
-
                 <div className="space-y-2">
                   <label className="block text-xs font-bold text-slate-300 uppercase">
                     Você possui Deck no Formato Padrão? *
@@ -816,15 +809,49 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
                     onChange={(e: any) => handlePossuiDeckChange(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
                   >
-                    <option value="sim">Sim, levarei meu próprio deck no Formato Padrão</option>
-                    <option value="nao">Não tenho deck (Válido para Casual ou Oficina Didática)</option>
-                    <option value="preciso_demo">Preciso de deck emprestado (Oficinas Práticas)</option>
+                    <option value="sim">Sim, possuo deck próprio montado no Formato Padrão</option>
+                    <option value="nao">Não possuo deck (Obrigatório Oficina Didática)</option>
+                    <option value="preciso_demo">Preciso de deck emprestado (Obrigatório Oficina Didática)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-slate-300 uppercase">
+                    Qual é o seu objetivo no evento? *
+                  </label>
+                  <select
+                    value={intencao}
+                    onChange={(e: any) => handleIntencaoChange(e.target.value)}
+                    disabled={possuiDeck !== "sim"}
+                    className={`w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2.5 text-xs font-semibold text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 ${
+                      possuiDeck !== "sim" ? "opacity-75 cursor-not-allowed bg-slate-900" : ""
+                    }`}
+                  >
+                    <option value="torneio" disabled={possuiDeck !== "sim"}>
+                      Quero disputar o Torneio Competitivo {possuiDeck !== "sim" ? "(Bloqueado: exige deck próprio)" : ""}
+                    </option>
+                    <option value="casual" disabled={possuiDeck !== "sim"}>
+                      Jogar Free Play / Casual com outros players {possuiDeck !== "sim" ? "(Bloqueado: exige deck próprio)" : ""}
+                    </option>
+                    <option value="oficina_aprender">
+                      Oficinas Didáticas de Iniciação (Aprender com decks da organização)
+                    </option>
                   </select>
                 </div>
               </div>
 
-              {/* Box Informativo de Regra dos Torneios */}
-              {intencao === "torneio" ? (
+              {/* Box Informativo de Regra Oficial */}
+              {possuiDeck !== "sim" ? (
+                <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/40 p-3.5 text-xs text-cyan-200 flex items-start gap-2.5">
+                  <BookOpen className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-cyan-300 block">Regra Oficial da Arena Geek TCG:</span>
+                    <span>
+                      Quem não tiver deck do jogo escolhido, <strong>obrigatoriamente só poderá participar das Oficinas Didáticas</strong>. Nossos juízes e monitores da Atlântica Mais disponibilizarão decks de demonstração para ensinar as regras a você!
+                    </span>
+                  </div>
+                </div>
+              ) : intencao === "torneio" ? (
                 <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-xs text-amber-200 flex items-start gap-2.5">
                   <Trophy className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                   <div>
@@ -835,12 +862,12 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
                   </div>
                 </div>
               ) : (
-                <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/40 p-3.5 text-xs text-cyan-200 flex items-start gap-2.5">
-                  <BookOpen className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
+                <div className="rounded-xl border border-blue-500/30 bg-blue-950/40 p-3.5 text-xs text-blue-200 flex items-start gap-2.5">
+                  <Gamepad2 className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-cyan-300 block">Oficinas de Iniciação & Jogos Casuais:</span>
+                    <span className="font-bold text-blue-300 block">Free Play & Casual:</span>
                     <span>
-                      Não tem deck? Monitores e juízes da Atlântica Mais estarão presentes com decks didáticos de demonstração para ensinar as regras a quem deseja aprender do zero!
+                      Mesas liberadas para você jogar e trocar cartas com outros duelistas e treinadores da comunidade geek usando seus próprios decks.
                     </span>
                   </div>
                 </div>

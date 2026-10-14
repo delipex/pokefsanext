@@ -158,12 +158,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Selecione os dias em que você estará presente (Dia 21, 22 ou Ambos)." }, { status: 400 });
     }
 
-    // Regra Oficial FINC: só poderá participar de torneio quem tiver deck próprio no formato padrão
-    if (intencao === "torneio" && possuiDeck !== "sim") {
+    // Regra Oficial FINC: quem não tiver deck do jogo escolhido, obrigatoriamente só poderá participar das oficinas
+    if (possuiDeck !== "sim" && intencao !== "oficina_aprender") {
       return NextResponse.json(
         {
           error:
-            "Para participar dos Torneios Competitivos é obrigatório possuir deck próprio montado no formato padrão de cada jogo. Para participar sem deck próprio, selecione o modo Casual ou Oficina Didática.",
+            "Regra Oficial FINC: Quem não possui deck próprio do jogo escolhido só poderá participar obrigatoriamente das Oficinas Didáticas de Iniciação.",
         },
         { status: 400 }
       );
