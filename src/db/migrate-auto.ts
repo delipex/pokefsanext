@@ -215,6 +215,7 @@ export async function ensureDatabaseSchema() {
       whatsapp TEXT NOT NULL,
       email TEXT,
       tipo_participante TEXT DEFAULT 'externo',
+      ra TEXT,
       jogos TEXT NOT NULL,
       dias TEXT NOT NULL,
       intencao TEXT DEFAULT 'torneio',
@@ -283,6 +284,7 @@ export async function ensureDatabaseSchema() {
     `ALTER TABLE jogador_decklists ADD COLUMN whatsapp TEXT;`,
     `ALTER TABLE jogador_decklists ADD COLUMN updated_at TEXT;`,
     `ALTER TABLE jogador_decklists ADD COLUMN historico_edicoes TEXT DEFAULT '[]';`,
+    `ALTER TABLE inscricoes_finc ADD COLUMN ra TEXT;`,
   ];
 
 

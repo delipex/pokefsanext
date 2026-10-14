@@ -183,6 +183,7 @@ export const inscricoesFinc = sqliteTable("inscricoes_finc", {
   whatsapp: text("whatsapp").notNull(),
   email: text("email"),
   tipoParticipante: text("tipo_participante").default("externo"), // 'externo', 'unef', 'unifan', 'outra'
+  ra: text("ra"), // Registro Acadêmico / Matrícula (alunos UNEF ou UNIFAN)
   jogos: text("jogos").notNull(), // JSON array: ["pokemon", "yugioh", "onepiece", "digimon", "riftbound"]
   dias: text("dias").notNull(), // JSON array: ["21", "22"] ou "ambos"
   intencao: text("intencao").default("torneio"), // 'torneio', 'casual', 'oficina_aprender'

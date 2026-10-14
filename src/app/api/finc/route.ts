@@ -132,6 +132,7 @@ export async function POST(request: Request) {
       whatsapp,
       email = "",
       tipoParticipante = "externo",
+      ra = "",
       jogos = [],
       jogosTorneio = [],
       jogosOficina = [],
@@ -150,6 +151,13 @@ export async function POST(request: Request) {
     const cleanWhatsapp = String(whatsapp || "").replace(/\D/g, "");
     if (cleanWhatsapp.length < 10) {
       return NextResponse.json({ error: "Por favor, informe um WhatsApp válido com DDD." }, { status: 400 });
+    }
+
+    if ((tipoParticipante === "unef" || tipoParticipante === "unifan") && (!ra || !String(ra).trim())) {
+      return NextResponse.json(
+        { error: "Para alunos da UNEF ou UNIFAN, é obrigatório informar o RA (Registro Acadêmico / Matrícula)." },
+        { status: 400 }
+      );
     }
 
     // Filtrar opções válidas
@@ -216,6 +224,7 @@ export async function POST(request: Request) {
       whatsapp: cleanWhatsapp,
       email: email ? email.trim() : null,
       tipoParticipante,
+      ra: ra ? String(ra).trim() : null,
       jogos: JSON.stringify({
         torneio: cleanTorneio,
         oficinas: cleanOficina,
@@ -257,6 +266,7 @@ export async function POST(request: Request) {
       `Olá! Me inscrevi para o Espaço TCG na ARENA GEEK (FINC 2026).\n\n` +
       `🎫 *Protocolo:* ${protocolo}\n` +
       `👤 *Nome:* ${nome.trim()}\n` +
+      (ra ? `🎓 *RA / Matrícula:* ${ra.trim()}\n` : "") +
       formatJogosZap() +
       `📅 *Presença:* ${diasFormatados}\n` +
       `📦 *Deck:* ${computedPossuiDeck === "sim" ? "Deck próprio no formato padrão" : "Decks de demonstração (Oficinas)"}\n\n` +
@@ -286,6 +296,7 @@ export async function PUT(request: Request) {
       whatsapp,
       email = "",
       tipoParticipante = "externo",
+      ra = "",
       jogosTorneio = [],
       jogosOficina = [],
       dias = [],
@@ -332,6 +343,7 @@ export async function PUT(request: Request) {
         whatsapp: cleanWhatsapp,
         email: email ? email.trim() : null,
         tipoParticipante,
+        ra: ra ? String(ra).trim() : null,
         jogos: JSON.stringify({
           torneio: cleanTorneio,
           oficinas: cleanOficina,

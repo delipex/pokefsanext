@@ -151,6 +151,7 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
   const [tipoParticipante, setTipoParticipante] = useState<"externo" | "unef" | "unifan" | "outra">("externo");
+  const [ra, setRa] = useState("");
 
   // Torneios selecionados por ordem de clique (máx 3): 1ª, 2ª e 3ª opção
   const [torneioJogos, setTorneioJogos] = useState<string[]>(["pokemon"]);
@@ -176,6 +177,7 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
     oficinaJogos?: string[];
     turnos: string[];
     tipoParticipante: "externo" | "unef" | "unifan" | "outra";
+    ra?: string | null;
     intencao?: string;
     possuiDeck?: string;
   } | null>(null);
@@ -270,6 +272,7 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
               oficinaJogos: oJogos,
               turnos: parsedDays,
               tipoParticipante: (ins.tipoParticipante as any) || "externo",
+              ra: ins.ra || null,
               intencao: ins.intencao || "torneio",
               possuiDeck: ins.possuiDeck || "sim",
             });
@@ -317,6 +320,13 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
       return;
     }
 
+    if ((tipoParticipante === "unef" || tipoParticipante === "unifan") && !ra.trim()) {
+      setErrorMessage(
+        `Por favor, informe seu RA (Registro Acadêmico / Matrícula) da ${tipoParticipante.toUpperCase()}.`
+      );
+      return;
+    }
+
     // Validação estrita do termo de responsabilidade de cada torneio selecionado:
     for (const tcg of torneioJogos) {
       if (!termosTorneio[tcg]) {
@@ -344,6 +354,7 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
           whatsapp: cleanPhone,
           email: email.trim(),
           tipoParticipante,
+          ra: tipoParticipante === "unef" || tipoParticipante === "unifan" ? ra.trim() : "",
           jogosTorneio: torneioJogos,
           jogosOficina: oficinaJogos,
           termosTorneio,
@@ -367,6 +378,7 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
         oficinaJogos,
         turnos: selectedTurnos,
         tipoParticipante,
+        ra: tipoParticipante === "unef" || tipoParticipante === "unifan" ? ra.trim() : null,
         intencao: torneioJogos.length > 0 && oficinaJogos.length > 0 ? "ambos" : torneioJogos.length > 0 ? "torneio" : "oficina_aprender",
         possuiDeck: torneioJogos.length > 0 ? "sim" : "nao",
       });
@@ -517,8 +529,8 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
               </span>
             </div>
 
-            {/* BADGE TIPO DE PARTICIPANTE */}
-            <div>
+            {/* BADGE TIPO DE PARTICIPANTE E RA */}
+            <div className="flex flex-wrap items-center gap-2">
               {confirmedData.tipoParticipante === "externo" ? (
                 <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/50 px-3 py-1.5 text-xs font-black text-cyan-200 uppercase tracking-wide">
                   <Globe className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
@@ -527,17 +539,24 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
               ) : confirmedData.tipoParticipante === "unef" ? (
                 <div className="inline-flex items-center gap-2 rounded-xl bg-blue-500/20 border border-blue-400/50 px-3 py-1.5 text-xs font-black text-blue-200 uppercase tracking-wide">
                   <GraduationCap className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                  <span>Comunidade Acadêmica • UNEF</span>
+                  <span>Aluno(a) UNEF</span>
                 </div>
               ) : confirmedData.tipoParticipante === "unifan" ? (
                 <div className="inline-flex items-center gap-2 rounded-xl bg-purple-500/20 border border-purple-400/50 px-3 py-1.5 text-xs font-black text-purple-200 uppercase tracking-wide">
                   <GraduationCap className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-                  <span>Comunidade Acadêmica • UNIFAN</span>
+                  <span>Aluno(a) UNIFAN</span>
                 </div>
               ) : (
                 <div className="inline-flex items-center gap-2 rounded-xl bg-slate-800 border border-white/20 px-3 py-1.5 text-xs font-black text-slate-200 uppercase tracking-wide">
                   <Building className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                   <span>Visitante • Outra Instituição</span>
+                </div>
+              )}
+
+              {confirmedData.ra && (
+                <div className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-950/80 border border-cyan-500/40 px-3 py-1.5 text-xs font-mono font-bold text-cyan-300">
+                  <GraduationCap className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                  <span>RA: {confirmedData.ra}</span>
                 </div>
               )}
             </div>
@@ -697,6 +716,7 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
                 setNome("");
                 setWhatsapp("");
                 setEmail("");
+                setRa("");
                 setObservacoes("");
               }}
               className="w-full sm:w-auto rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-5 py-3 text-xs font-bold text-slate-300 transition-all cursor-pointer"
@@ -969,19 +989,162 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-300">Vínculo / Tipo de Participante</label>
-                  <select
-                    value={tipoParticipante}
-                    onChange={(e: any) => setTipoParticipante(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5 text-xs text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                  >
-                    <option value="externo">Público Externo / Comunidade Geral</option>
-                    <option value="unef">Aluno(a) ou Egresso(a) UNEF</option>
-                    <option value="unifan">Aluno(a) ou Egresso(a) UNIFAN</option>
-                    <option value="outra">Estudante de outra Instituição</option>
-                  </select>
+                {/* PERGUNTA: VOCÊ É ALUNO DA UNEF OU UNIFAN? */}
+                <div className="space-y-2 sm:col-span-2 pt-1">
+                  <div>
+                    <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                      <GraduationCap className="h-4 w-4 text-cyan-400" />
+                      <span>Você é estudante da UNEF ou UNIFAN? *</span>
+                    </label>
+                    <p className="text-[11px] text-slate-400">
+                      Selecione seu vínculo para validação de credenciamento e presença no evento.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                    {/* Opção 1: Externo */}
+                    <div
+                      onClick={() => {
+                        setTipoParticipante("externo");
+                        setErrorMessage("");
+                      }}
+                      className={`p-3 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between gap-1.5 ${
+                        tipoParticipante === "externo"
+                          ? "border-cyan-400 bg-cyan-950/40 text-white ring-1 ring-cyan-400/50 shadow-lg"
+                          : "border-white/10 bg-slate-950/70 text-slate-400 hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black">Não (Externo)</span>
+                        <div
+                          className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                            tipoParticipante === "externo"
+                              ? "border-cyan-400 bg-cyan-500 text-slate-950"
+                              : "border-white/20 bg-slate-900"
+                          }`}
+                        >
+                          {tipoParticipante === "externo" && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-slate-400 leading-snug">
+                        Comunidade TCG / Público Geral
+                      </span>
+                    </div>
+
+                    {/* Opção 2: UNEF */}
+                    <div
+                      onClick={() => {
+                        setTipoParticipante("unef");
+                        setErrorMessage("");
+                      }}
+                      className={`p-3 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between gap-1.5 ${
+                        tipoParticipante === "unef"
+                          ? "border-blue-400 bg-blue-950/50 text-white ring-1 ring-blue-400/50 shadow-lg"
+                          : "border-white/10 bg-slate-950/70 text-slate-400 hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-blue-300">Sim, sou da UNEF</span>
+                        <div
+                          className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                            tipoParticipante === "unef"
+                              ? "border-blue-400 bg-blue-500 text-slate-950"
+                              : "border-white/20 bg-slate-900"
+                          }`}
+                        >
+                          {tipoParticipante === "unef" && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-slate-400 leading-snug">
+                        Aluno(a) ou egresso(a) UNEF
+                      </span>
+                    </div>
+
+                    {/* Opção 3: UNIFAN */}
+                    <div
+                      onClick={() => {
+                        setTipoParticipante("unifan");
+                        setErrorMessage("");
+                      }}
+                      className={`p-3 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between gap-1.5 ${
+                        tipoParticipante === "unifan"
+                          ? "border-purple-400 bg-purple-950/50 text-white ring-1 ring-purple-400/50 shadow-lg"
+                          : "border-white/10 bg-slate-950/70 text-slate-400 hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-purple-300">Sim, sou da UNIFAN</span>
+                        <div
+                          className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                            tipoParticipante === "unifan"
+                              ? "border-purple-400 bg-purple-500 text-slate-950"
+                              : "border-white/20 bg-slate-900"
+                          }`}
+                        >
+                          {tipoParticipante === "unifan" && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-slate-400 leading-snug">
+                        Aluno(a) ou egresso(a) UNIFAN
+                      </span>
+                    </div>
+
+                    {/* Opção 4: Outra */}
+                    <div
+                      onClick={() => {
+                        setTipoParticipante("outra");
+                        setErrorMessage("");
+                      }}
+                      className={`p-3 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between gap-1.5 ${
+                        tipoParticipante === "outra"
+                          ? "border-slate-400 bg-slate-800 text-white ring-1 ring-slate-400/50 shadow-lg"
+                          : "border-white/10 bg-slate-950/70 text-slate-400 hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black">Outra Instituição</span>
+                        <div
+                          className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                            tipoParticipante === "outra"
+                              ? "border-slate-400 bg-slate-400 text-slate-950"
+                              : "border-white/20 bg-slate-900"
+                          }`}
+                        >
+                          {tipoParticipante === "outra" && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
+                      </div>
+                      <span className="text-[11px] text-slate-400 leading-snug">
+                        Estudante de outra faculdade
+                      </span>
+                    </div>
+                  </div>
                 </div>
+
+                {/* CAMPO DE RA DINÂMICO SE FOR UNEF OU UNIFAN */}
+                {(tipoParticipante === "unef" || tipoParticipante === "unifan") && (
+                  <div className="sm:col-span-2 p-4 rounded-2xl border border-cyan-400/40 bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-slate-900/60 space-y-2 animate-fadeIn shadow-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <label className="text-xs font-black text-cyan-300 flex items-center gap-1.5 uppercase tracking-wide">
+                        <GraduationCap className="h-4 w-4 text-cyan-400" />
+                        <span>RA / Matrícula ({tipoParticipante.toUpperCase()}) *</span>
+                      </label>
+                      <span className="text-[10px] text-cyan-300 font-bold bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-full w-fit">
+                        Obrigatório para alunos {tipoParticipante.toUpperCase()}
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder={`Digite seu RA ou Matrícula na ${tipoParticipante.toUpperCase()} (Ex: 202410123)`}
+                      value={ra}
+                      onChange={(e) => setRa(e.target.value)}
+                      className="w-full rounded-xl border border-cyan-400/50 bg-slate-950 px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400/30 font-mono tracking-wider shadow-inner"
+                    />
+                    <p className="text-[11px] text-slate-400">
+                      O RA é essencial para registro de presença e credenciamento acadêmico da instituição.
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-300">E-mail (opcional)</label>

@@ -34,6 +34,7 @@ interface FincInscricao {
   whatsapp: string;
   email: string | null;
   tipoParticipante: string;
+  ra: string | null;
   jogos: string;
   dias: string;
   intencao: string;
@@ -75,6 +76,7 @@ export function AdminFincManager() {
   const [editWhatsapp, setEditWhatsapp] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editTipo, setEditTipo] = useState("externo");
+  const [editRa, setEditRa] = useState("");
   const [editTorneio, setEditTorneio] = useState<string[]>([]);
   const [editOficina, setEditOficina] = useState<string[]>([]);
   const [editTurnos, setEditTurnos] = useState<string[]>([]);
@@ -136,6 +138,7 @@ export function AdminFincManager() {
     setEditWhatsapp(item.whatsapp || "");
     setEditEmail(item.email || "");
     setEditTipo(item.tipoParticipante || "externo");
+    setEditRa(item.ra || "");
     setEditStatus(item.status || "confirmado");
     setEditObs(item.observacoes || "");
 
@@ -211,6 +214,11 @@ export function AdminFincManager() {
       return;
     }
 
+    if ((editTipo === "unef" || editTipo === "unifan") && !editRa.trim()) {
+      alert(`Para participante da ${editTipo.toUpperCase()}, é obrigatório informar o RA / Matrícula.`);
+      return;
+    }
+
     if (editTorneio.length === 0 && editOficina.length === 0) {
       alert("Selecione ao menos uma opção de Torneio ou Oficina.");
       return;
@@ -232,6 +240,7 @@ export function AdminFincManager() {
           whatsapp: cleanPhone,
           email: editEmail.trim(),
           tipoParticipante: editTipo,
+          ra: editRa ? editRa.trim() : null,
           jogosTorneio: editTorneio,
           jogosOficina: editOficina,
           dias: editTurnos,
@@ -264,7 +273,8 @@ export function AdminFincManager() {
         !q ||
         item.nome.toLowerCase().includes(q) ||
         item.whatsapp.includes(q) ||
-        item.protocolo.toLowerCase().includes(q);
+        item.protocolo.toLowerCase().includes(q) ||
+        (item.ra && item.ra.toLowerCase().includes(q));
 
       if (!matchText) return false;
 
@@ -523,14 +533,21 @@ export function AdminFincManager() {
 
                       <td className="py-3 px-4 font-bold text-white">
                         <div>{item.nome}</div>
-                        <div className="text-[10px] text-slate-400 font-normal">
-                          {item.tipoParticipante === "externo"
-                            ? "Público Externo"
-                            : item.tipoParticipante === "unef"
-                            ? "Aluno UNEF"
-                            : item.tipoParticipante === "unifan"
-                            ? "Aluno UNIFAN"
-                            : "Outra Instituição"}
+                        <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1.5 flex-wrap mt-0.5">
+                          <span>
+                            {item.tipoParticipante === "externo"
+                              ? "Público Externo"
+                              : item.tipoParticipante === "unef"
+                              ? "Aluno UNEF"
+                              : item.tipoParticipante === "unifan"
+                              ? "Aluno UNIFAN"
+                              : "Outra Instituição"}
+                          </span>
+                          {item.ra && (
+                            <span className="font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/40 px-1.5 py-0.2 rounded text-[10px] font-bold">
+                              RA: {item.ra}
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -772,14 +789,32 @@ export function AdminFincManager() {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-300">E-mail (opcional)</label>
-                <input
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2 text-white focus:border-cyan-400 focus:outline-none"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-300">E-mail (opcional)</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2 text-white focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-cyan-300 flex items-center gap-1.5">
+                    <GraduationCap className="h-3.5 w-3.5 text-cyan-400" />
+                    <span>
+                      RA / Matrícula {editTipo === "unef" || editTipo === "unifan" ? `(${editTipo.toUpperCase()} *)` : "(Opcional)"}
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editRa}
+                    onChange={(e) => setEditRa(e.target.value)}
+                    placeholder="Ex: 202410123"
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3.5 py-2 text-white font-mono focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
               </div>
 
               {/* SELEÇÃO DE TORNEIOS (COM PRIORIDADE) */}
