@@ -39,6 +39,7 @@ export async function GET(request: Request) {
       dia21: 0,
       dia22: 0,
       ambosDias: 0,
+      todosTurnos: 0,
       jogos: {
         pokemon: 0,
         yugioh: 0,
@@ -47,55 +48,87 @@ export async function GET(request: Request) {
         riftbound: 0,
         outros: 0,
       },
+      torneios: {
+        pokemon: 0,
+        yugioh: 0,
+        onepiece: 0,
+        digimon: 0,
+        riftbound: 0,
+      },
+      oficinas: {
+        pokemon: 0,
+        yugioh: 0,
+        onepiece: 0,
+        digimon: 0,
+        riftbound: 0,
+      },
       intencoes: {
         torneio: 0,
         casual: 0,
         oficina_aprender: 0,
       },
       precisaDeck: 0,
-      externos: 0,
-      alunos: 0,
+      possuiDeck: 0,
+      publico: {
+        externo: 0,
+        unef: 0,
+        unifan: 0,
+        outra: 0,
+      },
     };
 
     rows.forEach((r) => {
       // Dias e Turnos
+      let diasList: string[] = [];
       try {
-        const diasParsed: string[] = JSON.parse(r.dias || "[]");
-        const has21 = diasParsed.some((d) => d.includes("21"));
-        const has22 = diasParsed.some((d) => d.includes("22"));
-
-        if (has21 && has22) stats.ambosDias += 1;
-        if (has21) stats.dia21 += 1;
-        if (has22) stats.dia22 += 1;
-
-        if (diasParsed.some((d) => d === "21_noite" || d === "21")) stats.dia21_noite += 1;
-        if (diasParsed.some((d) => d === "22_tarde")) stats.dia22_tarde += 1;
-        if (diasParsed.some((d) => d === "22_noite")) stats.dia22_noite += 1;
+        const d = JSON.parse(r.dias || "[]");
+        diasList = Array.isArray(d) ? d : [r.dias];
       } catch {
-        if (r.dias === "ambos") {
-          stats.ambosDias += 1;
-          stats.dia21 += 1;
-          stats.dia22 += 1;
-        } else if (r.dias.includes("21")) {
-          stats.dia21 += 1;
-        } else if (r.dias.includes("22")) {
-          stats.dia22 += 1;
-        }
+        diasList = [r.dias];
       }
 
-      // Jogos
+      const has21Noite = diasList.some((d) => d === "21_noite" || d === "21");
+      const has22Tarde = diasList.some((d) => d === "22_tarde");
+      const has22Noite = diasList.some((d) => d === "22_noite");
+      const has21 = diasList.some((d) => String(d).includes("21"));
+      const has22 = diasList.some((d) => String(d).includes("22"));
+
+      if (has21Noite) stats.dia21_noite += 1;
+      if (has22Tarde) stats.dia22_tarde += 1;
+      if (has22Noite) stats.dia22_noite += 1;
+      if (has21) stats.dia21 += 1;
+      if (has22) stats.dia22 += 1;
+      if (has21 && has22) stats.ambosDias += 1;
+      if (has21Noite && has22Tarde && has22Noite) stats.todosTurnos += 1;
+
+      // Jogos: extrair torneios, oficinas e lista consolidada
+      let tList: string[] = [];
+      let oList: string[] = [];
+      let allList: string[] = [];
       try {
-        const jogosParsed: string[] = JSON.parse(r.jogos || "[]");
-        jogosParsed.forEach((j) => {
-          const key = j.toLowerCase();
-          if (key.includes("pokemon")) stats.jogos.pokemon += 1;
-          else if (key.includes("yugioh") || key.includes("yu-gi-oh")) stats.jogos.yugioh += 1;
-          else if (key.includes("onepiece") || key.includes("one piece")) stats.jogos.onepiece += 1;
-          else if (key.includes("digimon")) stats.jogos.digimon += 1;
-          else if (key.includes("riftbound")) stats.jogos.riftbound += 1;
-          else stats.jogos.outros += 1;
-        });
-      } catch {}
+        const p = JSON.parse(r.jogos || "[]");
+        if (Array.isArray(p)) {
+          allList = p;
+        } else if (p && typeof p === "object") {
+          tList = Array.isArray(p.torneio) ? p.torneio : [];
+          oList = Array.isArray(p.oficinas) ? p.oficinas : [];
+          allList = Array.isArray(p.lista) ? p.lista : [...new Set([...tList, ...oList])];
+        }
+      } catch {
+        allList = [r.jogos];
+      }
+
+      const checkGame = (key: string, list: string[]) =>
+        list.some((item) => String(item).toLowerCase().includes(key));
+
+      (["pokemon", "yugioh", "onepiece", "digimon", "riftbound"] as const).forEach((g) => {
+        const inT = checkGame(g, tList);
+        const inO = checkGame(g, oList);
+        const inAll = checkGame(g, allList);
+        if (inT) stats.torneios[g] += 1;
+        if (inO) stats.oficinas[g] += 1;
+        if (inAll || inT || inO) stats.jogos[g] += 1;
+      });
 
       // Intenção
       if (r.intencao === "torneio") stats.intencoes.torneio += 1;
@@ -103,13 +136,19 @@ export async function GET(request: Request) {
       else stats.intencoes.oficina_aprender += 1;
 
       // Deck
-      if (r.possuiDeck === "nao" || r.possuiDeck === "preciso_demo") {
+      if (r.possuiDeck === "sim") {
+        stats.possuiDeck += 1;
+      } else {
         stats.precisaDeck += 1;
       }
 
       // Tipo de participante
-      if (r.tipoParticipante === "externo") stats.externos += 1;
-      else stats.alunos += 1;
+      const pubKey = (r.tipoParticipante || "externo") as keyof typeof stats.publico;
+      if (stats.publico[pubKey] !== undefined) {
+        stats.publico[pubKey] += 1;
+      } else {
+        stats.publico.externo += 1;
+      }
     });
 
     return NextResponse.json({
