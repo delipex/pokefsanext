@@ -25,7 +25,9 @@ import {
   Globe,
   GraduationCap,
   Building,
+  QrCode,
 } from "lucide-react";
+import { FincPassportCard } from "@/components/finc/FincPassportCard";
 
 interface FincInscricao {
   id: number;
@@ -82,6 +84,9 @@ export function AdminFincManager() {
   const [editTurnos, setEditTurnos] = useState<string[]>([]);
   const [editStatus, setEditStatus] = useState("confirmado");
   const [editObs, setEditObs] = useState("");
+
+  // Estado para visualização e download do Passaporte VIP
+  const [viewingPassport, setViewingPassport] = useState<FincInscricao | null>(null);
 
   const showNotification = (text: string, type: "success" | "error" = "success") => {
     setStatusMessage({ type, text });
@@ -938,9 +943,18 @@ export function AdminFincManager() {
                         </span>
                       </td>
 
-                      {/* AÇÕES: COPIAR, WHATSAPP, EDITAR, EXCLUIR */}
+                      {/* AÇÕES: VER PASSAPORTE, COPIAR, WHATSAPP, EDITAR, EXCLUIR */}
                       <td className="py-3 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
+                          {/* VER E BAIXAR PASSAPORTE (PNG) */}
+                          <button
+                            onClick={() => setViewingPassport(item)}
+                            title="Ver e Baixar Passaporte Oficial (PNG)"
+                            className="p-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-300 cursor-pointer transition-colors"
+                          >
+                            <QrCode className="h-3.5 w-3.5" />
+                          </button>
+
                           {/* COPIAR PROTOCOLO */}
                           <button
                             onClick={() => handleCopy(item.protocolo)}
@@ -1240,6 +1254,54 @@ export function AdminFincManager() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE VISUALIZAÇÃO E DOWNLOAD DO PASSAPORTE OFICIAL (PNG) */}
+      {viewingPassport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-lg max-h-[95vh] overflow-y-auto rounded-3xl border border-cyan-500/40 bg-slate-950 p-6 shadow-2xl space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <QrCode className="h-5 w-5 text-cyan-400" />
+                <h3 className="text-base font-bold text-white">
+                  Passaporte Oficial • {viewingPassport.nome}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingPassport(null)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <FincPassportCard
+              inscricao={{
+                id: viewingPassport.id,
+                protocolo: viewingPassport.protocolo,
+                nome: viewingPassport.nome,
+                whatsapp: viewingPassport.whatsapp,
+                email: viewingPassport.email,
+                tipoParticipante: viewingPassport.tipoParticipante,
+                ra: viewingPassport.ra,
+                jogos: viewingPassport.jogos,
+                dias: viewingPassport.dias,
+                intencao: viewingPassport.intencao,
+                possuiDeck: viewingPassport.possuiDeck,
+                observacoes: viewingPassport.observacoes,
+                status: viewingPassport.status,
+                whatsappLink: getDirectWhatsAppLink(
+                  viewingPassport.whatsapp,
+                  viewingPassport.nome,
+                  viewingPassport.protocolo
+                ),
+              }}
+              isModal={true}
+              onClose={() => setViewingPassport(null)}
+            />
           </div>
         </div>
       )}

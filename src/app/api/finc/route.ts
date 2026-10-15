@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { inscricoesFinc } from "@/db/schema";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, like, or } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -10,19 +10,55 @@ export async function GET(request: Request) {
   await ensureDatabaseSchema();
   const { searchParams } = new URL(request.url);
   const protocolo = searchParams.get("protocolo");
+  const whatsapp = searchParams.get("whatsapp");
+  const q = searchParams.get("busca") || searchParams.get("q");
 
   try {
-    if (protocolo) {
-      const result = await db
-        .select()
-        .from(inscricoesFinc)
-        .where(eq(inscricoesFinc.protocolo, protocolo.trim().toUpperCase()));
+    if (protocolo || whatsapp || q) {
+      const conditions = [];
 
-      if (!result || result.length === 0) {
-        return NextResponse.json({ error: "Inscrição não encontrada" }, { status: 404 });
+      if (protocolo && protocolo.trim()) {
+        const cleanProt = protocolo.trim().toUpperCase();
+        conditions.push(like(inscricoesFinc.protocolo, `%${cleanProt}%`));
       }
 
-      return NextResponse.json({ inscricao: result[0] });
+      if (whatsapp && whatsapp.trim()) {
+        const cleanZap = whatsapp.replace(/\D/g, "");
+        if (cleanZap.length >= 6) {
+          conditions.push(like(inscricoesFinc.whatsapp, `%${cleanZap.slice(-8)}%`));
+        }
+      }
+
+      if (q && q.trim()) {
+        const cleanQ = q.trim();
+        const digits = cleanQ.replace(/\D/g, "");
+        if (digits.length >= 6) {
+          conditions.push(like(inscricoesFinc.whatsapp, `%${digits.slice(-8)}%`));
+        }
+        conditions.push(like(inscricoesFinc.protocolo, `%${cleanQ.toUpperCase()}%`));
+        conditions.push(like(inscricoesFinc.nome, `%${cleanQ}%`));
+      }
+
+      if (conditions.length > 0) {
+        const result = await db
+          .select()
+          .from(inscricoesFinc)
+          .where(or(...conditions))
+          .orderBy(desc(inscricoesFinc.id));
+
+        if (!result || result.length === 0) {
+          return NextResponse.json(
+            { success: false, error: "Nenhuma inscrição encontrada com os dados informados." },
+            { status: 404 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          inscricao: result[0],
+          inscricoes: result,
+        });
+      }
     }
 
     const rows = await db

@@ -22,7 +22,11 @@ import {
   Globe,
   GraduationCap,
   Building,
+  Search,
+  Loader2,
+  X,
 } from "lucide-react";
+import { FincPassportCard } from "@/components/finc/FincPassportCard";
 
 interface TcgGameOption {
   id: string;
@@ -182,6 +186,86 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
     possuiDeck?: string;
   } | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
+
+  // Estados e controle de consulta de inscrição anterior
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+
+  const handleSelectSearchResult = (item: any) => {
+    let parsedGames: string[] = [];
+    let tJogos: string[] = [];
+    let oJogos: string[] = [];
+    let parsedDays: string[] = [];
+    try {
+      const parsed = JSON.parse(item.jogos || "[]");
+      if (Array.isArray(parsed)) {
+        parsedGames = parsed;
+      } else if (parsed && typeof parsed === "object") {
+        tJogos = parsed.torneio || [];
+        oJogos = parsed.oficinas || [];
+        parsedGames = parsed.lista || [...tJogos, ...oJogos];
+      }
+    } catch {
+      parsedGames = [item.jogos];
+    }
+    try {
+      parsedDays = JSON.parse(item.dias || "[]");
+    } catch {
+      parsedDays = [item.dias];
+    }
+
+    setConfirmedData({
+      protocolo: item.protocolo,
+      nome: item.nome,
+      whatsappLink: `https://wa.me/5575992683072?text=${encodeURIComponent(
+        `Olá! Segue minha credencial confirmada da Arena Geek TCG (FINC 2026):\n\n🎫 *Protocolo:* ${item.protocolo}\n👤 *Nome:* ${item.nome}`
+      )}`,
+      jogos: parsedGames,
+      torneioJogos: tJogos,
+      oficinaJogos: oJogos,
+      turnos: parsedDays,
+      tipoParticipante: (item.tipoParticipante as any) || "externo",
+      ra: item.ra || null,
+      intencao: item.intencao || "torneio",
+      possuiDeck: item.possuiDeck || "sim",
+    });
+
+    setIsSearchModalOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSearchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    setSearchError("");
+    setSearchResults([]);
+
+    try {
+      const res = await fetch(`/api/finc?q=${encodeURIComponent(searchQuery.trim())}`);
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Inscrição não encontrada. Verifique o WhatsApp ou Protocolo.");
+      }
+
+      if (data.inscricoes && data.inscricoes.length > 1) {
+        setSearchResults(data.inscricoes);
+      } else if (data.inscricao) {
+        handleSelectSearchResult(data.inscricao);
+      } else {
+        throw new Error("Nenhuma inscrição encontrada.");
+      }
+    } catch (err: any) {
+      setSearchError(err.message || "Erro ao consultar inscrição.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const getGameName = (id: string) => {
     const match = TCG_OPTIONS.find((t) => t.id === id);
@@ -480,7 +564,7 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
         </div>
       </section>
 
-      {/* CASO JÁ TENHA ENVIADO A INSCRIÇÃO: MOSTRA O PASSAPORTE DIGITAL */}
+      {/* CASO JÁ TENHA ENVIADO OU CONSULTADO A INSCRIÇÃO: MOSTRA O PASSAPORTE DIGITAL */}
       {confirmedData ? (
         <section className="relative overflow-hidden rounded-3xl border border-cyan-500/40 bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 p-6 sm:p-10 shadow-2xl text-center space-y-6">
           <div className="space-y-1.5">
@@ -496,236 +580,47 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
             </p>
           </div>
 
-          {/* CREDENCIAL FÍSICA DIGITALIZADA (CRACHÁ VIP) */}
-          <div className="mx-auto max-w-md rounded-3xl border-2 border-cyan-500/40 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 p-6 text-left space-y-4 shadow-2xl relative overflow-hidden backdrop-blur-2xl">
-            <div className="w-16 h-2 rounded-full bg-slate-950 border border-white/20 mx-auto -mt-2 mb-2 shadow-inner" />
-            <div className="pointer-events-none absolute -top-20 -right-20 h-40 w-40 rounded-full bg-cyan-500/20 blur-2xl" />
-            <div className="pointer-events-none absolute -bottom-20 -left-20 h-40 w-40 rounded-full bg-fuchsia-600/20 blur-2xl" />
-
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="relative h-6 w-auto">
-                  <Image
-                    src="/finc/finc-logo.png"
-                    alt="FINC 2026"
-                    width={80}
-                    height={26}
-                    className="h-full w-auto object-contain"
-                  />
-                </div>
-                <span className="text-white/20">•</span>
-                <div className="relative h-7 w-auto">
-                  <Image
-                    src="/finc/arena-geek-logo.png"
-                    alt="Arena Geek"
-                    width={100}
-                    height={36}
-                    className="h-full w-auto object-contain"
-                  />
-                </div>
-              </div>
-              <span className="text-[10px] uppercase font-black text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-0.5 rounded-full tracking-wider">
-                TCG VIP PASS
-              </span>
-            </div>
-
-            {/* BADGE TIPO DE PARTICIPANTE E RA */}
-            <div className="flex flex-wrap items-center gap-2">
-              {confirmedData.tipoParticipante === "externo" ? (
-                <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/50 px-3 py-1.5 text-xs font-black text-cyan-200 uppercase tracking-wide">
-                  <Globe className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-                  <span>Participante Externo • Comunidade</span>
-                </div>
-              ) : confirmedData.tipoParticipante === "unef" ? (
-                <div className="inline-flex items-center gap-2 rounded-xl bg-blue-500/20 border border-blue-400/50 px-3 py-1.5 text-xs font-black text-blue-200 uppercase tracking-wide">
-                  <GraduationCap className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                  <span>Aluno(a) UNEF</span>
-                </div>
-              ) : confirmedData.tipoParticipante === "unifan" ? (
-                <div className="inline-flex items-center gap-2 rounded-xl bg-purple-500/20 border border-purple-400/50 px-3 py-1.5 text-xs font-black text-purple-200 uppercase tracking-wide">
-                  <GraduationCap className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-                  <span>Aluno(a) UNIFAN</span>
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-2 rounded-xl bg-slate-800 border border-white/20 px-3 py-1.5 text-xs font-black text-slate-200 uppercase tracking-wide">
-                  <Building className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                  <span>Visitante • Outra Instituição</span>
-                </div>
-              )}
-
-              {confirmedData.ra && (
-                <div className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-950/80 border border-cyan-500/40 px-3 py-1.5 text-xs font-mono font-bold text-cyan-300">
-                  <GraduationCap className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-                  <span>RA: {confirmedData.ra}</span>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-0.5">
-                Nome do Jogador
-              </span>
-              <h3 className="text-xl font-black text-white uppercase tracking-tight">
-                {confirmedData.nome}
-              </h3>
-            </div>
-
-            {/* QR CODE + PROTOCOLO */}
-            <div className="rounded-2xl border border-white/10 bg-slate-950/80 p-3.5 flex flex-col sm:flex-row items-center gap-3.5">
-              <div className="bg-white p-2 rounded-xl shadow-lg shrink-0">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(
-                    `https://pokefsa.vercel.app/finc?protocolo=${confirmedData.protocolo}`
-                  )}`}
-                  alt={`QR Code ${confirmedData.protocolo}`}
-                  className="w-24 h-24 object-contain"
-                />
-              </div>
-
-              <div className="flex-1 space-y-1.5 text-center sm:text-left w-full">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Protocolo de Acesso</span>
-                <div className="text-lg font-black font-mono text-cyan-300 tracking-wider">
-                  {confirmedData.protocolo}
-                </div>
-                <button
-                  onClick={handleCopyProtocol}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 transition-all cursor-pointer"
-                >
-                  {hasCopied ? (
-                    <>
-                      <Check className="h-3.5 w-3.5 text-emerald-400" />
-                      <span>Copiado!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5" />
-                      <span>Copiar Código</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* DADOS DE TORNEIOS E TURNOS */}
-            <div className="space-y-3 text-xs border-t border-white/10 pt-3">
-              <div>
-                <span className="text-slate-400 text-[10px] uppercase font-black tracking-wider">Turnos Autorizados:</span>
-                <div className="flex flex-col gap-1 mt-1">
-                  {confirmedData.turnos.map((tid) => {
-                    const match = TURNOS_OPTIONS.find((t) => t.id === tid);
-                    return (
-                      <div
-                        key={tid}
-                        className="flex items-center justify-between rounded-lg bg-white/5 border border-white/10 px-2.5 py-1 text-slate-200"
-                      >
-                        <span className="font-bold text-white text-[11px]">{match?.dataExtenso || tid}</span>
-                        <span className="text-cyan-300 font-mono text-[11px]">{match?.horario} ({match?.turnoNome})</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Torneios com Termo Homologado */}
-              {confirmedData.torneioJogos && confirmedData.torneioJogos.length > 0 && (
-                <div className="space-y-1">
-                  <span className="text-amber-400 text-[10px] uppercase font-black tracking-wider flex items-center gap-1">
-                    <Trophy className="h-3 w-3 text-amber-400" />
-                    Torneios (Ordem de Preferência):
-                  </span>
-                  <div className="flex flex-col gap-1">
-                    {confirmedData.torneioJogos.map((j, idx) => {
-                      const match = TCG_OPTIONS.find((t) => t.id === j);
-                      return (
-                        <div
-                          key={j}
-                          className="flex items-center justify-between rounded-lg bg-amber-950/40 border border-amber-500/30 px-2.5 py-1 text-xs"
-                        >
-                          <span className="font-bold text-amber-200">
-                            {idx + 1}ª Opção: {match?.name || j}
-                          </span>
-                          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                            Deck Homologado ✅
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Oficinas Didáticas */}
-              {confirmedData.oficinaJogos && confirmedData.oficinaJogos.length > 0 && (
-                <div className="space-y-1">
-                  <span className="text-cyan-400 text-[10px] uppercase font-black tracking-wider flex items-center gap-1">
-                    <BookOpen className="h-3 w-3 text-cyan-400" />
-                    Oficinas (Ordem de Preferência):
-                  </span>
-                  <div className="flex flex-col gap-1">
-                    {confirmedData.oficinaJogos.map((j, idx) => {
-                      const match = TCG_OPTIONS.find((t) => t.id === j);
-                      return (
-                        <div
-                          key={j}
-                          className="flex items-center justify-between rounded-lg bg-cyan-950/40 border border-cyan-500/30 px-2.5 py-1 text-xs"
-                        >
-                          <span className="font-bold text-cyan-200">
-                            {idx + 1}ª Opção: {match?.name || j}
-                          </span>
-                          <span className="text-[10px] text-cyan-300 font-medium bg-cyan-950/60 border border-cyan-500/20 px-1.5 py-0.5 rounded">
-                            Decks no Local
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-white/10 pt-2 text-[10px] text-slate-400 flex items-center justify-between">
-              <span>Cajueiro Convenções • FSA</span>
-              <span className="text-cyan-400 font-semibold">Gestão: Atlântica Mais</span>
-            </div>
-          </div>
-
-          {/* BOTÕES DE AÇÃO */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
-            <a
-              href={confirmedData.whatsappLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 px-6 py-3 text-xs sm:text-sm font-black text-white shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
-            >
-              <Send className="h-4 w-4" />
-              <span>Confirmar Presença no WhatsApp</span>
-              <ExternalLink className="h-3 w-3 opacity-70" />
-            </a>
-
-            <button
-              onClick={() => window.print()}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-slate-800 hover:bg-slate-700 px-5 py-3 text-xs font-bold text-white transition-all cursor-pointer"
-            >
-              <Printer className="h-4 w-4 text-cyan-400" />
-              <span>Salvar Passaporte</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setConfirmedData(null);
-                setNome("");
-                setWhatsapp("");
-                setEmail("");
-                setRa("");
-                setObservacoes("");
-              }}
-              className="w-full sm:w-auto rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 px-5 py-3 text-xs font-bold text-slate-300 transition-all cursor-pointer"
-            >
-              Nova Inscrição
-            </button>
-          </div>
+          {/* COMPONENTE DE PASSAPORTE VIP COM DOWNLOAD EM PNG E ENVIO WHATSAPP */}
+          <FincPassportCard
+            inscricao={confirmedData}
+            onNewRegistration={() => {
+              setConfirmedData(null);
+              setNome("");
+              setWhatsapp("");
+              setEmail("");
+              setRa("");
+              setObservacoes("");
+            }}
+          />
         </section>
       ) : (
+        <>
+          {/* BARRA DE CONSULTA DE INSCRIÇÃO ANTERIOR (BAIXAR IMAGEM / WHATSAPP) */}
+          <div className="rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/60 via-slate-900/80 to-slate-950 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-3.5">
+              <div className="h-11 w-11 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center shrink-0 text-cyan-300 shadow-inner">
+                <QrCode className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Já realizou sua inscrição anteriormente?</h3>
+                <p className="text-xs text-slate-400">
+                  Consulte seu cadastro e baixe a imagem do seu passaporte para salvar ou enviar no WhatsApp
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsSearchModalOpen(true);
+                setSearchError("");
+                setSearchResults([]);
+              }}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs px-5 py-3 transition-all shadow-lg shadow-cyan-600/25 cursor-pointer shrink-0"
+            >
+              <Search className="h-4 w-4" />
+              <span>Consultar e Baixar Passaporte</span>
+            </button>
+          </div>
         /* 2. FORMULÁRIO DE INSCRIÇÃO COM CAIXINHAS INTERATIVAS */
         <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 sm:space-y-8">
           <div className="border-b border-white/10 pb-4">
@@ -1203,6 +1098,97 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
             </div>
           </form>
         </section>
+      </>
+    )}
+
+      {/* MODAL DE CONSULTA DE INSCRIÇÃO ANTERIOR (RECUPERAÇÃO DE PASSAPORTE) */}
+      {isSearchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-md rounded-3xl border border-cyan-500/40 bg-slate-900 p-6 shadow-2xl space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <QrCode className="h-5 w-5 text-cyan-400" />
+                <h3 className="text-base font-bold text-white">Consultar Inscrição</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSearchModalOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Digite seu <strong>WhatsApp</strong> (com DDD) ou o <strong>Código do Protocolo</strong> (ex: FINC-TCG-XXXX):
+            </p>
+
+            <form onSubmit={handleSearchSubmit} className="space-y-3">
+              <div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Ex: 75992683072 ou FINC-TCG-..."
+                  className="w-full rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
+                  autoFocus
+                />
+              </div>
+
+              {searchError && (
+                <div className="rounded-xl border border-rose-500/40 bg-rose-950/40 p-2.5 text-xs text-rose-300 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{searchError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSearching || !searchQuery.trim()}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs py-3 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isSearching ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Buscando inscrição...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4" />
+                    <span>Localizar Passaporte</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* LISTA DE MÚLTIPLOS RESULTADOS CASO HAJA MAIS DE UMA INSCRIÇÃO */}
+            {searchResults.length > 1 && (
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <span className="text-[11px] font-bold text-slate-300 block">
+                  Encontramos {searchResults.length} inscrições. Escolha qual deseja abrir:
+                </span>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {searchResults.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSelectSearchResult(item)}
+                      className="w-full text-left p-2.5 rounded-xl border border-white/10 bg-slate-950 hover:border-cyan-500/50 hover:bg-cyan-950/30 transition-all flex items-center justify-between cursor-pointer"
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-white">{item.nome}</div>
+                        <div className="text-[10px] font-mono text-cyan-300">{item.protocolo}</div>
+                      </div>
+                      <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded">
+                        Abrir
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* FOOTER EXCLUSIVO DA ARENA GEEK & FINC */}
