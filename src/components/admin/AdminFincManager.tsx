@@ -432,7 +432,7 @@ export function AdminFincManager() {
               {/* Total Geral */}
               <div
                 onClick={() => setSelectedGameFilter("todos")}
-                className={`rounded-2xl border p-4 space-y-1.5 cursor-pointer transition-all ${
+                className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
                   selectedGameFilter === "todos"
                     ? "border-cyan-400 bg-cyan-950/40 ring-1 ring-cyan-400/50 shadow-lg"
                     : "border-white/10 bg-slate-900/60 hover:bg-slate-800/40"
@@ -452,12 +452,27 @@ export function AdminFincManager() {
                     📚 {stats.oficinas ? Number(Object.values(stats.oficinas).reduce((a: any, b: any) => a + Number(b || 0), 0)) : 0} ofic.
                   </span>
                 </div>
+                {/* Mini pílulas dos turnos */}
+                <div className="grid grid-cols-3 gap-1 pt-2 border-t border-white/10 text-center">
+                  <div className="rounded-lg bg-cyan-950/60 border border-cyan-500/25 px-1 py-0.5" title="Quarta 21 • Noite (17h-22h)">
+                    <span className="text-[8px] uppercase font-bold text-cyan-400 block">Qua N</span>
+                    <span className="text-xs font-black text-cyan-200">{stats.dia21_noite || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/25 px-1 py-0.5" title="Quinta 22 • Tarde (14h-18h)">
+                    <span className="text-[8px] uppercase font-bold text-fuchsia-400 block">Qui T</span>
+                    <span className="text-xs font-black text-fuchsia-200">{stats.dia22_tarde || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-amber-950/60 border border-amber-500/25 px-1 py-0.5" title="Quinta 22 • Noite (18h-20h)">
+                    <span className="text-[8px] uppercase font-bold text-amber-400 block">Qui N</span>
+                    <span className="text-xs font-black text-amber-200">{stats.dia22_noite || 0}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Pokémon */}
               <div
                 onClick={() => setSelectedGameFilter(selectedGameFilter === "pokemon" ? "todos" : "pokemon")}
-                className={`rounded-2xl border p-4 space-y-1.5 cursor-pointer transition-all ${
+                className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
                   selectedGameFilter === "pokemon"
                     ? "border-amber-400 bg-amber-950/60 ring-1 ring-amber-400/50 shadow-lg shadow-amber-500/10"
                     : "border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10"
@@ -473,12 +488,27 @@ export function AdminFincManager() {
                   <span>•</span>
                   <span>📚 {stats.oficinas?.pokemon || 0} Ofic.</span>
                 </div>
+                {/* Mini pílulas dos turnos para Pokémon */}
+                <div className="grid grid-cols-3 gap-1 pt-2 border-t border-amber-500/20 text-center">
+                  <div className="rounded-lg bg-cyan-950/60 border border-cyan-500/25 px-1 py-0.5" title="Quarta 21 • Noite (17h-22h)">
+                    <span className="text-[8px] uppercase font-bold text-cyan-400 block">Qua N</span>
+                    <span className="text-xs font-black text-cyan-200">{stats.porJogoTurno?.pokemon?.dia21_noite || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/25 px-1 py-0.5" title="Quinta 22 • Tarde (14h-18h)">
+                    <span className="text-[8px] uppercase font-bold text-fuchsia-400 block">Qui T</span>
+                    <span className="text-xs font-black text-fuchsia-200">{stats.porJogoTurno?.pokemon?.dia22_tarde || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-amber-950/60 border border-amber-500/25 px-1 py-0.5" title="Quinta 22 • Noite (18h-20h)">
+                    <span className="text-[8px] uppercase font-bold text-amber-400 block">Qui N</span>
+                    <span className="text-xs font-black text-amber-200">{stats.porJogoTurno?.pokemon?.dia22_noite || 0}</span>
+                  </div>
+                </div>
               </div>
 
               {/* One Piece */}
               <div
                 onClick={() => setSelectedGameFilter(selectedGameFilter === "onepiece" ? "todos" : "onepiece")}
-                className={`rounded-2xl border p-4 space-y-1.5 cursor-pointer transition-all ${
+                className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
                   selectedGameFilter === "onepiece"
                     ? "border-rose-400 bg-rose-950/60 ring-1 ring-rose-400/50 shadow-lg shadow-rose-500/10"
                     : "border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10"
@@ -494,12 +524,27 @@ export function AdminFincManager() {
                   <span>•</span>
                   <span>📚 {stats.oficinas?.onepiece || 0} Ofic.</span>
                 </div>
+                {/* Mini pílulas dos turnos para One Piece */}
+                <div className="grid grid-cols-3 gap-1 pt-2 border-t border-rose-500/20 text-center">
+                  <div className="rounded-lg bg-cyan-950/60 border border-cyan-500/25 px-1 py-0.5" title="Quarta 21 • Noite (17h-22h)">
+                    <span className="text-[8px] uppercase font-bold text-cyan-400 block">Qua N</span>
+                    <span className="text-xs font-black text-cyan-200">{stats.porJogoTurno?.onepiece?.dia21_noite || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/25 px-1 py-0.5" title="Quinta 22 • Tarde (14h-18h)">
+                    <span className="text-[8px] uppercase font-bold text-fuchsia-400 block">Qui T</span>
+                    <span className="text-xs font-black text-fuchsia-200">{stats.porJogoTurno?.onepiece?.dia22_tarde || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-amber-950/60 border border-amber-500/25 px-1 py-0.5" title="Quinta 22 • Noite (18h-20h)">
+                    <span className="text-[8px] uppercase font-bold text-amber-400 block">Qui N</span>
+                    <span className="text-xs font-black text-amber-200">{stats.porJogoTurno?.onepiece?.dia22_noite || 0}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Yu-Gi-Oh! */}
               <div
                 onClick={() => setSelectedGameFilter(selectedGameFilter === "yugioh" ? "todos" : "yugioh")}
-                className={`rounded-2xl border p-4 space-y-1.5 cursor-pointer transition-all ${
+                className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
                   selectedGameFilter === "yugioh"
                     ? "border-purple-400 bg-purple-950/60 ring-1 ring-purple-400/50 shadow-lg shadow-purple-500/10"
                     : "border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10"
@@ -515,12 +560,27 @@ export function AdminFincManager() {
                   <span>•</span>
                   <span>📚 {stats.oficinas?.yugioh || 0} Ofic.</span>
                 </div>
+                {/* Mini pílulas dos turnos para Yu-Gi-Oh! */}
+                <div className="grid grid-cols-3 gap-1 pt-2 border-t border-purple-500/20 text-center">
+                  <div className="rounded-lg bg-cyan-950/60 border border-cyan-500/25 px-1 py-0.5" title="Quarta 21 • Noite (17h-22h)">
+                    <span className="text-[8px] uppercase font-bold text-cyan-400 block">Qua N</span>
+                    <span className="text-xs font-black text-cyan-200">{stats.porJogoTurno?.yugioh?.dia21_noite || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/25 px-1 py-0.5" title="Quinta 22 • Tarde (14h-18h)">
+                    <span className="text-[8px] uppercase font-bold text-fuchsia-400 block">Qui T</span>
+                    <span className="text-xs font-black text-fuchsia-200">{stats.porJogoTurno?.yugioh?.dia22_tarde || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-amber-950/60 border border-amber-500/25 px-1 py-0.5" title="Quinta 22 • Noite (18h-20h)">
+                    <span className="text-[8px] uppercase font-bold text-amber-400 block">Qui N</span>
+                    <span className="text-xs font-black text-amber-200">{stats.porJogoTurno?.yugioh?.dia22_noite || 0}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Digimon */}
               <div
                 onClick={() => setSelectedGameFilter(selectedGameFilter === "digimon" ? "todos" : "digimon")}
-                className={`rounded-2xl border p-4 space-y-1.5 cursor-pointer transition-all ${
+                className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
                   selectedGameFilter === "digimon"
                     ? "border-blue-400 bg-blue-950/60 ring-1 ring-blue-400/50 shadow-lg shadow-blue-500/10"
                     : "border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10"
@@ -536,12 +596,27 @@ export function AdminFincManager() {
                   <span>•</span>
                   <span>📚 {stats.oficinas?.digimon || 0} Ofic.</span>
                 </div>
+                {/* Mini pílulas dos turnos para Digimon */}
+                <div className="grid grid-cols-3 gap-1 pt-2 border-t border-blue-500/20 text-center">
+                  <div className="rounded-lg bg-cyan-950/60 border border-cyan-500/25 px-1 py-0.5" title="Quarta 21 • Noite (17h-22h)">
+                    <span className="text-[8px] uppercase font-bold text-cyan-400 block">Qua N</span>
+                    <span className="text-xs font-black text-cyan-200">{stats.porJogoTurno?.digimon?.dia21_noite || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/25 px-1 py-0.5" title="Quinta 22 • Tarde (14h-18h)">
+                    <span className="text-[8px] uppercase font-bold text-fuchsia-400 block">Qui T</span>
+                    <span className="text-xs font-black text-fuchsia-200">{stats.porJogoTurno?.digimon?.dia22_tarde || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-amber-950/60 border border-amber-500/25 px-1 py-0.5" title="Quinta 22 • Noite (18h-20h)">
+                    <span className="text-[8px] uppercase font-bold text-amber-400 block">Qui N</span>
+                    <span className="text-xs font-black text-amber-200">{stats.porJogoTurno?.digimon?.dia22_noite || 0}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Riftbound */}
               <div
                 onClick={() => setSelectedGameFilter(selectedGameFilter === "riftbound" ? "todos" : "riftbound")}
-                className={`rounded-2xl border p-4 space-y-1.5 cursor-pointer transition-all ${
+                className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
                   selectedGameFilter === "riftbound"
                     ? "border-emerald-400 bg-emerald-950/60 ring-1 ring-emerald-400/50 shadow-lg shadow-emerald-500/10"
                     : "border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10"
@@ -557,144 +632,357 @@ export function AdminFincManager() {
                   <span>•</span>
                   <span>📚 {stats.oficinas?.riftbound || 0} Ofic.</span>
                 </div>
+                {/* Mini pílulas dos turnos para Riftbound */}
+                <div className="grid grid-cols-3 gap-1 pt-2 border-t border-emerald-500/20 text-center">
+                  <div className="rounded-lg bg-cyan-950/60 border border-cyan-500/25 px-1 py-0.5" title="Quarta 21 • Noite (17h-22h)">
+                    <span className="text-[8px] uppercase font-bold text-cyan-400 block">Qua N</span>
+                    <span className="text-xs font-black text-cyan-200">{stats.porJogoTurno?.riftbound?.dia21_noite || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/25 px-1 py-0.5" title="Quinta 22 • Tarde (14h-18h)">
+                    <span className="text-[8px] uppercase font-bold text-fuchsia-400 block">Qui T</span>
+                    <span className="text-xs font-black text-fuchsia-200">{stats.porJogoTurno?.riftbound?.dia22_tarde || 0}</span>
+                  </div>
+                  <div className="rounded-lg bg-amber-950/60 border border-amber-500/25 px-1 py-0.5" title="Quinta 22 • Noite (18h-20h)">
+                    <span className="text-[8px] uppercase font-bold text-amber-400 block">Qui N</span>
+                    <span className="text-xs font-black text-amber-200">{stats.porJogoTurno?.riftbound?.dia22_noite || 0}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* 2. SEÇÃO POR TURNO DE PRESENÇA (HORÁRIOS & DIAS) */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-fuchsia-400" />
-                Quórum de Presença por Turno & Dia
-              </span>
-              <span className="text-[11px] text-slate-400 hidden sm:inline-block">
-                Dimensionamento de mesas por período
+          {/* 2. SEÇÃO POR TURNO DE PRESENÇA COM SUPORTE A FILTRO POR JOGO */}
+          {(() => {
+            const isFilteringGame = selectedGameFilter !== "todos";
+            const gameInfo = ALL_GAMES.find((g) => g.id === selectedGameFilter);
+            const activeStats = isFilteringGame && stats.porJogoTurno?.[selectedGameFilter]
+              ? stats.porJogoTurno[selectedGameFilter]
+              : null;
+
+            const currentTotal = activeStats ? activeStats.total : stats.total;
+            const currentDia21Noite = activeStats ? activeStats.dia21_noite : stats.dia21_noite;
+            const currentDia22Tarde = activeStats ? activeStats.dia22_tarde : stats.dia22_tarde;
+            const currentDia22Noite = activeStats ? activeStats.dia22_noite : stats.dia22_noite;
+            const currentAmbosDias = activeStats ? activeStats.ambosDias : stats.ambosDias;
+
+            return (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-fuchsia-400" />
+                      Quórum de Presença por Turno & Dia
+                    </span>
+                    {isFilteringGame && (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-cyan-500/20 border border-cyan-400/50 text-cyan-200">
+                        <span>{gameInfo?.name || selectedGameFilter}: {currentTotal} inscritos</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedGameFilter("todos");
+                          }}
+                          className="ml-1 text-cyan-400 hover:text-white cursor-pointer"
+                          title="Voltar ao total geral"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-slate-400">
+                    {isFilteringGame
+                      ? `Dimensionamento específico para ${gameInfo?.name} nos turnos`
+                      : "Dimensionamento geral de mesas por período"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Turno 1: 21 Noite */}
+                  <div
+                    onClick={() => setSelectedDayFilter(selectedDayFilter === "21_noite" ? "todos" : "21_noite")}
+                    className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
+                      selectedDayFilter === "21_noite"
+                        ? "border-cyan-400 bg-cyan-950/60 ring-1 ring-cyan-400/50 shadow-lg shadow-cyan-500/10"
+                        : "border-cyan-500/30 bg-gradient-to-br from-cyan-950/30 via-slate-900/60 to-slate-900/40 hover:border-cyan-400/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-cyan-300 uppercase">Quarta 21 • Noite</span>
+                      <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30">
+                        17h às 22h
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-2xl font-black text-white">{currentDia21Noite || 0}</div>
+                      <span className="text-xs text-slate-400">
+                        jogadores {isFilteringGame ? `(${gameInfo?.name.split(" ")[0]})` : ""}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-cyan-400 h-1.5 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${currentTotal > 0 ? Math.min(100, Math.round(((currentDia21Noite || 0) / currentTotal) * 100)) : 0}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                      <span>
+                        {currentTotal > 0 ? Math.round(((currentDia21Noite || 0) / currentTotal) * 100) : 0}% {isFilteringGame ? "deste jogo" : "do total"}
+                      </span>
+                      <span className="text-cyan-300 font-semibold">Início dos torneios</span>
+                    </div>
+                  </div>
+
+                  {/* Turno 2: 22 Tarde */}
+                  <div
+                    onClick={() => setSelectedDayFilter(selectedDayFilter === "22_tarde" ? "todos" : "22_tarde")}
+                    className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
+                      selectedDayFilter === "22_tarde"
+                        ? "border-fuchsia-400 bg-fuchsia-950/60 ring-1 ring-fuchsia-400/50 shadow-lg shadow-fuchsia-500/10"
+                        : "border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-950/30 via-slate-900/60 to-slate-900/40 hover:border-fuchsia-400/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-fuchsia-300 uppercase">Quinta 22 • Tarde</span>
+                      <span className="text-[10px] font-mono font-bold text-fuchsia-400 bg-fuchsia-500/10 px-2 py-0.5 rounded-full border border-fuchsia-500/30">
+                        14h às 18h
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-2xl font-black text-white">{currentDia22Tarde || 0}</div>
+                      <span className="text-xs text-slate-400">
+                        jogadores {isFilteringGame ? `(${gameInfo?.name.split(" ")[0]})` : ""}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-fuchsia-400 h-1.5 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${currentTotal > 0 ? Math.min(100, Math.round(((currentDia22Tarde || 0) / currentTotal) * 100)) : 0}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                      <span>
+                        {currentTotal > 0 ? Math.round(((currentDia22Tarde || 0) / currentTotal) * 100) : 0}% {isFilteringGame ? "deste jogo" : "do total"}
+                      </span>
+                      <span className="text-fuchsia-300 font-semibold">Oficinas e Suíço</span>
+                    </div>
+                  </div>
+
+                  {/* Turno 3: 22 Noite */}
+                  <div
+                    onClick={() => setSelectedDayFilter(selectedDayFilter === "22_noite" ? "todos" : "22_noite")}
+                    className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
+                      selectedDayFilter === "22_noite"
+                        ? "border-amber-400 bg-amber-950/60 ring-1 ring-amber-400/50 shadow-lg shadow-amber-500/10"
+                        : "border-amber-500/30 bg-gradient-to-br from-amber-950/30 via-slate-900/60 to-slate-900/40 hover:border-amber-400/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-amber-300 uppercase">Quinta 22 • Noite</span>
+                      <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                        18h às 20h
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-2xl font-black text-white">{currentDia22Noite || 0}</div>
+                      <span className="text-xs text-slate-400">
+                        jogadores {isFilteringGame ? `(${gameInfo?.name.split(" ")[0]})` : ""}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-amber-400 h-1.5 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${currentTotal > 0 ? Math.min(100, Math.round(((currentDia22Noite || 0) / currentTotal) * 100)) : 0}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                      <span>
+                        {currentTotal > 0 ? Math.round(((currentDia22Noite || 0) / currentTotal) * 100) : 0}% {isFilteringGame ? "deste jogo" : "do total"}
+                      </span>
+                      <span className="text-amber-300 font-semibold">Finais & Premiações</span>
+                    </div>
+                  </div>
+
+                  {/* Ambos os Dias */}
+                  <div
+                    onClick={() => setSelectedDayFilter(selectedDayFilter === "ambos" ? "todos" : "ambos")}
+                    className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
+                      selectedDayFilter === "ambos"
+                        ? "border-emerald-400 bg-emerald-950/60 ring-1 ring-emerald-400/50 shadow-lg shadow-emerald-500/10"
+                        : "border-emerald-500/30 bg-gradient-to-br from-emerald-950/30 via-slate-900/60 to-slate-900/40 hover:border-emerald-400/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-emerald-300 uppercase">Ambos os Dias (21 & 22)</span>
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <div className="text-2xl font-black text-white">{currentAmbosDias || 0}</div>
+                      <span className="text-xs text-slate-400">
+                        jogadores {isFilteringGame ? `(${gameInfo?.name.split(" ")[0]})` : ""}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-emerald-400 h-1.5 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${currentTotal > 0 ? Math.min(100, Math.round(((currentAmbosDias || 0) / currentTotal) * 100)) : 0}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                      <span>
+                        {currentTotal > 0 ? Math.round(((currentAmbosDias || 0) / currentTotal) * 100) : 0}% nos dois dias
+                      </span>
+                      <span className="text-emerald-300 font-semibold">Presença garantida</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* MATRIZ DE ALOCAÇÃO DE MESAS: CARD GAME × TURNO */}
+          <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4 space-y-3 backdrop-blur-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-cyan-400" />
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                  Matriz de Alocação de Mesas: Card Game × Turno
+                </h3>
+              </div>
+              <span className="text-[11px] text-slate-400">
+                Clique na linha de um jogo para filtrar a tabela de inscritos
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Turno 1: 21 Noite */}
-              <div
-                onClick={() => setSelectedDayFilter(selectedDayFilter === "21_noite" ? "todos" : "21_noite")}
-                className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
-                  selectedDayFilter === "21_noite"
-                    ? "border-cyan-400 bg-cyan-950/60 ring-1 ring-cyan-400/50 shadow-lg shadow-cyan-500/10"
-                    : "border-cyan-500/30 bg-gradient-to-br from-cyan-950/30 via-slate-900/60 to-slate-900/40 hover:border-cyan-400/50"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-cyan-300 uppercase">Quarta 21 • Noite</span>
-                  <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/30">
-                    17h às 22h
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <div className="text-2xl font-black text-white">{stats.dia21_noite || 0}</div>
-                  <span className="text-xs text-slate-400">jogadores</span>
-                </div>
-                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-cyan-400 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${stats.total > 0 ? Math.min(100, Math.round(((stats.dia21_noite || 0) / stats.total) * 100)) : 0}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                  <span>{stats.total > 0 ? Math.round(((stats.dia21_noite || 0) / stats.total) * 100) : 0}% do total</span>
-                  <span className="text-cyan-300 font-semibold">Início dos torneios</span>
-                </div>
-              </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="text-[10px] uppercase font-black tracking-wider text-slate-400 bg-white/[0.02] border-b border-white/10">
+                  <tr>
+                    <th className="py-2.5 px-3">Card Game</th>
+                    <th className="py-2.5 px-3 text-center">Total Inscritos</th>
+                    <th className="py-2.5 px-3 text-center text-cyan-300">
+                      🌙 Quarta 21 • Noite (17h-22h)
+                    </th>
+                    <th className="py-2.5 px-3 text-center text-fuchsia-300">
+                      ☀️ Quinta 22 • Tarde (14h-18h)
+                    </th>
+                    <th className="py-2.5 px-3 text-center text-amber-300">
+                      🌙 Quinta 22 • Noite (18h-20h)
+                    </th>
+                    <th className="py-2.5 px-3 text-center text-emerald-300">
+                      ✨ Ambos os Dias
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 font-medium">
+                  {ALL_GAMES.map((game) => {
+                    const gStats = stats.porJogoTurno?.[game.id] || {
+                      total: stats.jogos?.[game.id] || 0,
+                      torneio: stats.torneios?.[game.id] || 0,
+                      oficina: stats.oficinas?.[game.id] || 0,
+                      dia21_noite: 0,
+                      dia22_tarde: 0,
+                      dia22_noite: 0,
+                      ambosDias: 0,
+                    };
+                    const isSelected = selectedGameFilter === game.id;
 
-              {/* Turno 2: 22 Tarde */}
-              <div
-                onClick={() => setSelectedDayFilter(selectedDayFilter === "22_tarde" ? "todos" : "22_tarde")}
-                className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
-                  selectedDayFilter === "22_tarde"
-                    ? "border-fuchsia-400 bg-fuchsia-950/60 ring-1 ring-fuchsia-400/50 shadow-lg shadow-fuchsia-500/10"
-                    : "border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-950/30 via-slate-900/60 to-slate-900/40 hover:border-fuchsia-400/50"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-fuchsia-300 uppercase">Quinta 22 • Tarde</span>
-                  <span className="text-[10px] font-mono font-bold text-fuchsia-400 bg-fuchsia-500/10 px-2 py-0.5 rounded-full border border-fuchsia-500/30">
-                    14h às 18h
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <div className="text-2xl font-black text-white">{stats.dia22_tarde || 0}</div>
-                  <span className="text-xs text-slate-400">jogadores</span>
-                </div>
-                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-fuchsia-400 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${stats.total > 0 ? Math.min(100, Math.round(((stats.dia22_tarde || 0) / stats.total) * 100)) : 0}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                  <span>{stats.total > 0 ? Math.round(((stats.dia22_tarde || 0) / stats.total) * 100) : 0}% do total</span>
-                  <span className="text-fuchsia-300 font-semibold">Oficinas e Suíço</span>
-                </div>
-              </div>
+                    return (
+                      <tr
+                        key={game.id}
+                        onClick={() => setSelectedGameFilter(isSelected ? "todos" : game.id)}
+                        className={`hover:bg-white/[0.04] transition-colors cursor-pointer ${
+                          isSelected ? "bg-cyan-500/10 font-bold" : ""
+                        }`}
+                      >
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                game.id === "pokemon"
+                                  ? "bg-amber-400"
+                                  : game.id === "onepiece"
+                                  ? "bg-rose-400"
+                                  : game.id === "yugioh"
+                                  ? "bg-purple-400"
+                                  : game.id === "digimon"
+                                  ? "bg-blue-400"
+                                  : "bg-emerald-400"
+                              }`}
+                            />
+                            <span className={`font-bold ${game.color}`}>{game.name}</span>
+                            {isSelected && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                                Ativo
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="text-white font-black text-sm">{gStats.total}</span>
+                          <span className="text-[10px] text-slate-400 block font-normal">
+                            ({gStats.torneio} T • {gStats.oficina} O)
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-cyan-950/60 border border-cyan-800/40 text-cyan-300 font-black text-xs min-w-[36px]">
+                            {gStats.dia21_noite}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-fuchsia-950/60 border border-fuchsia-800/40 text-fuchsia-300 font-black text-xs min-w-[36px]">
+                            {gStats.dia22_tarde}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-amber-950/60 border border-amber-800/40 text-amber-300 font-black text-xs min-w-[36px]">
+                            {gStats.dia22_noite}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-800/40 text-emerald-300 font-bold text-xs min-w-[36px]">
+                            {gStats.ambosDias}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
 
-              {/* Turno 3: 22 Noite */}
-              <div
-                onClick={() => setSelectedDayFilter(selectedDayFilter === "22_noite" ? "todos" : "22_noite")}
-                className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
-                  selectedDayFilter === "22_noite"
-                    ? "border-amber-400 bg-amber-950/60 ring-1 ring-amber-400/50 shadow-lg shadow-amber-500/10"
-                    : "border-amber-500/30 bg-gradient-to-br from-amber-950/30 via-slate-900/60 to-slate-900/40 hover:border-amber-400/50"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-amber-300 uppercase">Quinta 22 • Noite</span>
-                  <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
-                    18h às 20h
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <div className="text-2xl font-black text-white">{stats.dia22_noite || 0}</div>
-                  <span className="text-xs text-slate-400">jogadores</span>
-                </div>
-                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-amber-400 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${stats.total > 0 ? Math.min(100, Math.round(((stats.dia22_noite || 0) / stats.total) * 100)) : 0}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                  <span>{stats.total > 0 ? Math.round(((stats.dia22_noite || 0) / stats.total) * 100) : 0}% do total</span>
-                  <span className="text-amber-300 font-semibold">Finais & Premiações</span>
-                </div>
-              </div>
-
-              {/* Ambos os Dias */}
-              <div
-                onClick={() => setSelectedDayFilter(selectedDayFilter === "ambos" ? "todos" : "ambos")}
-                className={`rounded-2xl border p-4 space-y-2 cursor-pointer transition-all ${
-                  selectedDayFilter === "ambos"
-                    ? "border-emerald-400 bg-emerald-950/60 ring-1 ring-emerald-400/50 shadow-lg shadow-emerald-500/10"
-                    : "border-emerald-500/30 bg-gradient-to-br from-emerald-950/30 via-slate-900/60 to-slate-900/40 hover:border-emerald-400/50"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-emerald-300 uppercase">Ambos os Dias (21 & 22)</span>
-                  <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <div className="text-2xl font-black text-white">{stats.ambosDias || 0}</div>
-                  <span className="text-xs text-slate-400">jogadores</span>
-                </div>
-                <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-emerald-400 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${stats.total > 0 ? Math.min(100, Math.round(((stats.ambosDias || 0) / stats.total) * 100)) : 0}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                  <span>{stats.total > 0 ? Math.round(((stats.ambosDias || 0) / stats.total) * 100) : 0}% nos dois dias</span>
-                  <span className="text-emerald-300 font-semibold">{stats.todosTurnos || 0} em todos os turnos</span>
-                </div>
-              </div>
+                  {/* Linha de Total Geral */}
+                  <tr className="bg-white/[0.03] border-t-2 border-white/10 font-bold">
+                    <td className="py-3 px-3 uppercase text-slate-200">
+                      <strong>TOTAL GERAL</strong>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="text-white font-black text-base">{stats.total}</span>
+                      <span className="text-[10px] text-slate-400 block font-normal">participantes</span>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="text-cyan-300 font-black text-sm">{stats.dia21_noite}</span>
+                      <span className="text-[10px] text-cyan-400/80 block font-normal">na Quarta N</span>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="text-fuchsia-300 font-black text-sm">{stats.dia22_tarde}</span>
+                      <span className="text-[10px] text-fuchsia-400/80 block font-normal">na Quinta T</span>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="text-amber-300 font-black text-sm">{stats.dia22_noite}</span>
+                      <span className="text-[10px] text-amber-400/80 block font-normal">na Quinta N</span>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className="text-emerald-300 font-black text-sm">{stats.ambosDias}</span>
+                      <span className="text-[10px] text-emerald-400/80 block font-normal">ambos os dias</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 

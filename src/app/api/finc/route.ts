@@ -98,6 +98,13 @@ export async function GET(request: Request) {
         digimon: 0,
         riftbound: 0,
       },
+      porJogoTurno: {
+        pokemon: { total: 0, torneio: 0, oficina: 0, dia21_noite: 0, dia22_tarde: 0, dia22_noite: 0, ambosDias: 0 },
+        onepiece: { total: 0, torneio: 0, oficina: 0, dia21_noite: 0, dia22_tarde: 0, dia22_noite: 0, ambosDias: 0 },
+        yugioh: { total: 0, torneio: 0, oficina: 0, dia21_noite: 0, dia22_tarde: 0, dia22_noite: 0, ambosDias: 0 },
+        digimon: { total: 0, torneio: 0, oficina: 0, dia21_noite: 0, dia22_tarde: 0, dia22_noite: 0, ambosDias: 0 },
+        riftbound: { total: 0, torneio: 0, oficina: 0, dia21_noite: 0, dia22_tarde: 0, dia22_noite: 0, ambosDias: 0 },
+      },
       intencoes: {
         torneio: 0,
         casual: 0,
@@ -161,9 +168,21 @@ export async function GET(request: Request) {
         const inT = checkGame(g, tList);
         const inO = checkGame(g, oList);
         const inAll = checkGame(g, allList);
+        const isGameParticipant = inAll || inT || inO;
+
         if (inT) stats.torneios[g] += 1;
         if (inO) stats.oficinas[g] += 1;
-        if (inAll || inT || inO) stats.jogos[g] += 1;
+        if (isGameParticipant) {
+          stats.jogos[g] += 1;
+          stats.porJogoTurno[g].total += 1;
+          if (inT) stats.porJogoTurno[g].torneio += 1;
+          if (inO) stats.porJogoTurno[g].oficina += 1;
+
+          if (has21Noite) stats.porJogoTurno[g].dia21_noite += 1;
+          if (has22Tarde) stats.porJogoTurno[g].dia22_tarde += 1;
+          if (has22Noite) stats.porJogoTurno[g].dia22_noite += 1;
+          if (has21 && has22) stats.porJogoTurno[g].ambosDias += 1;
+        }
       });
 
       // Intenção
