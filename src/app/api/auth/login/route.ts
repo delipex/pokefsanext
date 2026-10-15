@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -17,8 +19,8 @@ export async function POST(req: Request) {
 
     const trimmedPin = String(pin).trim();
 
-    // 1. PINs Master / Default
-    const masterPins = ["1234", "liga2026", "admin"];
+    // 1. PINs Master / Default (fsa2026 é a senha oficial principal)
+    const masterPins: string[] = ["fsa2026", "1234", "liga2026", "admin"];
 
     // 2. Busca PIN do arquivo config.json
     try {
@@ -33,8 +35,11 @@ export async function POST(req: Request) {
       // Ignora erro de leitura de arquivo
     }
 
-    // 3. Busca PIN configurado no banco de dados (se tabela existir)
+    // 3. Busca PIN configurado no banco de dados
     try {
+      const { ensureDatabaseSchema } = await import("@/db/migrate-auto");
+      await ensureDatabaseSchema();
+
       const pinConfig = await db
         .select()
         .from(configuracoes)
@@ -42,23 +47,44 @@ export async function POST(req: Request) {
         .limit(1);
 
       if (pinConfig[0]?.valor) {
-        masterPins.push(String(pinConfig[0].valor).trim());
+        let val = String(pinConfig[0].valor).trim();
+        try {
+          const parsed = JSON.parse(val);
+          if (typeof parsed === "string") val = parsed.trim();
+        } catch {}
+        if (val) {
+          masterPins.push(val);
+        }
       }
-    } catch {
-      // Falha graciosa se a tabela do banco de dados ainda não foi criada
+    } catch (err) {
+      console.warn("Aviso ao buscar adminPin no banco de dados:", err);
     }
 
-    if (masterPins.includes(trimmedPin)) {
+    // Validação insensível a maiúsculas/minúsculas e sem espaços
+    const normalizedPin = trimmedPin.toLowerCase();
+    const isAuthorized = masterPins.some((p) => p.toLowerCase().trim() === normalizedPin);
+
+    if (isAuthorized) {
+      const isProd = process.env.NODE_ENV === "production";
       const cookieStore = await cookies();
       cookieStore.set("admin_session", "authenticated", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: isProd,
         sameSite: "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 7, // 7 dias
       });
 
-      return NextResponse.json({ success: true, message: "Autenticado com sucesso!" });
+      const response = NextResponse.json({ success: true, message: "Autenticado com sucesso!" });
+      response.cookies.set("admin_session", "authenticated", {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+
+      return response;
     }
 
     return NextResponse.json({ error: "PIN ou senha administrativa incorreta." }, { status: 401 });

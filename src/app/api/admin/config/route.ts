@@ -77,6 +77,7 @@ export async function POST(req: Request) {
       revalidatePath("/campeoes");
       revalidatePath("/regras");
       revalidatePath("/admin");
+      revalidatePath("/login");
       revalidatePath("/portal");
 
       return NextResponse.json({ success: true, message: "Todas as configurações foram salvas com sucesso!" });
@@ -105,6 +106,7 @@ export async function POST(req: Request) {
     revalidatePath("/campeoes");
     revalidatePath("/regras");
     revalidatePath("/admin");
+    revalidatePath("/login");
     revalidatePath("/portal");
 
     return NextResponse.json({ success: true, message: "Configuração atualizada com sucesso!" });

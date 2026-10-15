@@ -26,8 +26,8 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        router.push("/admin");
-        router.refresh();
+        window.location.href = "/admin";
+        return;
       } else {
         setError(data.error || "Credenciais inválidas. Tente novamente.");
       }

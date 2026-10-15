@@ -299,7 +299,7 @@ export async function ensureDatabaseSchema() {
   // Inserir configurações padrão caso não existam
   const defaultConfigs = [
     { chave: "temporadaAtual", valor: "5", descricao: "Número da temporada atual ativa" },
-    { chave: "adminPin", valor: "0408", descricao: "PIN de acesso ao painel de administração" },
+    { chave: "adminPin", valor: "fsa2026", descricao: "PIN de acesso ao painel de administração" },
     { chave: "nomeLiga", valor: "Liga Atlântica", descricao: "Nome oficial da liga" },
     { chave: "regras", valor: DEFAULT_REGRAS, descricao: "Regulamento oficial da Liga" },
     { chave: "exibirPodio", valor: "true", descricao: "Exibir pódio dos líderes na home" },

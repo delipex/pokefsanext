@@ -420,7 +420,7 @@ export function AdminDashboard({
   const [linkTwitch, setLinkTwitch] = useState(initialConfig.linkTwitch || "");
   const [linkYouTube, setLinkYouTube] = useState(initialConfig.linkYouTube || "");
   const [chavePix, setChavePix] = useState(initialConfig.chavePix || "");
-  const [adminPin, setAdminPin] = useState(initialConfig.adminPin || "1234");
+  const [adminPin, setAdminPin] = useState(initialConfig.adminPin || "fsa2026");
   const [statusTemporada, setStatusTemporada] = useState(initialConfig.statusTemporada || "ativa");
 
   // Controles dos Módulos da Home
