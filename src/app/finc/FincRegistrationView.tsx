@@ -267,6 +267,26 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
     }
   };
 
+  // Travar o scroll da página e escutar tecla ESC ao abrir o modal de busca
+  useEffect(() => {
+    if (!isSearchModalOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsSearchModalOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isSearchModalOpen]);
+
   const getGameName = (id: string) => {
     const match = TCG_OPTIONS.find((t) => t.id === id);
     return match ? match.name : id;
@@ -566,7 +586,36 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
 
       {/* CASO JÁ TENHA ENVIADO OU CONSULTADO A INSCRIÇÃO: MOSTRA O PASSAPORTE DIGITAL */}
       {confirmedData ? (
-        <section className="relative overflow-hidden rounded-3xl border border-cyan-500/40 bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 p-6 sm:p-10 shadow-2xl text-center space-y-6">
+        <section className="relative overflow-hidden rounded-3xl border border-cyan-500/40 bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 p-5 sm:p-8 shadow-2xl text-center space-y-6">
+          {/* BARRA SUPERIOR PARA RETORNAR AO FORMULÁRIO OU FECHAR */}
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmedData(null);
+                setNome("");
+                setWhatsapp("");
+                setEmail("");
+                setRa("");
+                setObservacoes("");
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
+            >
+              <span>← Voltar ao Formulário</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmedData(null);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 px-3.5 py-2 text-xs font-bold text-rose-300 transition-all cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+              <span>Fechar</span>
+            </button>
+          </div>
+
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-1 text-xs font-black uppercase tracking-wider text-emerald-300">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -583,6 +632,9 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
           {/* COMPONENTE DE PASSAPORTE VIP COM DOWNLOAD EM PNG E ENVIO WHATSAPP */}
           <FincPassportCard
             inscricao={confirmedData}
+            onClose={() => {
+              setConfirmedData(null);
+            }}
             onNewRegistration={() => {
               setConfirmedData(null);
               setNome("");
@@ -1103,8 +1155,14 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
 
       {/* MODAL DE CONSULTA DE INSCRIÇÃO ANTERIOR (RECUPERAÇÃO DE PASSAPORTE) */}
       {isSearchModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-md rounded-3xl border border-cyan-500/40 bg-slate-900 p-6 shadow-2xl space-y-4 text-left">
+        <div
+          className="fixed inset-0 z-[100] overflow-y-auto bg-black/90 backdrop-blur-md p-4 flex justify-center items-start sm:items-center animate-fadeIn"
+          onClick={() => setIsSearchModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-md my-auto rounded-3xl border border-cyan-500/40 bg-slate-900 p-6 shadow-2xl space-y-4 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <QrCode className="h-5 w-5 text-cyan-400" />

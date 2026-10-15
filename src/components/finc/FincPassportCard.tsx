@@ -554,6 +554,7 @@ export function FincPassportCard({
 
           {onNewRegistration && (
             <button
+              type="button"
               onClick={onNewRegistration}
               className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-3.5 py-2.5 text-xs font-bold text-slate-400 hover:text-white transition-all cursor-pointer"
             >
@@ -563,6 +564,7 @@ export function FincPassportCard({
 
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
               className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 px-4 py-2.5 text-xs font-bold text-rose-300 transition-all cursor-pointer"
             >
@@ -571,6 +573,18 @@ export function FincPassportCard({
             </button>
           )}
         </div>
+
+        {/* BOTÃO PRINCIPAL DE FECHAR SE ESTIVER EM MODAL OU POPUP */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-slate-900/90 hover:bg-rose-600/20 hover:border-rose-500/40 hover:text-rose-200 py-3 text-xs sm:text-sm font-bold text-slate-300 transition-all cursor-pointer shadow-lg"
+          >
+            <X className="h-4 w-4" />
+            <span>Fechar Passaporte</span>
+          </button>
+        )}
       </div>
     </div>
   );
