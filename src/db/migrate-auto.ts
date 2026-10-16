@@ -184,6 +184,7 @@ export async function ensureDatabaseSchema() {
       jogador_id TEXT,
       jogador_nome TEXT NOT NULL,
       categoria TEXT DEFAULT 'Master',
+      turno TEXT,
       data_nascimento TEXT,
       whatsapp TEXT,
       evento_nome TEXT,
@@ -284,6 +285,7 @@ export async function ensureDatabaseSchema() {
     `ALTER TABLE jogador_decklists ADD COLUMN whatsapp TEXT;`,
     `ALTER TABLE jogador_decklists ADD COLUMN updated_at TEXT;`,
     `ALTER TABLE jogador_decklists ADD COLUMN historico_edicoes TEXT DEFAULT '[]';`,
+    `ALTER TABLE jogador_decklists ADD COLUMN turno TEXT;`,
     `ALTER TABLE inscricoes_finc ADD COLUMN ra TEXT;`,
   ];
 
@@ -305,6 +307,10 @@ export async function ensureDatabaseSchema() {
     { chave: "exibirPodio", valor: "true", descricao: "Exibir pódio dos líderes na home" },
     { chave: "exibirProximoEvento", valor: "true", descricao: "Exibir card de próximo evento na home" },
     { chave: "inscricoesAtivas", valor: "false", descricao: "Flag de inscrições abertas para torneios" },
+    { chave: "premierMultiTurno", valor: "false", descricao: "Habilitar múltiplos horários (ex: Pré-Release)" },
+    { chave: "premierTurno1Nome", valor: "1º Horário (Manhã 10h00)", descricao: "Nome do 1º horário" },
+    { chave: "premierTurno2Nome", valor: "2º Horário (Tarde 14h30)", descricao: "Nome do 2º horário" },
+    { chave: "premierPermitirAmbosTurnos", valor: "true", descricao: "Permitir opção de inscrição em ambos horários" },
   ];
 
   for (const cfg of defaultConfigs) {

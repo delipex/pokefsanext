@@ -66,6 +66,7 @@ export function AdminFincManager() {
   const [search, setSearch] = useState("");
   const [selectedGameFilter, setSelectedGameFilter] = useState("todos");
   const [selectedDayFilter, setSelectedDayFilter] = useState("todos");
+  const [selectedModalityFilter, setSelectedModalityFilter] = useState<"todos" | "torneio" | "oficina" | "ambos">("todos");
   const [copiedProtocol, setCopiedProtocol] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -289,6 +290,97 @@ export function AdminFincManager() {
     }
   };
 
+  // Helper para identificar modalidades (Torneio vs Oficina)
+  const getItemModalities = (item: FincInscricao) => {
+    let tGames: string[] = [];
+    let oGames: string[] = [];
+    try {
+      const parsed = JSON.parse(item.jogos || "{}");
+      if (Array.isArray(parsed)) {
+        if (item.intencao === "torneio") tGames = parsed;
+        else if (item.intencao === "oficina_aprender" || item.intencao === "casual") oGames = parsed;
+        else tGames = parsed;
+      } else if (parsed && typeof parsed === "object") {
+        tGames = Array.isArray(parsed.torneio) ? parsed.torneio : [];
+        oGames = Array.isArray(parsed.oficinas) ? parsed.oficinas : [];
+      }
+    } catch {
+      if (item.intencao === "torneio") tGames = [item.jogos];
+      else oGames = [item.jogos];
+    }
+
+    if (tGames.length === 0 && oGames.length === 0) {
+      if (item.intencao === "torneio") tGames = [item.jogos || "pokemon"];
+      else if (item.intencao === "oficina_aprender") oGames = [item.jogos || "pokemon"];
+    }
+
+    const hasTorneio = tGames.length > 0;
+    const hasOficina = oGames.length > 0;
+
+    return { tGames, oGames, hasTorneio, hasOficina };
+  };
+
+  // Contagem dinâmica das modalidades respeitando a busca atual, jogo e turno
+  const modalityCounts = useMemo(() => {
+    let totalMatching = 0;
+    let torneioCount = 0;
+    let oficinaCount = 0;
+    let ambosCount = 0;
+
+    inscricoes.forEach((item) => {
+      const q = search.toLowerCase().trim();
+      const matchText =
+        !q ||
+        item.nome.toLowerCase().includes(q) ||
+        item.whatsapp.includes(q) ||
+        item.protocolo.toLowerCase().includes(q) ||
+        (item.ra && item.ra.toLowerCase().includes(q));
+
+      if (!matchText) return;
+
+      if (selectedDayFilter !== "todos") {
+        try {
+          const dias: string[] = JSON.parse(item.dias || "[]");
+          if (selectedDayFilter === "21") {
+            if (!dias.some((d) => String(d).includes("21"))) return;
+          } else if (selectedDayFilter === "22") {
+            if (!dias.some((d) => String(d).includes("22"))) return;
+          } else if (selectedDayFilter === "ambos") {
+            const has21 = dias.some((d) => String(d).includes("21"));
+            const has22 = dias.some((d) => String(d).includes("22"));
+            if (!has21 || !has22) return;
+          } else {
+            if (!dias.includes(selectedDayFilter)) return;
+          }
+        } catch {
+          if (!item.dias.includes(selectedDayFilter)) return;
+        }
+      }
+
+      const { tGames, oGames, hasTorneio, hasOficina } = getItemModalities(item);
+
+      if (selectedGameFilter !== "todos") {
+        const inAll = [...tGames, ...oGames].some((g) => g.toLowerCase().includes(selectedGameFilter));
+        if (!inAll) return;
+
+        const matchGameInT = tGames.some((g) => g.toLowerCase().includes(selectedGameFilter));
+        const matchGameInO = oGames.some((g) => g.toLowerCase().includes(selectedGameFilter));
+
+        totalMatching++;
+        if (matchGameInT) torneioCount++;
+        if (matchGameInO) oficinaCount++;
+        if (matchGameInT && matchGameInO) ambosCount++;
+      } else {
+        totalMatching++;
+        if (hasTorneio) torneioCount++;
+        if (hasOficina) oficinaCount++;
+        if (hasTorneio && hasOficina) ambosCount++;
+      }
+    });
+
+    return { totalMatching, torneioCount, oficinaCount, ambosCount };
+  }, [inscricoes, search, selectedGameFilter, selectedDayFilter]);
+
   const filteredList = useMemo(() => {
     return inscricoes.filter((item) => {
       // Busca texto
@@ -302,6 +394,8 @@ export function AdminFincManager() {
 
       if (!matchText) return false;
 
+      const { tGames, oGames, hasTorneio, hasOficina } = getItemModalities(item);
+
       // Filtro de jogo
       if (selectedGameFilter !== "todos") {
         try {
@@ -314,6 +408,22 @@ export function AdminFincManager() {
           }
         } catch {
           if (!item.jogos.toLowerCase().includes(selectedGameFilter)) return false;
+        }
+      }
+
+      // Filtro de modalidade (Torneio vs Oficina)
+      if (selectedModalityFilter !== "todos") {
+        if (selectedGameFilter !== "todos") {
+          const matchGameInT = tGames.some((g) => g.toLowerCase().includes(selectedGameFilter));
+          const matchGameInO = oGames.some((g) => g.toLowerCase().includes(selectedGameFilter));
+
+          if (selectedModalityFilter === "torneio" && !matchGameInT) return false;
+          if (selectedModalityFilter === "oficina" && !matchGameInO) return false;
+          if (selectedModalityFilter === "ambos" && (!matchGameInT || !matchGameInO)) return false;
+        } else {
+          if (selectedModalityFilter === "torneio" && !hasTorneio) return false;
+          if (selectedModalityFilter === "oficina" && !hasOficina) return false;
+          if (selectedModalityFilter === "ambos" && (!hasTorneio || !hasOficina)) return false;
         }
       }
 
@@ -339,7 +449,7 @@ export function AdminFincManager() {
 
       return true;
     });
-  }, [inscricoes, search, selectedGameFilter, selectedDayFilter]);
+  }, [inscricoes, search, selectedGameFilter, selectedDayFilter, selectedModalityFilter]);
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -879,7 +989,7 @@ export function AdminFincManager() {
 
       {/* FILTROS E BUSCA */}
       <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="relative">
             <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
             <input
@@ -907,6 +1017,20 @@ export function AdminFincManager() {
             </select>
           </div>
 
+          <div className="flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-amber-400 shrink-0" />
+            <select
+              value={selectedModalityFilter}
+              onChange={(e) => setSelectedModalityFilter(e.target.value as any)}
+              className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-xs text-white focus:border-cyan-400 focus:outline-none"
+            >
+              <option value="todos">Todas as Modalidades ({modalityCounts.totalMatching})</option>
+              <option value="torneio">🏆 Apenas Torneio ({modalityCounts.torneioCount})</option>
+              <option value="oficina">📚 Apenas Oficina ({modalityCounts.oficinaCount})</option>
+              <option value="ambos">⚡ Ambos Torneio + Oficina ({modalityCounts.ambosCount})</option>
+            </select>
+          </div>
+
           <div>
             <select
               value={selectedDayFilter}
@@ -923,15 +1047,98 @@ export function AdminFincManager() {
             </select>
           </div>
         </div>
+
+        {/* Pílulas Interativas de Filtro Rápido com Contadores em Tempo Real */}
+        <div className="flex items-center justify-between border-t border-white/10 pt-3 flex-wrap gap-2 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Modalidade:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedModalityFilter("todos")}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                selectedModalityFilter === "todos"
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-sm"
+                  : "bg-slate-950/60 text-slate-400 border border-white/10 hover:text-white"
+              }`}
+            >
+              Todos ({modalityCounts.totalMatching})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedModalityFilter(selectedModalityFilter === "torneio" ? "todos" : "torneio")}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedModalityFilter === "torneio"
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-400/60 shadow-md shadow-amber-500/10 ring-1 ring-amber-400/40"
+                  : "bg-slate-950/60 text-slate-400 border border-white/10 hover:text-amber-300 hover:border-amber-500/30"
+              }`}
+            >
+              <Trophy className="h-3.5 w-3.5 text-amber-400" />
+              <span>Torneio ({modalityCounts.torneioCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedModalityFilter(selectedModalityFilter === "oficina" ? "todos" : "oficina")}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedModalityFilter === "oficina"
+                  ? "bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-400/60 shadow-md shadow-fuchsia-500/10 ring-1 ring-fuchsia-400/40"
+                  : "bg-slate-950/60 text-slate-400 border border-white/10 hover:text-fuchsia-300 hover:border-fuchsia-500/30"
+              }`}
+            >
+              <BookOpen className="h-3.5 w-3.5 text-fuchsia-400" />
+              <span>Oficina ({modalityCounts.oficinaCount})</span>
+            </button>
+            {modalityCounts.ambosCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedModalityFilter(selectedModalityFilter === "ambos" ? "todos" : "ambos")}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  selectedModalityFilter === "ambos"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/60 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-400/40"
+                    : "bg-slate-950/60 text-slate-400 border border-white/10 hover:text-emerald-300 hover:border-emerald-500/30"
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                <span>Ambos ({modalityCounts.ambosCount})</span>
+              </button>
+            )}
+          </div>
+
+          {(selectedModalityFilter !== "todos" || selectedGameFilter !== "todos" || selectedDayFilter !== "todos" || search) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedModalityFilter("todos");
+                setSelectedGameFilter("todos");
+                setSelectedDayFilter("todos");
+                setSearch("");
+              }}
+              className="text-[11px] font-bold text-rose-400 hover:text-rose-300 underline cursor-pointer"
+            >
+              Limpar todos os filtros
+            </button>
+          )}
+        </div>
       </div>
 
       {/* TABELA DE INSCRITOS */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-xl">
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Users className="h-4 w-4 text-cyan-400" />
-            <span>Inscritos Homologados ({filteredList.length})</span>
-          </h3>
+        <div className="p-4 border-b border-white/10 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Users className="h-4 w-4 text-cyan-400" />
+              <span>Inscritos Homologados ({filteredList.length})</span>
+            </h3>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-[11px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-lg">
+                🏆 {modalityCounts.torneioCount} Torneio
+              </span>
+              <span className="text-[11px] font-bold text-fuchsia-400 bg-fuchsia-500/10 border border-fuchsia-500/30 px-2 py-0.5 rounded-lg">
+                📚 {modalityCounts.oficinaCount} Oficina
+              </span>
+            </div>
+          </div>
         </div>
 
         {filteredList.length === 0 ? (

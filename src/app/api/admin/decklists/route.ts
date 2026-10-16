@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       categoria,
       statusPix,
       protocolo,
+      turno,
     } = body;
 
     if (!jogadorNome || !deckNome) {
@@ -54,6 +55,7 @@ export async function POST(req: Request) {
         statusPix: statusPix || "Pendente",
         protocolo: genProtocolo,
         categoria: categoria || "Master",
+        turno: turno || null,
       })
       .returning();
 
@@ -70,7 +72,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { id, statusPix, validada, deckNome, tipoEnergia, categoria } = body;
+    const { id, statusPix, validada, deckNome, tipoEnergia, categoria, turno } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID da inscrição não informado." }, { status: 400 });
@@ -82,6 +84,7 @@ export async function PUT(req: Request) {
     if (deckNome !== undefined) updateData.deckNome = deckNome;
     if (tipoEnergia !== undefined) updateData.tipoEnergia = tipoEnergia;
     if (categoria !== undefined) updateData.categoria = categoria;
+    if (turno !== undefined) updateData.turno = turno;
 
     const [updated] = await db
       .update(jogadorDecklists)

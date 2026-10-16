@@ -117,6 +117,21 @@ export function AdminInscricoesPremier({
       "Traga sua decklist impressa ou envie diretamente pelo formulário online até as 13:45. Formato Standard (Padrão)."
   );
 
+  // Múltiplos Horários / Turnos (ex: Pré-Release em 2 sessões)
+  const [premierMultiTurno, setPremierMultiTurno] = useState(
+    initialConfig.premierMultiTurno === "true" || initialConfig.premierMultiTurno === true
+  );
+  const [premierTurno1Nome, setPremierTurno1Nome] = useState(
+    initialConfig.premierTurno1Nome || "1º Horário (Manhã 10h00)"
+  );
+  const [premierTurno2Nome, setPremierTurno2Nome] = useState(
+    initialConfig.premierTurno2Nome || "2º Horário (Tarde 14h30)"
+  );
+  const [premierPermitirAmbosTurnos, setPremierPermitirAmbosTurnos] = useState(
+    initialConfig.premierPermitirAmbosTurnos !== "false" && initialConfig.premierPermitirAmbosTurnos !== false
+  );
+  const [selectedTurnoFilter, setSelectedTurnoFilter] = useState("all");
+
   // Estados de Inscrições / Decklists
   const [decklists, setDecklists] = useState<any[]>(initialDecklists);
   const [subtab, setSubtab] = useState<"online" | "archived">("online");
@@ -140,6 +155,7 @@ export function AdminInscricoesPremier({
     jogadorNome: "",
     jogadorId: "",
     categoria: "Master",
+    turno: "",
     deckNome: "",
     tipoEnergia: "colorless",
     statusPix: "Confirmado",
@@ -214,6 +230,10 @@ export function AdminInscricoesPremier({
       premierLocal,
       premierValor,
       premierVagas,
+      premierMultiTurno: String(premierMultiTurno),
+      premierTurno1Nome,
+      premierTurno2Nome,
+      premierPermitirAmbosTurnos: String(premierPermitirAmbosTurnos),
       premierExigirDecklist: String(premierExigirDecklist),
       premierPix,
       premierTitular,
@@ -269,11 +289,11 @@ export function AdminInscricoesPremier({
 
   // Exportar Roster CSV
   const handleExportCSV = () => {
-    const headers = "Protocolo,Jogador,POP_ID,Categoria,Deck,Status_PIX,Data_Envio\n";
+    const headers = "Protocolo,Jogador,POP_ID,Categoria,Horario_Turno,Deck,Status_PIX,Data_Envio\n";
     const rows = filteredList
       .map(
         (d) =>
-          `"${d.protocolo || ""}","${d.jogadorNome}","${d.jogadorId || ""}","${d.categoria || "Master"}","${d.deckNome || ""}","${d.statusPix || "Pendente"}","${d.enviadoEm || ""}"`
+          `"${d.protocolo || ""}","${d.jogadorNome}","${d.jogadorId || ""}","${d.categoria || "Master"}","${d.turno || "Único"}","${d.deckNome || ""}","${d.statusPix || "Pendente"}","${d.enviadoEm || d.createdAt || ""}"`
       )
       .join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
@@ -326,6 +346,7 @@ export function AdminInscricoesPremier({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...manualForm,
+          turno: manualForm.turno || (premierMultiTurno ? premierTurno1Nome : null),
           eventoNome: premierNome,
           etapaData: premierData,
         }),
@@ -355,6 +376,24 @@ export function AdminInscricoesPremier({
     return Array.from(events);
   }, [decklists, premierNome, premierAbertas]);
 
+  // Contagem de inscritos por turno / horário
+  const turnoCounts = useMemo(() => {
+    let t1 = 0;
+    let t2 = 0;
+    let ambos = 0;
+    decklists.forEach((item) => {
+      const t = (item.turno || "").toLowerCase();
+      if (t.includes("ambos") || t.includes("kit duplo") || t.includes("duplo")) {
+        ambos++;
+      } else if (t.includes("1") || t.includes("manhã") || t.includes("manha")) {
+        t1++;
+      } else if (t.includes("2") || t.includes("tarde")) {
+        t2++;
+      }
+    });
+    return { t1, t2, ambos };
+  }, [decklists]);
+
   // Filtragem da lista
   const filteredList = useMemo(() => {
     return decklists.filter((item) => {
@@ -372,9 +411,20 @@ export function AdminInscricoesPremier({
         selectedEventFilter === "all" ||
         (item.eventoNome && item.eventoNome.trim().toLowerCase() === selectedEventFilter.trim().toLowerCase());
 
-      return matchSearch && matchCategory && matchPayment && matchEvent;
+      const matchTurno =
+        selectedTurnoFilter === "all" ||
+        !selectedTurnoFilter ||
+        (selectedTurnoFilter === "ambos"
+          ? (item.turno && (item.turno.toLowerCase().includes("ambos") || item.turno.toLowerCase().includes("duplo")))
+          : selectedTurnoFilter === "1"
+          ? (item.turno && (item.turno.toLowerCase().includes("1") || item.turno.toLowerCase().includes("manhã") || item.turno.toLowerCase().includes("manha")))
+          : selectedTurnoFilter === "2"
+          ? (item.turno && (item.turno.toLowerCase().includes("2") || item.turno.toLowerCase().includes("tarde")))
+          : item.turno === selectedTurnoFilter);
+
+      return matchSearch && matchCategory && matchPayment && matchEvent && matchTurno;
     });
-  }, [decklists, searchQuery, categoryFilter, paymentFilter, selectedEventFilter]);
+  }, [decklists, searchQuery, categoryFilter, paymentFilter, selectedEventFilter, selectedTurnoFilter]);
 
   const confirmedCount = filteredList.filter((d) => d.statusPix === "Confirmado").length;
   const pendingCount = filteredList.filter((d) => d.statusPix !== "Confirmado").length;
@@ -513,11 +563,23 @@ export function AdminInscricoesPremier({
                     if (nextTipo === "Liga") setPremierMultiplicador("1.0");
                     else if (nextTipo === "Challenge" || nextTipo === "Cup") setPremierMultiplicador("1.5");
                     else if (nextTipo === "Especial" && premierMultiplicador === "1.5") setPremierMultiplicador("1.0");
+                    else if (nextTipo === "Pre-Release") {
+                      setPremierMultiplicador("1.0");
+                      setPremierExigirDecklist(false);
+                      setPremierMultiTurno(true);
+                      if (!premierHorario || premierHorario.includes("14:00")) {
+                        setPremierHorario("1º Horário: 10h00 • 2º Horário: 14h30");
+                      }
+                      if (!premierObs || premierObs.includes("Traga sua decklist")) {
+                        setPremierObs("Torneio de Pré-Release Oficial no Formato Selado com Build & Battle Box (40 cartas montadas na hora). Escolha seu horário preferido no formulário.");
+                      }
+                    }
                   }}
                   className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
                 >
                   <option value="Challenge">League Challenge (1.5x)</option>
                   <option value="Cup">League Cup (1.5x)</option>
+                  <option value="Pre-Release">🎉 Pré-Release / Selado (2 Horários)</option>
                   <option value="Especial">Torneio Especial / Comemorativo (Livre)</option>
                   <option value="Liga">Sessão Regular de Liga (1.0x)</option>
                 </select>
@@ -722,6 +784,86 @@ export function AdminInscricoesPremier({
               </div>
             </div>
 
+            {/* Linha 3.8: Múltiplos Horários / Turnos (Pré-Release / Múltiplas Sessões) */}
+            <div className="p-4 rounded-2xl border border-indigo-500/30 bg-slate-950/80 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xl leading-none mt-0.5">⏰</span>
+                  <div>
+                    <label className="text-xs font-bold text-white flex items-center gap-2">
+                      <span>Múltiplos Horários / Turnos de Inscrição (Pré-Release)</span>
+                      {premierMultiTurno && (
+                        <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded-full">
+                          Ativo no formulário
+                        </span>
+                      )}
+                    </label>
+                    <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
+                      Permite que os jogadores escolham entre 2 horários distintos (ex: Manhã ou Tarde) ou ambos em um único link de inscrição.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setPremierMultiTurno(!premierMultiTurno)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    premierMultiTurno ? "bg-indigo-600" : "bg-slate-700"
+                  }`}
+                  role="switch"
+                  aria-checked={premierMultiTurno}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      premierMultiTurno ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {premierMultiTurno && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-white/10">
+                  <div>
+                    <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                      🌅 Nome do 1º Horário / Turno
+                    </label>
+                    <input
+                      type="text"
+                      value={premierTurno1Nome}
+                      onChange={(e) => setPremierTurno1Nome(e.target.value)}
+                      placeholder="Ex: 1º Horário (Manhã 10h00)"
+                      className="w-full bg-slate-900 border border-indigo-500/40 rounded-xl px-3 py-2 text-white text-xs font-medium focus:ring-1 focus:ring-indigo-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                      🌇 Nome do 2º Horário / Turno
+                    </label>
+                    <input
+                      type="text"
+                      value={premierTurno2Nome}
+                      onChange={(e) => setPremierTurno2Nome(e.target.value)}
+                      placeholder="Ex: 2º Horário (Tarde 14h30)"
+                      className="w-full bg-slate-900 border border-indigo-500/40 rounded-xl px-3 py-2 text-white text-xs font-medium focus:ring-1 focus:ring-indigo-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-900/80 p-2.5 rounded-xl border border-white/10 text-xs text-slate-300 hover:text-white transition-colors h-[38px]">
+                      <input
+                        type="checkbox"
+                        checked={premierPermitirAmbosTurnos}
+                        onChange={(e) => setPremierPermitirAmbosTurnos(e.target.checked)}
+                        className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                      />
+                      <span className="font-semibold text-xs">Permitir "Ambos os Horários" (Kit Duplo)</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Linha 4: Taxa, Vagas e Exigência de Decklist */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -916,8 +1058,8 @@ export function AdminInscricoesPremier({
           </div>
         </div>
 
-        {/* Filtros da Tabela com Seletor de Evento */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+        {/* Filtros da Tabela com Seletor de Evento e Turno */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
           <select
             value={selectedEventFilter}
             onChange={(e) => setSelectedEventFilter(e.target.value)}
@@ -957,6 +1099,17 @@ export function AdminInscricoesPremier({
           </select>
 
           <select
+            value={selectedTurnoFilter}
+            onChange={(e) => setSelectedTurnoFilter(e.target.value)}
+            className="bg-slate-900 border border-indigo-500/40 rounded-xl px-3 py-2 text-xs text-indigo-300 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          >
+            <option value="all">Todos os Horários / Turnos</option>
+            <option value="1">🌅 1º Horário ({turnoCounts.t1})</option>
+            <option value="2">🌇 2º Horário ({turnoCounts.t2})</option>
+            {turnoCounts.ambos > 0 && <option value="ambos">⚡ Ambos os Horários ({turnoCounts.ambos})</option>}
+          </select>
+
+          <select
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value)}
             className="bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-400"
@@ -969,19 +1122,40 @@ export function AdminInscricoesPremier({
         </div>
 
         {/* Badges de Resumo */}
-        <div className="flex flex-wrap items-center gap-2.5 mb-4 text-xs">
-          <span className="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 border border-white/10 font-bold">
-            Total Inscritos: {filteredList.length}
-          </span>
-          <span className="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
-            Confirmados: {confirmedCount}
-          </span>
-          <span className="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">
-            PIX Pendente: {filteredList.filter((d) => d.statusPix === "Pendente").length}
-          </span>
-          <span className="px-3 py-1 rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/20 font-bold">
-            No Local (Balcão): {filteredList.filter((d) => d.statusPix === "Pagar no Local" || d.statusPix === "Presencial").length}
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-2.5 mb-4 text-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="px-3 py-1 rounded-lg bg-slate-800 text-slate-300 border border-white/10 font-bold">
+              Total Inscritos: {filteredList.length}
+            </span>
+            <span className="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-bold">
+              Confirmados: {confirmedCount}
+            </span>
+            <span className="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">
+              PIX Pendente: {filteredList.filter((d) => d.statusPix === "Pendente").length}
+            </span>
+            <span className="px-3 py-1 rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/20 font-bold">
+              No Local (Balcão): {filteredList.filter((d) => d.statusPix === "Pagar no Local" || d.statusPix === "Presencial").length}
+            </span>
+          </div>
+
+          {(premierMultiTurno || turnoCounts.t1 + turnoCounts.t2 + turnoCounts.ambos > 0) && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-bold flex items-center gap-1">
+                <span>🌅 1º Turno:</span>
+                <span className="font-mono text-white">{turnoCounts.t1}</span>
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 font-bold flex items-center gap-1">
+                <span>🌇 2º Turno:</span>
+                <span className="font-mono text-white">{turnoCounts.t2}</span>
+              </span>
+              {turnoCounts.ambos > 0 && (
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
+                  <span>⚡ Ambos:</span>
+                  <span className="font-mono text-white">{turnoCounts.ambos}</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Tabela de Inscrições */}
@@ -999,7 +1173,7 @@ export function AdminInscricoesPremier({
                 <tr className="border-b border-white/10 text-slate-400 uppercase font-bold bg-slate-900/60">
                   <th className="py-3 px-3 w-24">Protocolo</th>
                   <th className="py-3 px-4">Treinador / POP ID</th>
-                  <th className="py-3 px-3">Evento</th>
+                  <th className="py-3 px-3">Evento / Turno</th>
                   <th className="py-3 px-3 text-center w-20">Categoria</th>
                   <th className="py-3 px-4">Baralho / Arquétipo</th>
                   <th className="py-3 px-3 text-center w-24">Lista</th>
@@ -1044,7 +1218,14 @@ export function AdminInscricoesPremier({
                         <div className="font-semibold text-amber-300 text-xs truncate max-w-[140px]">
                           {item.eventoNome || premierNome}
                         </div>
-                        {item.etapaData && (
+                        {item.turno && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                              ⏰ {item.turno}
+                            </span>
+                          </div>
+                        )}
+                        {item.etapaData && !item.turno && (
                           <div className="text-[10px] text-slate-400">{item.etapaData}</div>
                         )}
                       </td>
@@ -1273,6 +1454,23 @@ export function AdminInscricoesPremier({
                   </select>
                 </div>
               </div>
+
+              {premierMultiTurno && (
+                <div>
+                  <label className="block text-indigo-300 font-semibold mb-1">⏰ Horário / Turno da Inscrição</label>
+                  <select
+                    value={manualForm.turno || premierTurno1Nome}
+                    onChange={(e) => setManualForm({ ...manualForm, turno: e.target.value })}
+                    className="w-full bg-slate-900 border border-indigo-500/40 rounded-xl px-3 py-2 text-white font-medium"
+                  >
+                    <option value={premierTurno1Nome}>🌅 {premierTurno1Nome}</option>
+                    <option value={premierTurno2Nome}>🌇 {premierTurno2Nome}</option>
+                    {premierPermitirAmbosTurnos && (
+                      <option value="Ambos os Horários (Kit Duplo)">⚡ Ambos os Horários (Kit Duplo)</option>
+                    )}
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

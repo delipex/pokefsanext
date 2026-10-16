@@ -64,6 +64,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   const [categoria, setCategoria] = useState<"Master" | "Senior" | "Junior">("Master");
   const [whatsapp, setWhatsapp] = useState("");
   const [selectedDeck, setSelectedDeck] = useState("");
+  const [selectedTurno, setSelectedTurno] = useState("");
   const [customDeckNome, setCustomDeckNome] = useState("");
   const [deckCatalogList, setDeckCatalogList] = useState<string[]>(CATALOG_DECKS);
   const [decklistRaw, setDecklistRaw] = useState("");
@@ -178,6 +179,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
               setExistingRegistration(user.activeRegistration);
               setSelectedDeck(user.activeRegistration.deckNome || user.deckAtivoNome || "");
               setDecklistRaw(user.activeRegistration.decklistRaw || user.decklistTexto || "");
+              if (user.activeRegistration.turno) {
+                setSelectedTurno(user.activeRegistration.turno);
+              }
               if (
                 user.activeRegistration.statusPix === "Pagar no Local" ||
                 user.activeRegistration.statusPix === "Presencial"
@@ -288,6 +292,22 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   const vagasRestantes = Math.max(0, maxVagas - totalInscritos);
   const tema = config.premierTema || "lightning";
 
+  const isMultiTurno = config.premierMultiTurno === "true" || config.premierMultiTurno === true;
+  const isPreRelease = useMemo(() => {
+    return Boolean(
+      (config.premierTipo && config.premierTipo.toLowerCase().includes("release")) ||
+      (config.premierNome && config.premierNome.toLowerCase().includes("release")) ||
+      isMultiTurno
+    );
+  }, [config.premierTipo, config.premierNome, isMultiTurno]);
+
+  const effectiveDeckList = useMemo(() => {
+    if (isPreRelease && !deckCatalogList.includes("Kit Pré-Release (Formato Selado)")) {
+      return ["Kit Pré-Release (Formato Selado)", ...deckCatalogList];
+    }
+    return deckCatalogList;
+  }, [deckCatalogList, isPreRelease]);
+
   const handleCopyPix = () => {
     const key = successData?.chavePix || config.premierPix || "";
     if (!key) return;
@@ -318,7 +338,16 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
       return;
     }
 
-    const finalDeckNome = selectedDeck === "Outro" ? customDeckNome.trim() : selectedDeck.trim();
+    if (isMultiTurno && !selectedTurno) {
+      setErrorMessage("Por favor, selecione qual horário/sessão você deseja participar.");
+      return;
+    }
+
+    let finalDeckNome = selectedDeck === "Outro" ? customDeckNome.trim() : selectedDeck.trim();
+    if (!finalDeckNome && isPreRelease) {
+      finalDeckNome = "Kit Pré-Release (Formato Selado)";
+    }
+
     if (!finalDeckNome || finalDeckNome.toLowerCase() === "outro" || finalDeckNome.toLowerCase() === "outros") {
       setErrorMessage("Por favor, selecione ou digite o nome específico do baralho que irá jogar (a palavra 'Outro' não é permitida como nome de deck).");
       return;
@@ -348,6 +377,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
           decklistRaw: decklistRaw.trim(),
           limitlessUrl: limitlessUrl.trim(),
           metodoPagamento,
+          turno: selectedTurno || (isMultiTurno ? config.premierTurno1Nome || "1º Horário" : "Único"),
           eventoNome: config.premierNome || "Torneio Oficial Liga Atlântica",
           etapaData: config.premierData || new Date().toISOString().split("T")[0],
         }),
@@ -448,6 +478,24 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     <span>{copiedProtocolo ? "Copiado!" : "Copiar"}</span>
                   </button>
                 </div>
+
+                {/* Card do Horário / Turno Escolhido (quando multi-turno) */}
+                {(successData.item?.turno || selectedTurno) && (
+                  <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-3.5 backdrop-blur-md flex items-center justify-between gap-3 text-left">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">
+                        Horário / Sessão Escolhida
+                      </span>
+                      <div className="font-bold text-sm sm:text-base text-white flex items-center gap-1.5 mt-0.5">
+                        <span>⏰</span>
+                        <span>{successData.item?.turno || selectedTurno}</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                      Confirmado
+                    </span>
+                  </div>
+                )}
 
                 {/* Card de Pagamento PIX ou Aviso Presencial */}
                 {metodoPagamento === "pix" && successData.chavePix ? (
@@ -761,18 +809,130 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     </div>
                   </div>
 
+                  {/* Seleção de Horário / Turno (quando Multi-Turno está ativo) */}
+                  {isMultiTurno && (
+                    <div className="space-y-2 p-3.5 rounded-2xl border border-indigo-500/40 bg-indigo-950/30 backdrop-blur-md">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wider">
+                          <Clock className="h-4 w-4 text-indigo-400" />
+                          <span>Horário / Sessão de Participação *</span>
+                        </label>
+                        <span className="text-[10px] text-indigo-300 font-bold bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">
+                          Escolha obrigatória
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+                        {/* Opção 1: Turno 1 */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTurno(config.premierTurno1Nome || "1º Horário (Manhã 10h00)")}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                            selectedTurno === (config.premierTurno1Nome || "1º Horário (Manhã 10h00)")
+                              ? "bg-indigo-600/30 border-indigo-400 shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-400 text-white"
+                              : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black flex items-center gap-1.5">
+                              <span>🌅</span>
+                              <span>{config.premierTurno1Nome || "1º Horário (Manhã 10h00)"}</span>
+                            </span>
+                            <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
+                              selectedTurno === (config.premierTurno1Nome || "1º Horário (Manhã 10h00)")
+                                ? "bg-indigo-500 border-indigo-400 text-white font-black"
+                                : "border-white/20"
+                            }`}>
+                              {selectedTurno === (config.premierTurno1Nome || "1º Horário (Manhã 10h00)") ? "✓" : ""}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400">
+                            Primeira sessão do torneio
+                          </p>
+                        </button>
+
+                        {/* Opção 2: Turno 2 */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTurno(config.premierTurno2Nome || "2º Horário (Tarde 14h30)")}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                            selectedTurno === (config.premierTurno2Nome || "2º Horário (Tarde 14h30)")
+                              ? "bg-purple-600/30 border-purple-400 shadow-lg shadow-purple-500/20 ring-1 ring-purple-400 text-white"
+                              : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black flex items-center gap-1.5">
+                              <span>🌇</span>
+                              <span>{config.premierTurno2Nome || "2º Horário (Tarde 14h30)"}</span>
+                            </span>
+                            <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
+                              selectedTurno === (config.premierTurno2Nome || "2º Horário (Tarde 14h30)")
+                                ? "bg-purple-500 border-purple-400 text-white font-black"
+                                : "border-white/20"
+                            }`}>
+                              {selectedTurno === (config.premierTurno2Nome || "2º Horário (Tarde 14h30)") ? "✓" : ""}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400">
+                            Segunda sessão do torneio
+                          </p>
+                        </button>
+
+                        {/* Opção 3: Ambos os Horários */}
+                        {config.premierPermitirAmbosTurnos !== "false" && config.premierPermitirAmbosTurnos !== false && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTurno("Ambos os Horários (Kit Duplo)")}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                              selectedTurno === "Ambos os Horários (Kit Duplo)"
+                                ? "bg-emerald-600/30 border-emerald-400 shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400 text-white"
+                                : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-300"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black flex items-center gap-1.5">
+                                <span>⚡</span>
+                                <span>Ambos os Horários</span>
+                              </span>
+                              <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
+                                selectedTurno === "Ambos os Horários (Kit Duplo)"
+                                  ? "bg-emerald-500 border-emerald-400 text-white font-black"
+                                  : "border-white/20"
+                              }`}>
+                                {selectedTurno === "Ambos os Horários (Kit Duplo)" ? "✓" : ""}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400">
+                              Participe de ambas as sessões (Kit Duplo)
+                            </p>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Informação especial para formato de Pré-Release */}
+                  {isPreRelease && (
+                    <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-200 flex items-start gap-2">
+                      <Sparkles className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
+                      <p className="leading-relaxed text-[11px]">
+                        <strong>Formato Selado (Pré-Release):</strong> Cada competidor constrói seu baralho na hora a partir do kit oficial <em>Build & Battle Box</em>. Não é necessário enviar lista de cartas antecipada.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Baralho / Arquétipo do Deck (Menu de Escolha) */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                         <Layers className="h-3.5 w-3.5 text-blue-400" />
                         Baralho / Arquétipo do Deck *
-                      </span>
+                      </label>
                       <span className="text-[10px] text-slate-400 font-normal">
-                        {deckCatalogList.length} opções disponíveis
+                        {effectiveDeckList.length} opções disponíveis
                       </span>
-                    </label>
+                    </div>
                     <select
                       required
                       value={selectedDeck}
@@ -780,7 +940,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                       className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
                     >
                       <option value="">-- Selecione o Baralho / Deck --</option>
-                      {deckCatalogList.map((deck) => (
+                      {effectiveDeckList.map((deck) => (
                         <option key={deck} value={deck}>
                           {deck}
                         </option>

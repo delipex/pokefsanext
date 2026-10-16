@@ -97,6 +97,7 @@ export async function POST(req: Request) {
       eventoNome,
       etapaData,
       metodoPagamento,
+      turno,
     } = body;
 
     // 2. Validações de Identidade
@@ -233,6 +234,10 @@ export async function POST(req: Request) {
       if (oldCat !== finalCategory) {
         alteracoes.push(`Categoria: "${oldCat}" ➔ "${finalCategory}"`);
       }
+      const oldTurno = existingItem.turno || existingItem.turno || "";
+      if (turno && oldTurno !== turno) {
+        alteracoes.push(`Horário/Turno: "${oldTurno || "Padrão"}" ➔ "${turno}"`);
+      }
       if (body.whatsapp && existingItem.whatsapp !== body.whatsapp) {
         alteracoes.push(`WhatsApp atualizado`);
       }
@@ -264,6 +269,7 @@ export async function POST(req: Request) {
           .set({
             jogadorNome: nameVal.cleanName!,
             categoria: finalCategory,
+            turno: turno || existingItem.turno || null,
             dataNascimento: dataNascimento || existingItem.dataNascimento,
             whatsapp: body.whatsapp || existingItem.whatsapp,
             deckNome: finalDeckNome,
@@ -280,13 +286,14 @@ export async function POST(req: Request) {
       } catch {
         await client.execute({
           sql: `UPDATE jogador_decklists SET
-            jogador_nome = ?, categoria = ?, data_nascimento = ?, whatsapp = ?,
+            jogador_nome = ?, categoria = ?, turno = ?, data_nascimento = ?, whatsapp = ?,
             deck_nome = ?, tipo_energia = ?, decklist_raw = ?, total_cartas = ?,
             validada = ?, updated_at = ?, historico_edicoes = ?
           WHERE id = ?;`,
           args: [
             nameVal.cleanName!,
             finalCategory,
+            turno || existingItem.turno || null,
             dataNascimento || existingItem.dataNascimento || null,
             body.whatsapp || existingItem.whatsapp || null,
             finalDeckNome,
@@ -299,7 +306,7 @@ export async function POST(req: Request) {
             existingItem.id,
           ],
         });
-        savedItem = { ...existingItem, deckNome: finalDeckNome, decklistRaw: rawDecklistText };
+        savedItem = { ...existingItem, deckNome: finalDeckNome, decklistRaw: rawDecklistText, turno: turno || existingItem.turno };
       }
     } else {
       // 5B. Inserção Nova na Tabela de Decklists
@@ -311,6 +318,7 @@ export async function POST(req: Request) {
             jogadorId: popVal.cleanId,
             jogadorNome: nameVal.cleanName!,
             categoria: finalCategory,
+            turno: turno || null,
             dataNascimento: dataNascimento || null,
             whatsapp: body.whatsapp || null,
             eventoNome: finalEventName,
@@ -328,14 +336,15 @@ export async function POST(req: Request) {
       } catch (drizzleErr) {
         const res = await client.execute({
           sql: `INSERT INTO jogador_decklists (
-            protocolo, jogador_id, jogador_nome, categoria, data_nascimento, whatsapp, evento_nome, etapa_data,
+            protocolo, jogador_id, jogador_nome, categoria, turno, data_nascimento, whatsapp, evento_nome, etapa_data,
             deck_nome, tipo_energia, decklist_raw, total_cartas, validada, status_pix, cards_json, historico_edicoes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', '[]') RETURNING *;`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]', '[]') RETURNING *;`,
           args: [
             protocolo,
             popVal.cleanId,
             nameVal.cleanName!,
             finalCategory,
+            turno || null,
             dataNascimento || null,
             body.whatsapp || null,
             finalEventName,
@@ -348,7 +357,7 @@ export async function POST(req: Request) {
             initialStatusPix,
           ],
         });
-        savedItem = res.rows[0] || { protocolo, jogadorNome: nameVal.cleanName };
+        savedItem = res.rows[0] || { protocolo, jogadorNome: nameVal.cleanName, turno };
       }
     }
 
@@ -396,6 +405,9 @@ export async function POST(req: Request) {
     let waMsg = `🏆 *INSCRIÇÃO & DECKLIST - LIGA ATLÂNTICA*\n`;
     waMsg += `🔖 *Protocolo:* \`${protocolo}\`\n`;
     waMsg += `📍 *Evento:* ${finalEventName}\n`;
+    if (turno) {
+      waMsg += `⏰ *Horário / Turno:* ${turno}\n`;
+    }
     waMsg += `👤 *Jogador:* ${nameVal.cleanName}\n`;
     waMsg += `🆔 *POP ID:* ${popVal.cleanId}\n`;
     waMsg += `🎂 *Nascimento:* ${formattedNasc ? `${formattedNasc} (${finalCategory})` : finalCategory}\n`;

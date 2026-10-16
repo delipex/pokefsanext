@@ -149,6 +149,7 @@ export const jogadorDecklists = sqliteTable("jogador_decklists", {
   jogadorId: text("jogador_id"),
   jogadorNome: text("jogador_nome").notNull(),
   categoria: text("categoria").default("Master"),
+  turno: text("turno"), // Horário/Turno (ex: 1º Horário, 2º Horário, Ambos para Pré-release)
   dataNascimento: text("data_nascimento"),
   whatsapp: text("whatsapp"),
   eventoNome: text("evento_nome"),
