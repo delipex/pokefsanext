@@ -308,9 +308,9 @@ export async function ensureDatabaseSchema() {
     { chave: "exibirProximoEvento", valor: "true", descricao: "Exibir card de próximo evento na home" },
     { chave: "inscricoesAtivas", valor: "false", descricao: "Flag de inscrições abertas para torneios" },
     { chave: "premierMultiTurno", valor: "false", descricao: "Habilitar múltiplos horários (ex: Pré-Release)" },
-    { chave: "premierTurno1Nome", valor: "1º Horário (Manhã 10h00)", descricao: "Nome do 1º horário" },
-    { chave: "premierTurno2Nome", valor: "2º Horário (Tarde 14h30)", descricao: "Nome do 2º horário" },
-    { chave: "premierPermitirAmbosTurnos", valor: "true", descricao: "Permitir opção de inscrição em ambos horários" },
+    { chave: "premierTurno1Nome", valor: "1º Horário (14h00)", descricao: "Nome do 1º horário" },
+    { chave: "premierTurno2Nome", valor: "2º Horário (17h00)", descricao: "Nome do 2º horário" },
+    { chave: "premierPermitirAmbosTurnos", valor: "false", descricao: "Permitir opção de inscrição em ambos horários" },
   ];
 
   for (const cfg of defaultConfigs) {

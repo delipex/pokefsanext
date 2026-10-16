@@ -122,13 +122,13 @@ export function AdminInscricoesPremier({
     initialConfig.premierMultiTurno === "true" || initialConfig.premierMultiTurno === true
   );
   const [premierTurno1Nome, setPremierTurno1Nome] = useState(
-    initialConfig.premierTurno1Nome || "1º Horário (Manhã 10h00)"
+    initialConfig.premierTurno1Nome || "1º Horário (14h00)"
   );
   const [premierTurno2Nome, setPremierTurno2Nome] = useState(
-    initialConfig.premierTurno2Nome || "2º Horário (Tarde 14h30)"
+    initialConfig.premierTurno2Nome || "2º Horário (17h00)"
   );
   const [premierPermitirAmbosTurnos, setPremierPermitirAmbosTurnos] = useState(
-    initialConfig.premierPermitirAmbosTurnos !== "false" && initialConfig.premierPermitirAmbosTurnos !== false
+    initialConfig.premierPermitirAmbosTurnos === "true" || initialConfig.premierPermitirAmbosTurnos === true
   );
   const [selectedTurnoFilter, setSelectedTurnoFilter] = useState("all");
 
@@ -567,11 +567,11 @@ export function AdminInscricoesPremier({
                       setPremierMultiplicador("1.0");
                       setPremierExigirDecklist(false);
                       setPremierMultiTurno(true);
-                      if (!premierHorario || premierHorario.includes("14:00")) {
-                        setPremierHorario("1º Horário: 10h00 • 2º Horário: 14h30");
-                      }
+                      setPremierTurno1Nome("1º Horário (14h00)");
+                      setPremierTurno2Nome("2º Horário (17h00)");
+                      setPremierHorario("1º Horário às 14h00 • 2º Horário às 17h00");
                       if (!premierObs || premierObs.includes("Traga sua decklist")) {
-                        setPremierObs("Torneio de Pré-Release Oficial no Formato Selado com Build & Battle Box (40 cartas montadas na hora). Escolha seu horário preferido no formulário.");
+                        setPremierObs("Torneio de Pré-Release Oficial no Formato Selado com Build & Battle Box (40 cartas montadas na hora). Escolha 1 dos horários (14h ou 17h) no formulário.");
                       }
                     }
                   }}
@@ -831,7 +831,7 @@ export function AdminInscricoesPremier({
                       type="text"
                       value={premierTurno1Nome}
                       onChange={(e) => setPremierTurno1Nome(e.target.value)}
-                      placeholder="Ex: 1º Horário (Manhã 10h00)"
+                      placeholder="Ex: 1º Horário (14h00)"
                       className="w-full bg-slate-900 border border-indigo-500/40 rounded-xl px-3 py-2 text-white text-xs font-medium focus:ring-1 focus:ring-indigo-400 focus:outline-none"
                     />
                   </div>
@@ -844,7 +844,7 @@ export function AdminInscricoesPremier({
                       type="text"
                       value={premierTurno2Nome}
                       onChange={(e) => setPremierTurno2Nome(e.target.value)}
-                      placeholder="Ex: 2º Horário (Tarde 14h30)"
+                      placeholder="Ex: 2º Horário (17h00)"
                       className="w-full bg-slate-900 border border-indigo-500/40 rounded-xl px-3 py-2 text-white text-xs font-medium focus:ring-1 focus:ring-indigo-400 focus:outline-none"
                     />
                   </div>

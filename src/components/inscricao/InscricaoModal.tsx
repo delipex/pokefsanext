@@ -809,41 +809,41 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     </div>
                   </div>
 
-                  {/* Seleção de Horário / Turno (quando Multi-Turno está ativo) */}
+                  {/* Seleção de Horário / Turno (quando Multi-Turno está ativo: escolhe 1 ou outro) */}
                   {isMultiTurno && (
                     <div className="space-y-2 p-3.5 rounded-2xl border border-indigo-500/40 bg-indigo-950/30 backdrop-blur-md">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wider">
                           <Clock className="h-4 w-4 text-indigo-400" />
-                          <span>Horário / Sessão de Participação *</span>
+                          <span>Escolha seu Horário de Participação *</span>
                         </label>
-                        <span className="text-[10px] text-indigo-300 font-bold bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">
-                          Escolha obrigatória
+                        <span className="text-[10px] text-indigo-300 font-bold bg-indigo-500/20 px-2.5 py-0.5 rounded-full border border-indigo-500/30">
+                          Escolha 1 ou outro
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
-                        {/* Opção 1: Turno 1 */}
+                      <div className={`grid grid-cols-1 ${config.premierPermitirAmbosTurnos === "true" || config.premierPermitirAmbosTurnos === true ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-2.5 pt-1`}>
+                        {/* Opção 1: Turno 1 (ex: 14h00) */}
                         <button
                           type="button"
-                          onClick={() => setSelectedTurno(config.premierTurno1Nome || "1º Horário (Manhã 10h00)")}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
-                            selectedTurno === (config.premierTurno1Nome || "1º Horário (Manhã 10h00)")
-                              ? "bg-indigo-600/30 border-indigo-400 shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-400 text-white"
+                          onClick={() => setSelectedTurno(config.premierTurno1Nome || "1º Horário (14h00)")}
+                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            selectedTurno === (config.premierTurno1Nome || "1º Horário (14h00)")
+                              ? "bg-indigo-600/30 border-indigo-400 shadow-lg shadow-indigo-500/20 ring-2 ring-indigo-400/60 text-white"
                               : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-300"
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black flex items-center gap-1.5">
-                              <span>🌅</span>
-                              <span>{config.premierTurno1Nome || "1º Horário (Manhã 10h00)"}</span>
+                              <span>🕒</span>
+                              <span>{config.premierTurno1Nome || "1º Horário (14h00)"}</span>
                             </span>
                             <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
-                              selectedTurno === (config.premierTurno1Nome || "1º Horário (Manhã 10h00)")
+                              selectedTurno === (config.premierTurno1Nome || "1º Horário (14h00)")
                                 ? "bg-indigo-500 border-indigo-400 text-white font-black"
                                 : "border-white/20"
                             }`}>
-                              {selectedTurno === (config.premierTurno1Nome || "1º Horário (Manhã 10h00)") ? "✓" : ""}
+                              {selectedTurno === (config.premierTurno1Nome || "1º Horário (14h00)") ? "✓" : ""}
                             </span>
                           </div>
                           <p className="text-[10px] text-slate-400">
@@ -851,27 +851,27 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                           </p>
                         </button>
 
-                        {/* Opção 2: Turno 2 */}
+                        {/* Opção 2: Turno 2 (ex: 17h00) */}
                         <button
                           type="button"
-                          onClick={() => setSelectedTurno(config.premierTurno2Nome || "2º Horário (Tarde 14h30)")}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
-                            selectedTurno === (config.premierTurno2Nome || "2º Horário (Tarde 14h30)")
-                              ? "bg-purple-600/30 border-purple-400 shadow-lg shadow-purple-500/20 ring-1 ring-purple-400 text-white"
+                          onClick={() => setSelectedTurno(config.premierTurno2Nome || "2º Horário (17h00)")}
+                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            selectedTurno === (config.premierTurno2Nome || "2º Horário (17h00)")
+                              ? "bg-purple-600/30 border-purple-400 shadow-lg shadow-purple-500/20 ring-2 ring-purple-400/60 text-white"
                               : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-300"
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black flex items-center gap-1.5">
-                              <span>🌇</span>
-                              <span>{config.premierTurno2Nome || "2º Horário (Tarde 14h30)"}</span>
+                              <span>🕒</span>
+                              <span>{config.premierTurno2Nome || "2º Horário (17h00)"}</span>
                             </span>
                             <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
-                              selectedTurno === (config.premierTurno2Nome || "2º Horário (Tarde 14h30)")
+                              selectedTurno === (config.premierTurno2Nome || "2º Horário (17h00)")
                                 ? "bg-purple-500 border-purple-400 text-white font-black"
                                 : "border-white/20"
                             }`}>
-                              {selectedTurno === (config.premierTurno2Nome || "2º Horário (Tarde 14h30)") ? "✓" : ""}
+                              {selectedTurno === (config.premierTurno2Nome || "2º Horário (17h00)") ? "✓" : ""}
                             </span>
                           </div>
                           <p className="text-[10px] text-slate-400">
@@ -879,14 +879,14 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                           </p>
                         </button>
 
-                        {/* Opção 3: Ambos os Horários */}
-                        {config.premierPermitirAmbosTurnos !== "false" && config.premierPermitirAmbosTurnos !== false && (
+                        {/* Opção 3: Ambos os Horários (apenas se expressamente habilitado nas configs) */}
+                        {(config.premierPermitirAmbosTurnos === "true" || config.premierPermitirAmbosTurnos === true) && (
                           <button
                             type="button"
                             onClick={() => setSelectedTurno("Ambos os Horários (Kit Duplo)")}
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
                               selectedTurno === "Ambos os Horários (Kit Duplo)"
-                                ? "bg-emerald-600/30 border-emerald-400 shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400 text-white"
+                                ? "bg-emerald-600/30 border-emerald-400 shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-400/60 text-white"
                                 : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-300"
                             }`}
                           >
@@ -904,7 +904,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                               </span>
                             </div>
                             <p className="text-[10px] text-slate-400">
-                              Participe de ambas as sessões (Kit Duplo)
+                              Participe de ambas as sessões
                             </p>
                           </button>
                         )}
