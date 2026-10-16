@@ -165,7 +165,10 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
   }
 
   // 1. Mapear jogadores cadastrados estritamente dentro do bloco <players>...</players>
-  const playersMap = new Map<string, { name: string; birthdate: string; dropped?: boolean }>();
+  const playersMap = new Map<
+    string,
+    { name: string; birthdate: string; dropped: boolean; dropRound: number | null }
+  >();
   const playersBlockMatch = xmlText.match(/<players>([\s\S]*?)<\/players>/i);
   if (playersBlockMatch) {
     const block = playersBlockMatch[1];
@@ -177,117 +180,138 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
       const firstname = inner.match(/<firstname>([\s\S]*?)<\/firstname>/i)?.[1]?.trim() || "";
       const lastname = inner.match(/<lastname>([\s\S]*?)<\/lastname>/i)?.[1]?.trim() || "";
       const birthdate = inner.match(/<birthdate>([\s\S]*?)<\/birthdate>/i)?.[1]?.trim() || "";
-      const dropped = inner.includes("<dropped>") || inner.includes('drop="true"');
+      const droppedMatch = inner.match(/<dropped>[\s\S]*?<round>(\d+)<\/round>/i);
+      const dropRound = droppedMatch ? parseInt(droppedMatch[1], 10) : null;
+      const dropped = Boolean(droppedMatch || inner.includes("<dropped>") || inner.includes('drop="true"'));
       const fullName = `${firstname} ${lastname}`.trim() || `Jogador ${userid}`;
-      playersMap.set(userid, { name: fullName, birthdate, dropped });
+      playersMap.set(userid, { name: fullName, birthdate, dropped, dropRound });
     }
   }
 
-  // 2. Estatísticas de partidas (V, E, D), Byes e oponentes
-  const statsMap = new Map<string, { v: number; e: number; d: number; byes: number; realMatches: number }>();
-  const opponentsMap = new Map<string, Set<string>>();
+  // 2. Extrair rodadas e partidas preservando o número da rodada
+  interface RoundMatch {
+    outcome: number;
+    p1?: string;
+    p2?: string;
+    singleP?: string;
+  }
+  const roundMatches: { roundNum: number; matches: RoundMatch[] }[] = [];
+  const roundRegex = /<round\s+number="(\d+)"[^>]*>([\s\S]*?)<\/round>/gi;
+  let rMatch: RegExpExecArray | null;
+  while ((rMatch = roundRegex.exec(xmlText)) !== null) {
+    const roundNum = parseInt(rMatch[1], 10);
+    const mRegex = /<match\s+outcome="(\d+)"[^>]*>([\s\S]*?)<\/match>/gi;
+    let m: RegExpExecArray | null;
+    const matches: RoundMatch[] = [];
+    while ((m = mRegex.exec(rMatch[2])) !== null) {
+      const outcome = parseInt(m[1], 10);
+      const matchContent = m[2];
+      const p1 = matchContent.match(/<player1\s+userid="([^"]+)"/i)?.[1]?.trim();
+      const p2 = matchContent.match(/<player2\s+userid="([^"]+)"/i)?.[1]?.trim();
+      const singleP = matchContent.match(/<player\s+userid="([^"]+)"/i)?.[1]?.trim();
+      matches.push({ outcome, p1, p2, singleP });
+    }
+    roundMatches.push({ roundNum, matches });
+  }
 
+  // Fallback caso não haja tags <round> delimitadas
+  if (roundMatches.length === 0) {
+    const mRegex = /<match\s+outcome="(\d+)"[^>]*>([\s\S]*?)<\/match>/gi;
+    let m: RegExpExecArray | null;
+    const matches: RoundMatch[] = [];
+    while ((m = mRegex.exec(xmlText)) !== null) {
+      const outcome = parseInt(m[1], 10);
+      const matchContent = m[2];
+      const p1 = matchContent.match(/<player1\s+userid="([^"]+)"/i)?.[1]?.trim();
+      const p2 = matchContent.match(/<player2\s+userid="([^"]+)"/i)?.[1]?.trim();
+      const singleP = matchContent.match(/<player\s+userid="([^"]+)"/i)?.[1]?.trim();
+      matches.push({ outcome, p1, p2, singleP });
+    }
+    roundMatches.push({ roundNum: 1, matches });
+  }
+
+  // Helper para calcular cartel e MWP até uma determinada rodada
+  function getPlayerStatsUpToRound(userId: string, maxRound?: number) {
+    let v = 0, e = 0, d = 0, byes = 0, roundsPlayed = 0;
+    const opps: string[] = [];
+
+    for (const r of roundMatches) {
+      if (maxRound !== undefined && r.roundNum > maxRound) break;
+      for (const m of r.matches) {
+        if (m.p1 === userId && m.p2) {
+          roundsPlayed++;
+          opps.push(m.p2);
+          if (m.outcome === 1) v++;
+          else if (m.outcome === 2) d++;
+          else if (m.outcome === 3) e++;
+        } else if (m.p2 === userId && m.p1) {
+          roundsPlayed++;
+          opps.push(m.p1);
+          if (m.outcome === 2) v++;
+          else if (m.outcome === 1) d++;
+          else if (m.outcome === 3) e++;
+        } else if (m.singleP === userId) {
+          roundsPlayed++;
+          if (m.outcome === 5 || m.outcome === 1) {
+            v++;
+            byes++;
+          } else {
+            d++;
+          }
+        }
+      }
+    }
+
+    const realRounds = roundsPlayed - byes;
+    const realWins = v - byes;
+    const rawRate = realRounds > 0 ? (realWins * 1.0 + e * 0.5) / realRounds : 0.25;
+    const mwp = Math.max(0.25, rawRate);
+
+    return { v, e, d, byes, roundsPlayed, opps, mwp, pontos: v * 3 + e * 1 };
+  }
+
+  // 3. Estatísticas completas de todos os atletas
+  const fullStats = new Map<string, ReturnType<typeof getPlayerStatsUpToRound>>();
   playersMap.forEach((_, id) => {
-    statsMap.set(id, { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 });
-    opponentsMap.set(id, new Set());
+    fullStats.set(id, getPlayerStatsUpToRound(id));
   });
 
-  const matchRegex = /<match\s+outcome="(\d+)"[^>]*>([\s\S]*?)<\/match>/gi;
-  let mMatch: RegExpExecArray | null;
-
-  while ((mMatch = matchRegex.exec(xmlText)) !== null) {
-    const outcome = parseInt(mMatch[1], 10);
-    const matchContent = mMatch[2];
-
-    const p1 = matchContent.match(/<player1\s+userid="([^"]+)"/i)?.[1]?.trim();
-    const p2 = matchContent.match(/<player2\s+userid="([^"]+)"/i)?.[1]?.trim();
-    const singleP = matchContent.match(/<player\s+userid="([^"]+)"/i)?.[1]?.trim();
-
-    if (p1 && p2) {
-      if (!statsMap.has(p1)) {
-        statsMap.set(p1, { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 });
-        opponentsMap.set(p1, new Set());
-      }
-      if (!statsMap.has(p2)) {
-        statsMap.set(p2, { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 });
-        opponentsMap.set(p2, new Set());
-      }
-
-      statsMap.get(p1)!.realMatches++;
-      statsMap.get(p2)!.realMatches++;
-      opponentsMap.get(p1)!.add(p2);
-      opponentsMap.get(p2)!.add(p1);
-
-      if (outcome === 1) {
-        statsMap.get(p1)!.v++;
-        statsMap.get(p2)!.d++;
-      } else if (outcome === 2) {
-        statsMap.get(p1)!.d++;
-        statsMap.get(p2)!.v++;
-      } else if (outcome === 3) {
-        statsMap.get(p1)!.e++;
-        statsMap.get(p2)!.e++;
-      }
-    } else if (singleP) {
-      if (outcome === 5 || outcome === 1) {
-        // Bye Oficial Play! Pokémon / TOM: vitória automática de 3 pontos
-        if (statsMap.has(singleP)) {
-          statsMap.get(singleP)!.v++;
-          statsMap.get(singleP)!.byes++;
-        }
-      } else if (outcome === 8) {
-        // Late Entry / Late Penalty no TOM: penalidade de 0 pontos (derrota)
-        if (statsMap.has(singleP)) {
-          statsMap.get(singleP)!.d++;
-        }
-      } else {
-        if (statsMap.has(singleP)) {
-          statsMap.get(singleP)!.d++;
-        }
-      }
-    }
-  }
-
-  // 3. Winrates individuais (MWP) e OMW% oficiais do Play! Pokémon / TOM
-  const totalRounds = 4;
-  const mwpMap = new Map<string, number>();
-  playersMap.forEach((p, id) => {
-    const st = statsMap.get(id) || { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 };
-    const winsReal = st.v - st.byes;
-    const scoreReal = winsReal * 1.0 + st.e * 0.5;
-    const rawRate = totalRounds > 0 ? scoreReal / totalRounds : 0.25;
-    mwpMap.set(id, Math.max(0.25, rawRate));
-  });
-
+  // 4. Cálculo oficial de OMW% (Play! Pokémon / TOM)
   const omwMap = new Map<string, number>();
-  playersMap.forEach((_, id) => {
-    const opps = opponentsMap.get(id);
-    if (!opps || opps.size === 0) {
+  playersMap.forEach((p, id) => {
+    const st = fullStats.get(id);
+    if (!st || st.opps.length === 0) {
       omwMap.set(id, 0.25);
-    } else {
-      let sum = 0;
-      opps.forEach((oppId) => {
-        sum += mwpMap.get(oppId) || 0.25;
-      });
-      omwMap.set(id, sum / opps.size);
+      return;
     }
+    let sum = 0;
+    st.opps.forEach((oppId) => {
+      if (p.dropped && p.dropRound) {
+        const oppAtDrop = getPlayerStatsUpToRound(oppId, p.dropRound);
+        sum += oppAtDrop.mwp;
+      } else {
+        sum += fullStats.get(oppId)?.mwp ?? 0.25;
+      }
+    });
+    omwMap.set(id, sum / st.opps.length);
   });
 
+  // 5. Cálculo oficial de OOMW% (Play! Pokémon / TOM)
   const oomwMap = new Map<string, number>();
   playersMap.forEach((_, id) => {
-    const opps = opponentsMap.get(id);
-    if (!opps || opps.size === 0) {
+    const st = fullStats.get(id);
+    if (!st || st.opps.length === 0) {
       oomwMap.set(id, 0.25);
-    } else {
-      let sum = 0;
-      opps.forEach((oppId) => {
-        sum += omwMap.get(oppId) || 0.25;
-      });
-      oomwMap.set(id, sum / opps.size);
+      return;
     }
+    let sum = 0;
+    st.opps.forEach((oppId) => {
+      sum += omwMap.get(oppId) ?? 0.25;
+    });
+    oomwMap.set(id, sum / st.opps.length);
   });
 
-  // Mapear categoria a partir dos pods de standings
+  // 6. Mapear categoria a partir dos pods de standings
   const categoryMap = new Map<string, "Master" | "Senior" | "Junior">();
   const standingsBlock = xmlText.match(/<standings>([\s\S]*?)<\/standings>/i)?.[1] || "";
   if (standingsBlock) {
@@ -309,94 +333,44 @@ function parseTOMXml(xmlText: string, fileName?: string): ParsedTDFResult {
     }
   }
 
-  // 4. Montar classificação geral única do torneio (idêntica à tabela impressa do TOM)
-  const activeList: ParsedPlayerRow[] = [];
-  const droppedList: ParsedPlayerRow[] = [];
+  // 7. Montar classificação geral oficial (idêntica à tabela impressa do TOM / Standings Todas)
+  const playersResult: ParsedPlayerRow[] = [];
 
   playersMap.forEach((p, id) => {
-    const st = statsMap.get(id) || { v: 0, e: 0, d: 0, byes: 0, realMatches: 0 };
-    const pontos = st.v * 3 + st.e * 1;
-    const omw = omwMap.get(id) || 0.25;
+    const st = fullStats.get(id) || { v: 0, e: 0, d: 0, byes: 0, roundsPlayed: 0, opps: [], mwp: 0.25, pontos: 0 };
+    const omw = omwMap.get(id) ?? 0.25;
     const cat = categoryMap.get(id) || "Master";
 
-    const row: ParsedPlayerRow = {
+    playersResult.push({
       colocacao: 1,
       id,
       jogador: p.name,
       categoria: cat,
-      pontos,
+      pontos: st.pontos,
       vitorias: st.v,
       empates: st.e,
       derrotas: st.d,
       omw,
       isDnf: Boolean(p.dropped),
-    };
-
-    if (row.isDnf) {
-      droppedList.push(row);
-    } else {
-      activeList.push(row);
-    }
+    });
   });
 
-  // Ordenação Geral Suíço Oficial: Pontos DESC -> OMW% DESC -> OOMW% DESC -> Nome ASC
-  activeList.sort((a, b) => {
+  // Ordenação Geral Suíço Oficial TOM: Pontos DESC -> OMW% DESC -> OOMW% DESC -> Nome ASC
+  playersResult.sort((a, b) => {
     if ((b.pontos || 0) !== (a.pontos || 0)) return (b.pontos || 0) - (a.pontos || 0);
-    if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
-    const oomwA = oomwMap.get(a.id) || 0.25;
-    const oomwB = oomwMap.get(b.id) || 0.25;
-    if (Math.abs(oomwB - oomwA) > 0.0001) return oomwB - oomwA;
-    return String(a.jogador || "").localeCompare(String(b.jogador || ""), "pt-BR");
-  });
-
-  droppedList.sort((a, b) => {
-    if ((b.pontos || 0) !== (a.pontos || 0)) return (b.pontos || 0) - (a.pontos || 0);
-    if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
+    const omwA = a.omw ?? 0.25;
+    const omwB = b.omw ?? 0.25;
+    if (Math.abs(omwB - omwA) > 1e-9) return omwB - omwA;
+    const oomwA = oomwMap.get(a.id || "") ?? 0.25;
+    const oomwB = oomwMap.get(b.id || "") ?? 0.25;
+    if (oomwB !== oomwA) return oomwB - oomwA;
     return String(a.jogador || "").localeCompare(String(b.jogador || ""), "pt-BR");
   });
 
   // Atribuir colocações contínuas de 1º a N
-  let pos = 1;
-  activeList.forEach((p) => {
-    p.colocacao = pos++;
+  playersResult.forEach((p, idx) => {
+    p.colocacao = idx + 1;
   });
-  droppedList.forEach((p) => {
-    p.colocacao = pos++;
-  });
-
-  const playersResult: ParsedPlayerRow[] = [...activeList, ...droppedList];
-
-  // 5. Fallback estritamente para arquivos sem bloco <standings> (em andamento)
-  if (playersResult.length === 0 && playersMap.size > 0) {
-    let idx = 1;
-    playersMap.forEach((pInfo, id) => {
-      const st = statsMap.get(id) || { v: 0, e: 0, d: 0 };
-      const pontos = st.v * 3 + st.e * 1;
-      playersResult.push({
-        colocacao: idx++,
-        id,
-        jogador: pInfo.name,
-        categoria: "Master",
-        pontos,
-        vitorias: st.v,
-        empates: st.e,
-        derrotas: st.d,
-        omw: omwMap.get(id) || 0.25,
-        isDnf: false,
-      });
-    });
-
-    // Ordenação oficial Play! Pokémon no fallback: Pontos DESC -> OMW DESC -> Nome ASC
-    playersResult.sort((a, b) => {
-      if ((b.pontos || 0) !== (a.pontos || 0)) return (b.pontos || 0) - (a.pontos || 0);
-      if (Math.abs((b.omw || 0) - (a.omw || 0)) > 0.0001) return (b.omw || 0) - (a.omw || 0);
-      return String(a.jogador || "").localeCompare(String(b.jogador || ""), "pt-BR");
-    });
-
-    playersResult.forEach((p, idx) => {
-      p.colocacao = idx + 1;
-    });
-  }
 
   return {
     nomeTorneio: tournamentName,
