@@ -21,10 +21,12 @@ import {
   ClipboardList,
   Sparkles,
   X,
+  Clock,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { parsePTCGDecklist } from "@/lib/decklist-parser";
 import { DecklistVisualGallery } from "@/components/deck/DecklistVisualGallery";
+import { evaluatePremierRegistrationStatus, formatDateToBR } from "@/lib/tournament-utils";
 
 interface AdminInscricoesPremierProps {
   initialConfig: Record<string, any>;
@@ -76,9 +78,21 @@ export function AdminInscricoesPremier({
   const [premierData, setPremierData] = useState(
     initialConfig.premierData ? normalizeDateToISO(initialConfig.premierData) : new Date().toISOString().split("T")[0]
   );
+  const [premierDataLimite, setPremierDataLimite] = useState(
+    initialConfig.premierDataLimite || ""
+  );
   const [premierHorario, setPremierHorario] = useState(
     initialConfig.premierHorario || "Check-in às 13:30 • Rodada 1 às 14:00"
   );
+
+  const currentRegStatus = useMemo(() => {
+    return evaluatePremierRegistrationStatus({
+      premierAbertas,
+      premierData,
+      premierDataLimite,
+      premierHorario,
+    });
+  }, [premierAbertas, premierData, premierDataLimite, premierHorario]);
   const [premierLocal, setPremierLocal] = useState(
     initialConfig.premierLocal || "Livraria Atlântica +"
   );
@@ -141,12 +155,30 @@ export function AdminInscricoesPremier({
     if (!cal) return;
 
     setPremierNome(cal.evento || "");
-    setPremierData(normalizeDateToISO(cal.data));
+    const isoDate = normalizeDateToISO(cal.data);
+    setPremierData(isoDate);
     setPremierLocal(cal.local || "Livraria Atlântica +");
     
     if (cal.horario) {
       const hClean = cal.horario.trim();
       setPremierHorario(hClean.toLowerCase().includes("check-in") ? hClean : `Check-in às ${hClean}`);
+
+      // Sugestão de data limite inteligente: 15 minutos antes do início
+      const match = hClean.match(/(\d{1,2}):(\d{2})/);
+      if (match && isoDate) {
+        let hr = parseInt(match[1], 10);
+        let mn = parseInt(match[2], 10);
+        mn -= 15;
+        if (mn < 0) {
+          mn += 60;
+          hr = Math.max(0, hr - 1);
+        }
+        setPremierDataLimite(`${isoDate}T${String(hr).padStart(2, "0")}:${String(mn).padStart(2, "0")}`);
+      } else if (isoDate) {
+        setPremierDataLimite(`${isoDate}T13:45`);
+      }
+    } else if (isoDate) {
+      setPremierDataLimite(`${isoDate}T23:59`);
     }
 
     if (cal.descricao) {
@@ -177,6 +209,7 @@ export function AdminInscricoesPremier({
       premierNome,
       premierSubtitulo,
       premierData,
+      premierDataLimite,
       premierHorario,
       premierLocal,
       premierValor,
@@ -413,12 +446,22 @@ export function AdminInscricoesPremier({
             </div>
             <div
               className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                premierAbertas
+                currentRegStatus.isOpen
                   ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                  : currentRegStatus.statusBadge === "deadline_passed"
+                  ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                  : currentRegStatus.statusBadge === "date_passed"
+                  ? "bg-orange-500/15 text-orange-400 border-orange-500/30"
                   : "bg-red-500/15 text-red-400 border-red-500/30"
               }`}
             >
-              {premierAbertas ? "🟢 Inscrições Abertas" : "🔴 Inscrições Fechadas / Ocultas"}
+              {currentRegStatus.isOpen
+                ? "🟢 Inscrições Abertas"
+                : currentRegStatus.statusBadge === "deadline_passed"
+                ? `🟡 Prazo Encerrado (${currentRegStatus.deadlineFormatted})`
+                : currentRegStatus.statusBadge === "date_passed"
+                ? `🟠 Evento Encerrado (${currentRegStatus.eventDateFormatted})`
+                : "🔴 Inscrições Fechadas / Ocultas"}
             </div>
           </div>
 
@@ -590,6 +633,92 @@ export function AdminInscricoesPremier({
                   placeholder="Ex: Livraria Atlântica +"
                   className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
                 />
+              </div>
+            </div>
+
+            {/* Linha 3.5: Data & Horário Limite das Inscrições (Deadline Automático) */}
+            <div className="p-3.5 rounded-2xl border border-white/10 bg-slate-950/70 space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="block text-slate-200 font-bold flex items-center gap-1.5 text-xs">
+                    <Clock className="h-4 w-4 text-amber-400" />
+                    <span>Data e Horário Limite das Inscrições (Prazo Automático)</span>
+                  </label>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Após esta data e horário, o formulário de inscrições fecha automaticamente no site, impedindo novos envios para eventos passados.
+                  </p>
+                </div>
+                {premierDataLimite && (
+                  <button
+                    type="button"
+                    onClick={() => setPremierDataLimite("")}
+                    className="text-[11px] font-bold text-rose-400 hover:text-rose-300 underline cursor-pointer self-start sm:self-auto"
+                  >
+                    Remover Prazo (Deixar até o fim do dia do evento)
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                <div>
+                  <input
+                    type="datetime-local"
+                    value={premierDataLimite}
+                    onChange={(e) => setPremierDataLimite(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white font-mono text-xs focus:ring-2 focus:ring-amber-400/40"
+                  />
+                </div>
+
+                {/* Atalhos rápidos para preencher a data limite baseada na data do evento */}
+                {premierData && (
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="text-slate-400 text-[10px] uppercase font-bold mr-1">Atalhos:</span>
+                    <button
+                      type="button"
+                      onClick={() => setPremierDataLimite(`${premierData}T13:30`)}
+                      className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition-colors"
+                    >
+                      13:30
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPremierDataLimite(`${premierData}T13:45`)}
+                      className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition-colors"
+                    >
+                      13:45
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPremierDataLimite(`${premierData}T14:00`)}
+                      className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition-colors"
+                    >
+                      14:00
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPremierDataLimite(`${premierData}T23:59`)}
+                      className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition-colors"
+                    >
+                      23:59
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Status do Prazo em Tempo Real */}
+              <div className="pt-1 flex items-center gap-2 text-[11px] font-semibold">
+                <span className="text-slate-400">Diagnóstico do Prazo:</span>
+                {currentRegStatus.isOpen ? (
+                  <span className="text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {currentRegStatus.statusText}
+                  </span>
+                ) : (
+                  <span className="text-amber-400 flex items-center gap-1">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    {currentRegStatus.statusText}
+                  </span>
+                )}
               </div>
             </div>
 

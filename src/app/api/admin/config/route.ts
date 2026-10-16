@@ -79,6 +79,7 @@ export async function POST(req: Request) {
       revalidatePath("/admin");
       revalidatePath("/login");
       revalidatePath("/portal");
+      revalidatePath("/final");
 
       return NextResponse.json({ success: true, message: "Todas as configurações foram salvas com sucesso!" });
     }
@@ -108,6 +109,7 @@ export async function POST(req: Request) {
     revalidatePath("/admin");
     revalidatePath("/login");
     revalidatePath("/portal");
+    revalidatePath("/final");
 
     return NextResponse.json({ success: true, message: "Configuração atualizada com sucesso!" });
   } catch (error: any) {

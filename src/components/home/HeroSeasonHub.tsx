@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { PlayerModalData, PlayerModal } from "@/components/ranking/PlayerModal";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
+import { evaluatePremierRegistrationStatus } from "@/lib/tournament-utils";
 
 export interface HeroSeasonHubProps {
   temporada: number;
@@ -228,22 +229,8 @@ export function HeroSeasonHub({
   const nextDateISO = normalizeDateToISO(nextEvent?.data);
   const premierDateISO = normalizeDateToISO(premierConfig?.premierData);
 
-  // Verifica se a data do evento já passou para expirar automaticamente
-  const isPremierEventPassed = (() => {
-    if (!premierDateISO) return false;
-    const now = new Date();
-    const parts = premierDateISO.split("-");
-    if (parts.length === 3) {
-      const y = parseInt(parts[0], 10);
-      const m = parseInt(parts[1], 10);
-      const d = parseInt(parts[2], 10);
-      const eventEnd = new Date(y, m - 1, d, 23, 59, 59);
-      return now.getTime() > eventEnd.getTime();
-    }
-    return false;
-  })();
-
-  const isPremierActive = premierAbertas && !isPremierEventPassed;
+  const premierRegStatus = evaluatePremierRegistrationStatus(premierConfig || {});
+  const isPremierActive = premierRegStatus.isOpen;
 
   const isNextEventThePremierEvent = Boolean(
     isPremierActive &&

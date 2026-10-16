@@ -12,9 +12,15 @@ interface NavbarProps {
   temporada?: number;
   statusTemporada?: string;
   exibirPortal?: boolean;
+  exibirTopCut?: boolean;
 }
 
-export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal = true }: NavbarProps) {
+export function Navbar({
+  temporada = 5,
+  statusTemporada = "ativa",
+  exibirPortal = true,
+  exibirTopCut = false,
+}: NavbarProps) {
   const pathname = usePathname();
   if (pathname === "/finc") return null;
 
@@ -43,7 +49,7 @@ export function Navbar({ temporada = 5, statusTemporada = "ativa", exibirPortal 
     { href: "/ranking", label: "Ranking", icon: Trophy },
     { href: "/metagame", label: "Metagame", icon: Flame },
     { href: "/calendario", label: "Calendário", icon: Calendar },
-    { href: "/final", label: "Top Cut", icon: Swords },
+    ...(exibirTopCut ? [{ href: "/final", label: "Top Cut", icon: Swords }] : []),
     { href: "/campeoes", label: "Campeões", icon: Shield },
     { href: "/regras", label: "Regras", icon: BookOpen },
   ];

@@ -444,6 +444,9 @@ export function AdminDashboard({
   const [exibirPortalAtleta, setExibirPortalAtleta] = useState(
     initialConfig.exibirPortalAtleta !== "false"
   );
+  const [exibirTopCut, setExibirTopCut] = useState(
+    initialConfig.exibirTopCut === "true" || initialConfig.exibirTopCut === true
+  );
 
   const [configMessage, setConfigMessage] = useState("");
   const [isSavingConfig, setIsSavingConfig] = useState(false);
@@ -1394,6 +1397,7 @@ export function AdminDashboard({
             exibirProximoEventoHome: String(exibirProximoEventoHome),
             exibirPremiacoesHome: String(exibirPremiacoesHome),
             exibirPortalAtleta: String(exibirPortalAtleta),
+            exibirTopCut: String(exibirTopCut),
           },
         }),
       });
@@ -3674,6 +3678,31 @@ export function AdminDashboard({
                     <span
                       className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                         exibirPortalAtleta ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Botão Top Cut no Menu Público */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl border border-white/10 bg-slate-950/60">
+                  <div className="space-y-0.5 pr-2">
+                    <span className="block text-xs font-bold text-white flex items-center gap-1.5">
+                      <Swords className="h-3.5 w-3.5 text-purple-400" /> Botão do Top Cut no Menu Público
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-normal">
+                      Exibe o link e chaveamento dos Playoffs / Finais (/final) no cabeçalho do site
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExibirTopCut(!exibirTopCut)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      exibirTopCut ? "bg-purple-600" : "bg-slate-700"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        exibirTopCut ? "translate-x-5" : "translate-x-0"
                       }`}
                     />
                   </button>

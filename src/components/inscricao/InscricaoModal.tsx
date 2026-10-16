@@ -34,6 +34,7 @@ import { CategoryBadge } from "@/components/ui/CategoryBadge";
 import defaultDecks from "@/data/decks.json";
 import { parsePTCGDecklist, ParsedDecklistResult } from "@/lib/decklist-parser";
 import { DecklistVisualGallery } from "@/components/deck/DecklistVisualGallery";
+import { evaluatePremierRegistrationStatus } from "@/lib/tournament-utils";
 
 // Catálogo padrão de baralhos cadastrados da Liga
 const CATALOG_DECKS: string[] = Array.from(
@@ -280,7 +281,8 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     }
   };
 
-  const isAbertas = config.premierAbertas === "true" || config.premierAbertas === true;
+  const regStatus = useMemo(() => evaluatePremierRegistrationStatus(config), [config]);
+  const isAbertas = regStatus.isOpen;
   const isDlExigida = config.premierExigirDecklist === "true" || config.premierExigirDecklist === true;
   const maxVagas = parseInt(config.premierVagas || "32", 10);
   const vagasRestantes = Math.max(0, maxVagas - totalInscritos);
@@ -545,11 +547,21 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs font-black uppercase tracking-wider ${
                         isAbertas
                           ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                          : regStatus.statusBadge === "deadline_passed"
+                          ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
                           : "bg-rose-500/20 border-rose-500/40 text-rose-300"
                       }`}
                     >
-                      <span className={`h-2 w-2 rounded-full ${isAbertas ? "bg-emerald-400 animate-pulse" : "bg-rose-400"}`} />
-                      {isAbertas ? "Inscrições Abertas" : "Inscrições Fechadas"}
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          isAbertas
+                            ? "bg-emerald-400 animate-pulse"
+                            : regStatus.statusBadge === "deadline_passed"
+                            ? "bg-amber-400"
+                            : "bg-rose-400"
+                        }`}
+                      />
+                      {regStatus.badgeLabel}
                     </span>
                     <span className="rounded-full bg-blue-500/20 border border-blue-500/30 px-2.5 py-0.5 text-xs font-bold text-blue-300">
                       {config.premierTipo || "League Challenge"}
@@ -564,6 +576,27 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                       {config.premierSubtitulo}
                     </p>
+                  )}
+
+                  {/* Alerta de Inscrições Encerradas (se prazo expirou ou data passou) */}
+                  {!isAbertas && (
+                    <div className="flex items-center gap-2.5 rounded-2xl border border-rose-500/40 bg-rose-500/10 p-3.5 text-xs text-rose-200 font-medium">
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400" />
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-white block">Inscrições Indisponíveis</span>
+                        <span>{regStatus.statusText}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Informação do Prazo Limite (se inscrições estão abertas e há prazo configurado) */}
+                  {isAbertas && regStatus.deadlineFormatted && (
+                    <div className="flex items-center gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-2.5 text-xs text-amber-200 font-medium">
+                      <Clock className="h-4 w-4 text-amber-400 shrink-0" />
+                      <span>
+                        <strong>Prazo Limite:</strong> Inscrições online até <strong>{regStatus.deadlineFormatted}</strong>
+                      </span>
+                    </div>
                   )}
 
                   {/* Detalhes Rápidos em Grid */}

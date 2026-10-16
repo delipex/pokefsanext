@@ -13,6 +13,7 @@ import {
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
 import { inferDeckEnergy } from "@/lib/deck-normalizer";
 import { revalidatePath } from "next/cache";
+import { evaluatePremierRegistrationStatus } from "@/lib/tournament-utils";
 
 // GET: Retorna as configurações do torneio ativo e total de inscritos
 export async function GET() {
@@ -28,8 +29,8 @@ export async function GET() {
       }
     }
 
-    const isAbertas =
-      configMap.premierAbertas === "true" || configMap.premierAbertas === true;
+    const regStatus = evaluatePremierRegistrationStatus(configMap);
+    const isAbertas = regStatus.isOpen;
     const eventDate = configMap.premierData || "";
     const eventName = configMap.premierNome || "Torneio Oficial";
 
@@ -58,6 +59,7 @@ export async function GET() {
 
     return NextResponse.json({
       abertas: isAbertas,
+      statusInfo: regStatus,
       config: configMap,
       totalInscritos: enrolledCount,
       vagasRestantes,
@@ -119,10 +121,10 @@ export async function POST(req: Request) {
       }
     }
 
-    const isAbertas = configMap.premierAbertas === "true" || configMap.premierAbertas === true;
-    if (!isAbertas) {
+    const regStatus = evaluatePremierRegistrationStatus(configMap);
+    if (!regStatus.isOpen) {
       return NextResponse.json(
-        { error: "As inscrições para este torneio estão encerradas no momento." },
+        { error: regStatus.statusText || "As inscrições para este torneio estão encerradas no momento." },
         { status: 403 }
       );
     }

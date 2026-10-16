@@ -32,6 +32,9 @@ export function AdminBracketManager() {
   const [manualPlayerId, setManualPlayerId] = useState("");
   const [manualPlayerDeck, setManualPlayerDeck] = useState("");
 
+  const [isTopCutVisible, setIsTopCutVisible] = useState(false);
+  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
+
   const fetchBrackets = async () => {
     setIsLoading(true);
     try {
@@ -45,11 +48,46 @@ export function AdminBracketManager() {
     } finally {
       setIsLoading(false);
     }
+
+    // Busca o status de visibilidade pública nas configurações
+    try {
+      const resCfg = await fetch("/api/admin/config");
+      if (resCfg.ok) {
+        const dataCfg = await resCfg.json();
+        const topCutVal = dataCfg?.configs?.exibirTopCut;
+        setIsTopCutVisible(topCutVal === "true" || topCutVal === true);
+      }
+    } catch {}
   };
 
   useEffect(() => {
     fetchBrackets();
   }, []);
+
+  const handleToggleTopCutVisibility = async () => {
+    setIsTogglingVisibility(true);
+    const nextVal = !isTopCutVisible;
+    try {
+      const res = await fetch("/api/admin/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chave: "exibirTopCut", valor: String(nextVal) }),
+      });
+      if (res.ok) {
+        setIsTopCutVisible(nextVal);
+        setFeedbackMessage({
+          type: "success",
+          text: nextVal
+            ? "Botão do Top Cut agora está ATIVADO e visível no menu do site!"
+            : "Botão do Top Cut agora está DESATIVADO e oculto do menu do site.",
+        });
+      }
+    } catch {
+      setFeedbackMessage({ type: "error", text: "Erro ao atualizar visibilidade do Top Cut." });
+    } finally {
+      setIsTogglingVisibility(false);
+    }
+  };
 
   // 1. Puxar Finalistas Diretamente do Ranking Oficial da Temporada
   const handleGenerateFromRanking = async () => {
@@ -184,6 +222,21 @@ export function AdminBracketManager() {
           >
             {isSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             <span>Salvar Chaveamento</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleToggleTopCutVisibility}
+            disabled={isTogglingVisibility}
+            className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-black border transition-all cursor-pointer ${
+              isTopCutVisible
+                ? "bg-purple-600/20 border-purple-500/40 text-purple-300 hover:bg-purple-600/30 shadow-sm shadow-purple-600/20"
+                : "bg-slate-800 border-white/10 text-slate-400 hover:text-white hover:bg-slate-700"
+            }`}
+            title="Clique para alternar se o botão Top Cut aparece no menu público do site"
+          >
+            <Swords className="h-3.5 w-3.5" />
+            <span>Menu do Site: {isTopCutVisible ? "🟢 Visível" : "🔴 Oculto"}</span>
           </button>
 
           <a
