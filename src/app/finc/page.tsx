@@ -25,12 +25,15 @@ export const metadata: Metadata = {
 export default async function FincPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ protocolo?: string }>;
+  searchParams?: Promise<{ protocolo?: string; preview_closed?: string }>;
 }) {
   const resolved = searchParams ? await searchParams : undefined;
   return (
     <div className="min-h-screen py-4 sm:py-8">
-      <FincRegistrationView initialProtocol={resolved?.protocolo} />
+      <FincRegistrationView
+        initialProtocol={resolved?.protocolo}
+        previewClosed={resolved?.preview_closed}
+      />
     </div>
   );
 }

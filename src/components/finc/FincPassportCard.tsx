@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Edit3,
+  MessageCircle,
 } from "lucide-react";
 
 export interface FincInscricaoData {
@@ -50,6 +51,7 @@ interface FincPassportCardProps {
   onNewRegistration?: () => void;
   onEdit?: () => void;
   isModal?: boolean;
+  isClosed?: boolean;
 }
 
 const TCG_NAMES: Record<string, string> = {
@@ -74,6 +76,7 @@ export function FincPassportCard({
   onNewRegistration,
   onEdit,
   isModal = false,
+  isClosed = false,
 }: FincPassportCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
@@ -555,7 +558,7 @@ export function FincPassportCard({
             <span>Imprimir</span>
           </button>
 
-          {onEdit && (
+          {onEdit && !isClosed && (
             <button
               type="button"
               onClick={onEdit}
@@ -566,7 +569,7 @@ export function FincPassportCard({
             </button>
           )}
 
-          {onNewRegistration && (
+          {onNewRegistration && !isClosed && (
             <button
               type="button"
               onClick={onNewRegistration}
@@ -587,6 +590,19 @@ export function FincPassportCard({
             </button>
           )}
         </div>
+
+        {/* CONTATO DO WHATSAPP DO LUCAS QUANDO INSCRIÇÕES ESTIVEREM ENCERRADAS */}
+        {isClosed && (
+          <a
+            href="https://wa.me/5575991076987?text=Ol%C3%A1%20Lucas!%20Tenho%20uma%20d%C3%BAvida%20sobre%20as%20inscri%C3%A7%C3%B5es%20da%20Arena%20Geek%20TCG%20na%20FINC%202026."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/40 bg-emerald-950/40 hover:bg-emerald-900/60 p-3 text-xs font-bold text-emerald-300 hover:text-emerald-200 transition-all cursor-pointer shadow-lg"
+          >
+            <MessageCircle className="h-4 w-4 text-emerald-400" />
+            <span>Dúvidas com Lucas da Atlântica • (75) 99107-6987</span>
+          </a>
+        )}
 
         {/* BOTÃO PRINCIPAL DE FECHAR SE ESTIVER EM MODAL OU POPUP */}
         {onClose && (

@@ -6,6 +6,12 @@ import { desc, eq, like, or } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
+// Prazo de encerramento das inscrições: 19/10/2026 às 12:00:00 (Horário de Brasília / UTC-3)
+export const FINC_DEADLINE_ISO = "2026-10-19T12:00:00-03:00";
+export const FINC_DEADLINE_MS = new Date(FINC_DEADLINE_ISO).getTime();
+export const LUCAS_WHATSAPP_NUMBER = "5575991076987";
+export const LUCAS_WHATSAPP_DISPLAY = "(75) 99107-6987";
+
 export async function GET(request: Request) {
   await ensureDatabaseSchema();
   const { searchParams } = new URL(request.url);
@@ -219,6 +225,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   await ensureDatabaseSchema();
 
+  // Bloqueio automático de novas inscrições após 19/10 às 12h00
+  if (Date.now() >= FINC_DEADLINE_MS) {
+    return NextResponse.json(
+      {
+        error:
+          "As inscrições online para a Arena Geek TCG na FINC 2026 foram encerradas em 19/10 às 12h00. Para tirar dúvidas, fale com Lucas da Atlântica no WhatsApp: (75) 99107-6987.",
+      },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const {
@@ -381,6 +398,18 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   await ensureDatabaseSchema();
+
+  // Bloqueio de alterações após 19/10 às 12h00 (exceto requisições administrativas)
+  const isAdmin = request.headers.get("x-admin-request") === "true";
+  if (!isAdmin && Date.now() >= FINC_DEADLINE_MS) {
+    return NextResponse.json(
+      {
+        error:
+          "O período de alteração de inscrições da FINC 2026 foi encerrado em 19/10 às 12h00. Para dúvidas, contate Lucas da Atlântica no WhatsApp: (75) 99107-6987.",
+      },
+      { status: 403 }
+    );
+  }
 
   try {
     const body = await request.json();

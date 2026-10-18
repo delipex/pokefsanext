@@ -258,7 +258,10 @@ export function AdminFincManager() {
     try {
       const res = await fetch("/api/finc", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-request": "true",
+        },
         body: JSON.stringify({
           id: editingInscricao.id,
           nome: editNome.trim(),

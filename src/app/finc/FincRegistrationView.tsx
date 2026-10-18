@@ -28,6 +28,8 @@ import {
   Edit3,
   LogOut,
   UserCheck,
+  MessageCircle,
+  Phone,
 } from "lucide-react";
 import { FincPassportCard } from "@/components/finc/FincPassportCard";
 
@@ -153,7 +155,40 @@ const TURNOS_OPTIONS: TurnoItem[] = [
   },
 ];
 
-export function FincRegistrationView({ initialProtocol }: { initialProtocol?: string }) {
+// Prazo oficial de encerramento das inscrições: 19/10/2026 às 12:00:00 (Horário de Brasília / UTC-3)
+export const FINC_DEADLINE_ISO = "2026-10-19T12:00:00-03:00";
+export const FINC_DEADLINE_MS = new Date(FINC_DEADLINE_ISO).getTime();
+export const LUCAS_WHATSAPP_NUMBER = "5575991076987";
+export const LUCAS_WHATSAPP_DISPLAY = "(75) 99107-6987";
+export const LUCAS_WHATSAPP_LINK = `https://wa.me/${LUCAS_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+  "Olá Lucas! Tenho uma dúvida sobre as inscrições da Arena Geek TCG na FINC 2026."
+)}`;
+
+export function FincRegistrationView({
+  initialProtocol,
+  previewClosed,
+}: {
+  initialProtocol?: string;
+  previewClosed?: string;
+}) {
+  const [isClosed, setIsClosed] = useState<boolean>(() => {
+    if (previewClosed === "true") return true;
+    if (previewClosed === "false") return false;
+    return Date.now() >= FINC_DEADLINE_MS;
+  });
+
+  useEffect(() => {
+    const checkClosed = () => {
+      if (typeof window !== "undefined") {
+        const p = new URLSearchParams(window.location.search).get("preview_closed");
+        if (p === "true") return true;
+        if (p === "false") return false;
+      }
+      return Date.now() >= FINC_DEADLINE_MS;
+    };
+    setIsClosed(checkClosed());
+  }, [previewClosed]);
+
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
@@ -679,10 +714,17 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
           </div>
 
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-cyan-300">
-              <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-              Inscrições Abertas • Espaço TCG Arena Geek
-            </div>
+            {isClosed ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-amber-300">
+                <Clock className="h-3.5 w-3.5 text-amber-400" />
+                Inscrições Online Encerradas • Espaço TCG Arena Geek
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-cyan-300">
+                <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+                Inscrições Abertas até 19/10 às 12h00 • Espaço TCG Arena Geek
+              </div>
+            )}
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
               TORNEIOS & OFICINAS DE{" "}
@@ -696,16 +738,28 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
             </p>
           </div>
 
-          {/* TERMO DE CREDENCIAMENTO: DESTINADO A JOGADORES EXTERNOS */}
-          <div className="mx-auto max-w-2xl rounded-2xl border border-cyan-400/40 bg-gradient-to-r from-cyan-950/70 via-slate-900/80 to-blue-950/70 p-3.5 sm:p-4 text-xs text-cyan-200 flex flex-col sm:flex-row items-center justify-center gap-3 shadow-xl">
-            <div className="h-8 w-8 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0">
-              <Globe className="h-4 w-4 text-cyan-400" />
+          {/* AVISO DO EVENTO / TERMO DE CREDENCIAMENTO */}
+          {isClosed ? (
+            <div className="mx-auto max-w-2xl rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/70 via-slate-900/80 to-slate-950 p-3.5 sm:p-4 text-xs text-amber-200 flex flex-col sm:flex-row items-center justify-center gap-3 shadow-xl">
+              <div className="h-8 w-8 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+                <Clock className="h-4 w-4 text-amber-400" />
+              </div>
+              <p className="leading-relaxed text-center sm:text-left">
+                <strong className="text-white block sm:inline">Inscrições Online Finalizadas: </strong>
+                O período de novas inscrições encerrou em <strong>19/10 às 12h00</strong>. A consulta e o download de passaportes confirmados continuam disponíveis abaixo.
+              </p>
             </div>
-            <p className="leading-relaxed text-center sm:text-left">
-              <strong className="text-white block sm:inline">Termo de Credenciamento: </strong>
-              Esta página de inscrição é <strong>destinada exclusivamente aos jogadores externos</strong> (público geral e comunidade TCG que <u>não</u> são alunos da UNEF ou UNIFAN).
-            </p>
-          </div>
+          ) : (
+            <div className="mx-auto max-w-2xl rounded-2xl border border-cyan-400/40 bg-gradient-to-r from-cyan-950/70 via-slate-900/80 to-blue-950/70 p-3.5 sm:p-4 text-xs text-cyan-200 flex flex-col sm:flex-row items-center justify-center gap-3 shadow-xl">
+              <div className="h-8 w-8 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0">
+                <Globe className="h-4 w-4 text-cyan-400" />
+              </div>
+              <p className="leading-relaxed text-center sm:text-left">
+                <strong className="text-white block sm:inline">Termo de Credenciamento: </strong>
+                Esta página de inscrição é <strong>destinada exclusivamente aos jogadores externos</strong> (público geral e comunidade TCG que <u>não</u> são alunos da UNEF ou UNIFAN).
+              </p>
+            </div>
+          )}
 
           {/* Local e Realização */}
           <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-6 pt-2 text-xs text-slate-300 border-t border-white/10">
@@ -744,7 +798,7 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
               }}
               className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
             >
-              <span>← Voltar ao Formulário</span>
+              <span>{isClosed ? "← Voltar para Consulta" : "← Voltar ao Formulário"}</span>
             </button>
 
             <button
@@ -778,18 +832,23 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
             onClose={() => {
               setConfirmedData(null);
             }}
-            onEdit={() => handleStartEdit(confirmedData)}
-            onNewRegistration={() => {
-              setConfirmedData(null);
-              setIsEditing(false);
-              setEditingId(null);
-              setEditingProtocolo(null);
-              setNome("");
-              setWhatsapp("");
-              setEmail("");
-              setRa("");
-              setObservacoes("");
-            }}
+            onEdit={isClosed ? undefined : () => handleStartEdit(confirmedData)}
+            onNewRegistration={
+              isClosed
+                ? undefined
+                : () => {
+                    setConfirmedData(null);
+                    setIsEditing(false);
+                    setEditingId(null);
+                    setEditingProtocolo(null);
+                    setNome("");
+                    setWhatsapp("");
+                    setEmail("");
+                    setRa("");
+                    setObservacoes("");
+                  }
+            }
+            isClosed={isClosed}
           />
         </section>
       ) : (
@@ -828,23 +887,35 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
                   <span>Ver Passaporte</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleStartEdit(savedRegistration)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold text-xs px-3.5 py-2.5 transition-all cursor-pointer"
-                >
-                  <Edit3 className="h-4 w-4 text-cyan-400" />
-                  <span>Alterar Escolhas</span>
-                </button>
+                {!isClosed ? (
+                  <button
+                    type="button"
+                    onClick={() => handleStartEdit(savedRegistration)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold text-xs px-3.5 py-2.5 transition-all cursor-pointer"
+                  >
+                    <Edit3 className="h-4 w-4 text-cyan-400" />
+                    <span>Alterar Escolhas</span>
+                  </button>
+                ) : (
+                  <a
+                    href={LUCAS_WHATSAPP_LINK}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 font-bold text-xs px-3.5 py-2.5 transition-all cursor-pointer"
+                  >
+                    <MessageCircle className="h-4 w-4 text-emerald-400" />
+                    <span>Dúvidas (Lucas)</span>
+                  </a>
+                )}
 
                 <button
                   type="button"
                   onClick={handleForgetSavedRegistration}
-                  title="Inscrever outra pessoa ou desconectar deste aparelho"
+                  title={isClosed ? "Consultar outro participante neste aparelho" : "Inscrever outra pessoa ou desconectar deste aparelho"}
                   className="inline-flex items-center gap-1 rounded-xl border border-white/10 hover:border-white/20 bg-slate-800/40 hover:bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer text-xs px-2.5 py-2.5"
                 >
                   <LogOut className="h-3.5 w-3.5" />
-                  <span className="text-[11px] hidden sm:inline">Nova Pessoa</span>
+                  <span className="text-[11px] hidden sm:inline">{isClosed ? "Outra Consulta" : "Nova Pessoa"}</span>
                 </button>
               </div>
             </div>
@@ -877,17 +948,89 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
             </button>
           </div>
 
-          {/* 2. FORMULÁRIO DE INSCRIÇÃO COM CAIXINHAS INTERATIVAS */}
-          <section id="formulario-finc" className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 sm:space-y-8">
-            <div className="border-b border-white/10 pb-4">
-              <div className="flex items-center gap-2 text-cyan-400 font-black text-xs uppercase tracking-wider">
-                <Globe className="h-4 w-4" />
-                {isEditing ? "Atualização de Cadastro" : "Credenciamento • Participantes Externos"}
+          {/* SE ENCERRADO: CARD DE INSCRIÇÕES ENCERRADAS COM BOTÃO DO WHATSAPP DO LUCAS */}
+          {/* SE ABERTO: FORMULÁRIO DE INSCRIÇÃO COM CAIXINHAS INTERATIVAS */}
+          {isClosed ? (
+            <section className="relative overflow-hidden rounded-3xl border border-emerald-500/40 bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 p-6 sm:p-8 shadow-2xl backdrop-blur-xl text-center space-y-6">
+              <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl" />
+
+              <div className="relative z-10 max-w-xl mx-auto space-y-3">
+                <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
+                  <MessageCircle className="h-8 w-8 text-emerald-400" />
+                </div>
+
+                <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-amber-300">
+                  <Clock className="h-3.5 w-3.5 text-amber-400" />
+                  Inscrições Encerradas em 19/10 às 12h00
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black text-white">
+                  Inscrições Online Encerradas
+                </h2>
+
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  O período de novas inscrições para os torneios e oficinas de Card Games da Arena Geek na FINC 2026 foi finalizado. Você pode consultar seu passaporte ou falar com nossa coordenação.
+                </p>
               </div>
-              <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
-                {isEditing ? "Altere suas preferências ou turnos" : "Selecione suas preferências e turnos de presença"}
-              </h2>
-            </div>
+
+              {/* CARD DO BOTÃO WHATSAPP DO LUCAS DA ATLÂNTICA */}
+              <div className="relative z-10 mx-auto max-w-lg rounded-3xl border border-emerald-500/40 bg-gradient-to-br from-emerald-950/70 via-slate-900/90 to-teal-950/70 p-5 sm:p-6 shadow-2xl space-y-4 text-center">
+                <div className="space-y-1.5">
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center justify-center gap-1.5">
+                    <MessageCircle className="h-4 w-4" />
+                    Atendimento & Suporte aos Participantes
+                  </span>
+                  <p className="text-xs text-slate-300">
+                    Ficou com alguma dúvida sobre sua vaga, confirmação de presença, cronograma ou cancelamento? Fale diretamente com <strong>Lucas da Atlântica</strong>:
+                  </p>
+                </div>
+
+                <a
+                  href={LUCAS_WHATSAPP_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm sm:text-base py-4 px-6 shadow-xl shadow-emerald-600/30 hover:shadow-emerald-600/50 hover:scale-[1.02] active:scale-[0.99] transition-all cursor-pointer"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  <span>Tirar Dúvidas com Lucas • (75) 99107-6987</span>
+                  <ExternalLink className="h-4 w-4 opacity-70" />
+                </a>
+
+                <div className="text-[11px] text-slate-400 flex items-center justify-center gap-2 pt-0.5">
+                  <span>Coordenação da Liga Atlântica</span>
+                  <span>•</span>
+                  <span className="text-emerald-300 font-mono font-bold">(75) 99107-6987</span>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <section id="formulario-finc" className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 sm:space-y-8">
+              <div className="border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2 text-cyan-400 font-black text-xs uppercase tracking-wider">
+                  <Globe className="h-4 w-4" />
+                  {isEditing ? "Atualização de Cadastro" : "Credenciamento • Participantes Externos"}
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
+                  {isEditing ? "Altere suas preferências ou turnos" : "Selecione suas preferências e turnos de presença"}
+                </h2>
+              </div>
+
+              {/* AVISO DE PRAZO LIMITE NO FORMULÁRIO */}
+              <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/40 via-slate-900/60 to-slate-950 p-3.5 text-xs text-cyan-200 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-lg">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-cyan-400 shrink-0" />
+                  <span>⏰ Atenção: Inscrições abertas até <strong>segunda-feira, 19/10 às 12h00</strong>.</span>
+                </div>
+                <a
+                  href={LUCAS_WHATSAPP_LINK}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 underline shrink-0 cursor-pointer"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  <span>Dúvidas com Lucas (75 99107-6987)</span>
+                </a>
+              </div>
 
             {/* BANNER DE MODO DE EDIÇÃO */}
             {isEditing && (
@@ -1389,8 +1532,9 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
               </p>
           </form>
         </section>
-      </>
-    )}
+      )}
+    </>
+  )}
 
       {/* MODAL DE CONSULTA DE INSCRIÇÃO ANTERIOR (RECUPERAÇÃO DE PASSAPORTE) */}
       {isSearchModalOpen && (
@@ -1498,6 +1642,17 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
         <p className="text-[11px] text-slate-500">
           Realização: UNEF & UNIFAN (Grupo Nobre) • Gestão Técnica: Atlântica Mais
         </p>
+        <div className="pt-2">
+          <a
+            href={LUCAS_WHATSAPP_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/30 hover:bg-emerald-900/40 px-3.5 py-1 text-[11px] text-emerald-300 transition-all cursor-pointer"
+          >
+            <MessageCircle className="h-3 w-3 text-emerald-400" />
+            <span>Dúvidas com Lucas da Atlântica: (75) 99107-6987</span>
+          </a>
+        </div>
       </footer>
     </div>
   );
