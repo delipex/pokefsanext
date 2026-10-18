@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   FileText,
   Plus,
@@ -22,6 +22,16 @@ import {
   Sparkles,
   X,
   Clock,
+  Trophy,
+  Users,
+  PlayCircle,
+  PauseCircle,
+  ChevronDown,
+  ChevronUp,
+  ChevronRight,
+  Zap,
+  Layers,
+  MapPin,
 } from "lucide-react";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { parsePTCGDecklist } from "@/lib/decklist-parser";
@@ -141,6 +151,11 @@ export function AdminInscricoesPremier({
   const [paymentFilter, setPaymentFilter] = useState("");
   const [selectedArchivedStage, setSelectedArchivedStage] = useState("all");
 
+  // Central de Formulários & Status dos Eventos
+  const [formEventsFilter, setFormEventsFilter] = useState<"all" | "active" | "upcoming" | "concluded">("all");
+  const [isEditorExpanded, setIsEditorExpanded] = useState(true);
+  const [activeEditingEventTitle, setActiveEditingEventTitle] = useState<string>(initialConfig.premierNome || "");
+
   // Modais e Feedback
   const [isNewRegistrationModalOpen, setIsNewRegistrationModalOpen] = useState(false);
   const [viewingDecklist, setViewingDecklist] = useState<any | null>(null);
@@ -170,6 +185,7 @@ export function AdminInscricoesPremier({
     const cal = initialCalendar.find((c, idx) => String(c.id ?? idx) === calKey || `${c.data}_${c.evento}` === calKey);
     if (!cal) return;
 
+    setActiveEditingEventTitle(cal.evento || "");
     setPremierNome(cal.evento || "");
     const isoDate = normalizeDateToISO(cal.data);
     setPremierData(isoDate);
@@ -209,6 +225,7 @@ export function AdminInscricoesPremier({
       setPremierTurno1Nome("1º Horário (14h00)");
       setPremierTurno2Nome("2º Horário (17h00)");
       setPremierHorario("1º Horário às 14h00 • 2º Horário às 17h00");
+      setPremierValor("180,00");
       if (!premierObs || premierObs.includes("Traga sua decklist")) {
         setPremierObs("Torneio de Pré-Release Oficial no Formato Selado com Build & Battle Box (40 cartas montadas na hora). Escolha seu horário de participação no formulário.");
       }
@@ -216,14 +233,156 @@ export function AdminInscricoesPremier({
       setPremierTipo("Challenge");
       setPremierMultiplicador("1.5");
       setPremierExigirDecklist(true);
+      setPremierMultiTurno(false);
+      setPremierValor("35,00");
     } else if (cal.evento?.toLowerCase().includes("cup")) {
       setPremierTipo("Cup");
       setPremierMultiplicador("1.5");
       setPremierExigirDecklist(true);
+      setPremierMultiTurno(false);
+      setPremierValor("45,00");
     } else {
       setPremierTipo("Especial");
     }
   };
+
+  // Presets Rápidos de Configuração
+  const handleApplyPreset = (preset: "prerelease" | "challenge" | "cup") => {
+    if (preset === "prerelease") {
+      setPremierTipo("Pre-Release");
+      setPremierMultiplicador("1.0");
+      setPremierExigirDecklist(false);
+      setPremierMultiTurno(true);
+      setPremierTurno1Nome("1º Horário (14h00)");
+      setPremierTurno2Nome("2º Horário (17h00)");
+      setPremierPermitirAmbosTurnos(true);
+      setPremierHorario("1º Horário às 14h00 • 2º Horário às 17h00");
+      setPremierValor("180,00");
+      setPremierObs("Torneio de Pré-Release Oficial no Formato Selado com Build & Battle Box (40 cartas montadas na hora). Escolha seu horário de participação no formulário.");
+    } else if (preset === "challenge") {
+      setPremierTipo("Challenge");
+      setPremierMultiplicador("1.5");
+      setPremierExigirDecklist(true);
+      setPremierMultiTurno(false);
+      setPremierHorario("Check-in às 13:30 • Início da Rodada 1 às 14:00");
+      setPremierValor("35,00");
+      setPremierObs("Torneio Premier Oficial valendo 15 Championship Points (CP) + Boosters. Envie sua lista de 60 cartas pelo formulário online ou traga impressa.");
+    } else if (preset === "cup") {
+      setPremierTipo("Cup");
+      setPremierMultiplicador("1.5");
+      setPremierExigirDecklist(true);
+      setPremierMultiTurno(false);
+      setPremierHorario("Check-in às 13:30 • Início da Rodada 1 às 14:00");
+      setPremierValor("45,00");
+      setPremierObs("Torneio Premier Oficial valendo 50 Championship Points (CP) + Troféu Oficial + Boosters. Decklist obrigatória de 60 cartas no formato Standard.");
+    }
+    setFeedback({ text: `Preset "${preset.toUpperCase()}" aplicado nos campos do formulário! Clique em Salvar para publicar.`, type: "success" });
+  };
+
+  // Helper para calcular estatísticas de inscritos por evento
+  const getEventRegistrationStats = useCallback((evName: string, evDate: string) => {
+    const normDate = normalizeDateToISO(evDate);
+    const nameLow = (evName || "").toLowerCase().trim();
+    const matched = decklists.filter((d) => {
+      const dDate = normalizeDateToISO(d.etapaData || d.etapa_data);
+      const dName = (d.eventoNome || d.evento_nome || "").toLowerCase().trim();
+      if (normDate && dDate && normDate === dDate) return true;
+      if (nameLow && dName && (dName === nameLow || dName.includes(nameLow) || nameLow.includes(dName))) return true;
+      return false;
+    });
+    const confirmed = matched.filter((d) => d.statusPix === "Confirmado").length;
+    const pending = matched.length - confirmed;
+    return { total: matched.length, confirmed, pending };
+  }, [decklists]);
+
+  // Helper para verificar se o evento do calendário corresponde ao formulário Premier ativo no site
+  const isEventMatchingActivePremier = useCallback((evName: string, evDate: string) => {
+    const normDate = normalizeDateToISO(evDate);
+    const nameLow = (evName || "").toLowerCase().trim();
+    const currentPremierDate = normalizeDateToISO(premierData);
+    const currentPremierName = (premierNome || "").toLowerCase().trim();
+
+    if (currentPremierDate && normDate && currentPremierDate === normDate) return true;
+    if (currentPremierName && nameLow && (nameLow === currentPremierName || nameLow.includes(currentPremierName) || currentPremierName.includes(nameLow))) return true;
+    return false;
+  }, [premierData, premierNome]);
+
+  // Ação rápida: Ativar evento diretamente como o formulário oficial do site
+  const handleQuickActivateEvent = async (cal: any) => {
+    handleSelectCalendarEvent(String(cal.id ?? `${cal.data}_${cal.evento}`));
+    setPremierAbertas(true);
+    setIsEditorExpanded(true);
+    setFeedback({ text: `Evento "${cal.evento}" selecionado para ativação! Revise os valores abaixo e clique em Salvar para publicar no site.`, type: "success" });
+    setTimeout(() => {
+      document.getElementById("premier-form-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+  };
+
+  // Ação rápida: Filtrar tabela de inscrições para um evento específico
+  const handleFilterRegistrationsByEvent = (evName: string) => {
+    setSelectedEventFilter(evName);
+    setTimeout(() => {
+      document.getElementById("registrations-table-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+  };
+
+  // Lista enriquecida dos eventos do calendário
+  const enrichedCalendarEvents = useMemo(() => {
+    const now = new Date();
+    const todayISO = now.toISOString().split("T")[0];
+
+    return initialCalendar.map((ev, idx) => {
+      const isoDate = normalizeDateToISO(ev.data);
+      const isPast = Boolean(isoDate && isoDate < todayISO);
+      const isConcluded = ev.status?.toLowerCase() === "concluido" || ev.status?.toLowerCase() === "concluído" || isPast;
+      const isPremierActive = isEventMatchingActivePremier(ev.evento, ev.data);
+      const stats = getEventRegistrationStats(ev.evento, ev.data);
+      const hasCustomLink = Boolean(ev.linkInscricao && ev.linkInscricao.trim());
+
+      const isRelease = Boolean(
+        (ev.evento && ev.evento.toLowerCase().includes("release")) ||
+        (ev.descricao && ev.descricao.toLowerCase().includes("release"))
+      );
+      const isCup = Boolean(ev.evento && ev.evento.toLowerCase().includes("cup"));
+      const isChallenge = Boolean(ev.evento && ev.evento.toLowerCase().includes("challenge"));
+      const isSpecial = Boolean(ev.evento && (ev.evento.toLowerCase().includes("especial") || ev.evento.toLowerCase().includes("tbt") || ev.evento.toLowerCase().includes("finc")));
+
+      let detectedTipo = "Liga";
+      if (isRelease) detectedTipo = "Pre-Release";
+      else if (isCup) detectedTipo = "Cup";
+      else if (isChallenge) detectedTipo = "Challenge";
+      else if (isSpecial) detectedTipo = "Especial";
+
+      return {
+        ...ev,
+        rawIndex: idx,
+        isoDate,
+        isPast,
+        isConcluded,
+        isPremierActive,
+        isFormOpen: isPremierActive ? premierAbertas && currentRegStatus.isOpen : false,
+        stats,
+        hasCustomLink,
+        detectedTipo,
+      };
+    });
+  }, [initialCalendar, isEventMatchingActivePremier, getEventRegistrationStats, premierAbertas, currentRegStatus.isOpen]);
+
+  // Lista filtrada para exibição nos cards da central
+  const filteredCalendarEvents = useMemo(() => {
+    return enrichedCalendarEvents.filter((ev) => {
+      if (formEventsFilter === "active") {
+        return ev.isPremierActive && ev.isFormOpen;
+      }
+      if (formEventsFilter === "upcoming") {
+        return !ev.isConcluded;
+      }
+      if (formEventsFilter === "concluded") {
+        return ev.isConcluded;
+      }
+      return true;
+    });
+  }, [enrichedCalendarEvents, formEventsFilter]);
 
   // Salvar Configurações do Premier
   const handleSavePremierConfig = async (e: React.FormEvent) => {
@@ -495,36 +654,462 @@ export function AdminInscricoesPremier({
           </div>
         </div>
 
-        {/* Card: Personalização & Controle de Inscrições (Premier) */}
-        <div className="glass-card rounded-xl p-5 border border-amber-400/20 bg-slate-900/50 mb-6 space-y-5">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
+        {/* ======================================================== */}
+        {/* CENTRAL DE FORMULÁRIOS & STATUS DOS EVENTOS DA LIGA      */}
+        {/* ======================================================== */}
+        <div className="glass-card rounded-2xl p-5 sm:p-6 border border-white/10 mb-6 space-y-5 bg-slate-900/40">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
             <div>
-              <h3 className="text-base font-bold text-amber-300 flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span>Personalização & Controle de Inscrições</span>
-              </h3>
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-400">
+                  <Layers className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    Central de Formulários & Status dos Eventos
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Visualize os formulários ativos no site, acompanhe os atletas inscritos por etapa e configure novas inscrições com 1 clique.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Filtro de Visualização */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-950/70 border border-white/10 rounded-xl overflow-x-auto text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setFormEventsFilter("all")}
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                  formEventsFilter === "all"
+                    ? "bg-amber-400 text-slate-950 font-bold shadow"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Todos ({enrichedCalendarEvents.length + 1})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormEventsFilter("active")}
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                  formEventsFilter === "active"
+                    ? "bg-emerald-500 text-white font-bold shadow shadow-emerald-500/20"
+                    : "text-emerald-400 hover:text-emerald-300"
+                }`}
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                Ativos no Site
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormEventsFilter("upcoming")}
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                  formEventsFilter === "upcoming"
+                    ? "bg-blue-500 text-white font-bold shadow"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                📅 Próximos
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormEventsFilter("concluded")}
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                  formEventsFilter === "concluded"
+                    ? "bg-slate-700 text-white font-bold shadow"
+                    : "text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                🏁 Concluídos
+              </button>
+            </div>
+          </div>
+
+          {/* Resumo Rápido de Canais Ativos */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Status Canal Global (/#inscricao) */}
+            <div className={`p-3.5 rounded-xl border transition-all ${
+              premierAbertas && currentRegStatus.isOpen
+                ? "bg-emerald-500/10 border-emerald-500/30"
+                : "bg-slate-950/40 border-white/5"
+            }`}>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-slate-400 font-medium">Formulário Principal (Site)</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  premierAbertas && currentRegStatus.isOpen
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                    : "bg-slate-800 text-slate-400 border border-white/10"
+                }`}>
+                  {premierAbertas && currentRegStatus.isOpen ? "🟢 Aberto em /#inscricao" : "🔴 Fechado / Oculto"}
+                </span>
+              </div>
+              <div className="font-bold text-sm text-white truncate">
+                {premierNome || "Nenhum torneio configurado"}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+                <span>Data: {formatDateToBR(premierData)}</span>
+                <span className="text-amber-400 font-semibold">{premierValor ? `R$ ${premierValor}` : "Grátis"}</span>
+              </div>
+            </div>
+
+            {/* Status Canal Especial: FINC (/finc) */}
+            <div className="p-3.5 rounded-xl border border-purple-500/30 bg-purple-500/10">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-purple-300 font-medium">Página Especial Dedicada</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-200 border border-purple-500/40">
+                  🟣 Aberto em /finc
+                </span>
+              </div>
+              <div className="font-bold text-sm text-white truncate">
+                FINC 2026 — Festival de Inverno
+              </div>
+              <div className="text-[11px] text-purple-300/80 mt-1 flex items-center justify-between">
+                <span>Encerra: 19/10 às 12h00</span>
+                <a
+                  href="/finc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline flex items-center gap-1 font-semibold text-purple-300"
+                >
+                  <span>Abrir</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            </div>
+
+            {/* Total Geral de Inscrições Recebidas */}
+            <div className="p-3.5 rounded-xl border border-white/10 bg-slate-950/40">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-slate-400 font-medium">Atletas no Banco de Dados</span>
+                <span className="text-[10px] text-slate-400">Turso SQLite</span>
+              </div>
+              <div className="font-bold text-base text-amber-300 flex items-baseline gap-2">
+                <span>{decklists.length} Registros</span>
+                <span className="text-xs text-slate-400 font-normal">
+                  ({decklists.filter((d) => d.statusPix === "Confirmado").length} confirmados)
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1">
+                Distribuídos entre as etapas do calendário oficial
+              </div>
+            </div>
+          </div>
+
+          {/* Grade de Cards de Eventos & Formulários */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+              <span className="font-semibold uppercase tracking-wider text-[11px] text-slate-400">
+                Eventos da Temporada ({filteredCalendarEvents.length})
+              </span>
+              <span className="hidden sm:inline">
+                Clique em <strong>Configurar Form</strong> para editar ou <strong>Ativar no Site</strong> para abrir
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Card da FINC se o filtro incluir ativos ou todos */}
+              {(formEventsFilter === "all" || formEventsFilter === "active") && (
+                <div className="rounded-xl border border-purple-500/40 bg-purple-950/20 p-4 flex flex-col justify-between space-y-3 shadow-lg shadow-purple-500/5 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-xl pointer-events-none" />
+                  
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wider">
+                        Especial • Regional
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        ATIVO EM /FINC
+                      </span>
+                    </div>
+
+                    <h4 className="font-bold text-white text-sm line-clamp-1 group-hover:text-purple-300 transition-colors">
+                      FINC 2026 — Festival de Inverno
+                    </h4>
+                    <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
+                      Etapa especial com página e formulário dedicados
+                    </p>
+
+                    <div className="mt-3 space-y-1.5 text-xs text-slate-300 border-t border-white/5 pt-2.5">
+                      <div className="flex items-center gap-1.5 text-slate-400">
+                        <Clock className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                        <span>Inscrições até: <strong>19/10 às 12h00</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-slate-400">
+                        <MapPin className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                        <span>Rota direta do site: <code className="text-purple-300 font-mono">/finc</code></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-white/10 flex items-center gap-2">
+                    <a
+                      href="/finc"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-1.5 px-3 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5"
+                    >
+                      <span>Ver Página /finc</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleFilterRegistrationsByEvent("FINC")}
+                      className="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/10 transition-all flex items-center gap-1 cursor-pointer"
+                      title="Filtrar inscrições recebidas para a FINC"
+                    >
+                      <Users className="h-3 w-3 text-purple-400" />
+                      <span>Inscritos</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Cards dos Eventos do Calendário */}
+              {filteredCalendarEvents.map((ev) => {
+                const isActiveOnSite = ev.isPremierActive;
+                const isOpenOnSite = ev.isFormOpen;
+                const stats = ev.stats;
+
+                // Borda e tema conforme status
+                let cardStyle = "border-white/10 bg-slate-900/40";
+                if (isOpenOnSite) {
+                  cardStyle = "border-emerald-500/60 bg-emerald-950/20 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/40";
+                } else if (isActiveOnSite && !premierAbertas) {
+                  cardStyle = "border-amber-500/40 bg-amber-950/20";
+                } else if (ev.isConcluded) {
+                  cardStyle = "border-white/5 bg-slate-950/40 opacity-70";
+                }
+
+                return (
+                  <div
+                    key={ev.id ?? ev.rawIndex}
+                    className={`rounded-xl border p-4 flex flex-col justify-between space-y-3 transition-all relative overflow-hidden group ${cardStyle}`}
+                  >
+                    {isOpenOnSite && (
+                      <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
+                    )}
+
+                    <div>
+                      {/* Badges de Topo */}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border uppercase tracking-wider ${
+                          ev.detectedTipo === "Pre-Release"
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                            : ev.detectedTipo === "Cup"
+                            ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
+                            : ev.detectedTipo === "Challenge"
+                            ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                            : "bg-slate-800 text-slate-300 border-white/10"
+                        }`}>
+                          {ev.detectedTipo}
+                        </span>
+
+                        {/* Status do formulário */}
+                        {isOpenOnSite ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            🟢 ATIVO NO SITE
+                          </span>
+                        ) : isActiveOnSite && !premierAbertas ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                            🟡 VINCULADO (PAUSADO)
+                          </span>
+                        ) : ev.isConcluded ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-white/5">
+                            🏁 CONCLUÍDO
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            📅 AGENDADO
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Título e Data */}
+                      <h4 className="font-bold text-white text-sm line-clamp-1 group-hover:text-amber-400 transition-colors">
+                        {ev.evento}
+                      </h4>
+                      <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                        <span className="text-amber-400 font-semibold">{formatDateToBR(ev.data)}</span>
+                        {ev.horario && (
+                          <>
+                            <span>•</span>
+                            <span className="truncate">{ev.horario}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Local & Info */}
+                      <div className="mt-3 space-y-1.5 text-xs text-slate-300 border-t border-white/5 pt-2.5">
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <MapPin className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                          <span className="truncate">{ev.local || "Livraria Atlântica +"}</span>
+                        </div>
+                        {ev.descricao && (
+                          <p className="text-[11px] text-slate-400 line-clamp-1 italic">
+                            "{ev.descricao}"
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Contador de Inscritos em Tempo Real */}
+                      <div
+                        onClick={() => handleFilterRegistrationsByEvent(ev.evento)}
+                        className="mt-3 p-2 rounded-lg bg-slate-950/60 border border-white/5 hover:border-amber-400/30 transition-all cursor-pointer flex items-center justify-between text-xs"
+                        title="Clique para filtrar a tabela de inscrições para este evento"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5 text-amber-400" />
+                          <span className="font-semibold text-slate-300">
+                            {stats.total} {stats.total === 1 ? "Inscrito" : "Inscritos"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <span className="text-emerald-400 font-semibold">{stats.confirmed} confirmados</span>
+                          {stats.pending > 0 && (
+                            <>
+                              <span className="text-slate-600">•</span>
+                              <span className="text-amber-400">{stats.pending} pendentes</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botões de Ação */}
+                    <div className="pt-2 border-t border-white/10 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSelectCalendarEvent(String(ev.id ?? ev.rawIndex));
+                          setIsEditorExpanded(true);
+                          setFeedback({ text: `Carregado: "${ev.evento}" no configurador abaixo. Ajuste os detalhes e salve.`, type: "success" });
+                          setTimeout(() => {
+                            document.getElementById("premier-form-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }, 150);
+                        }}
+                        className="flex-1 py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/10 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Settings className="h-3.5 w-3.5 text-amber-400" />
+                        <span>Configurar Form</span>
+                      </button>
+
+                      {isOpenOnSite ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPremierAbertas(false);
+                            setFeedback({ text: `Inscrições para "${ev.evento}" pausadas temporariamente.`, type: "success" });
+                          }}
+                          className="py-1.5 px-3 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                          title="Pausar / Ocultar botão de inscrição no site"
+                        >
+                          <PauseCircle className="h-3.5 w-3.5" />
+                          <span>Pausar</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleQuickActivateEvent(ev)}
+                          className="py-1.5 px-3 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                          title="Carregar evento e abrir formulário no site"
+                        >
+                          <PlayCircle className="h-3.5 w-3.5" />
+                          <span>Ativar no Site</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Card: Personalização & Controle de Inscrições (Premier) */}
+        <div id="premier-form-editor" className="glass-card rounded-xl p-5 border border-amber-400/20 bg-slate-900/50 mb-6 space-y-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-white/10 pb-3 gap-3">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-bold text-amber-300 flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span>Configurador do Formulário de Inscrição</span>
+                </h3>
+                {activeEditingEventTitle && (
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                    Editando: {activeEditingEventTitle}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Personalize o banner, regras, taxa PIX, vagas, formato e requisitos de decklist exibidos aos jogadores.
+                Personalize o banner, regras, taxa PIX, vagas, formato, horários e requisitos de decklist exibidos no site.
               </p>
             </div>
-            <div
-              className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                currentRegStatus.isOpen
-                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <a
+                href="/#inscricao"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                title="Visualizar como os jogadores veem o formulário no site"
+              >
+                <Eye className="h-3.5 w-3.5 text-amber-400" />
+                <span>Ver no Site</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+
+              <div
+                className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                  currentRegStatus.isOpen
+                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                    : currentRegStatus.statusBadge === "deadline_passed"
+                    ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                    : currentRegStatus.statusBadge === "date_passed"
+                    ? "bg-orange-500/15 text-orange-400 border-orange-500/30"
+                    : "bg-red-500/15 text-red-400 border-red-500/30"
+                }`}
+              >
+                {currentRegStatus.isOpen
+                  ? "🟢 Inscrições Abertas no Site"
                   : currentRegStatus.statusBadge === "deadline_passed"
-                  ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                  ? `🟡 Prazo Encerrado (${currentRegStatus.deadlineFormatted})`
                   : currentRegStatus.statusBadge === "date_passed"
-                  ? "bg-orange-500/15 text-orange-400 border-orange-500/30"
-                  : "bg-red-500/15 text-red-400 border-red-500/30"
-              }`}
-            >
-              {currentRegStatus.isOpen
-                ? "🟢 Inscrições Abertas"
-                : currentRegStatus.statusBadge === "deadline_passed"
-                ? `🟡 Prazo Encerrado (${currentRegStatus.deadlineFormatted})`
-                : currentRegStatus.statusBadge === "date_passed"
-                ? `🟠 Evento Encerrado (${currentRegStatus.eventDateFormatted})`
-                : "🔴 Inscrições Fechadas / Ocultas"}
+                  ? `🟠 Evento Encerrado (${currentRegStatus.eventDateFormatted})`
+                  : "🔴 Inscrições Fechadas / Ocultas"}
+              </div>
+            </div>
+          </div>
+
+          {/* Barra de Presets Rápidos de Torneio (1 Clique) */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+              <Zap className="h-4 w-4 text-amber-400" />
+              <span>Presets Rápidos de Torneio (Configuração em 1 Clique):</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleApplyPreset("prerelease")}
+                className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+              >
+                <span>🎉 Pré-Release Selado</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleApplyPreset("challenge")}
+                className="px-2.5 py-1 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+              >
+                <span>🏆 League Challenge</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleApplyPreset("cup")}
+                className="px-2.5 py-1 rounded-lg bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/30 text-yellow-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+              >
+                <span>🥇 League Cup</span>
+              </button>
             </div>
           </div>
 
@@ -1042,7 +1627,7 @@ export function AdminInscricoesPremier({
         </div>
 
         {/* Sub-navegação: Inscrições Ao Vivo vs Decklists Arquivadas */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-white/10 pb-4 mb-4">
+        <div id="registrations-table-section" className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-white/10 pb-4 mb-4">
           <div className="flex items-center gap-2">
             <button
               type="button"
