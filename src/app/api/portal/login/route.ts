@@ -128,11 +128,15 @@ export async function POST(req: Request) {
       }
 
       const hashedPin = hashPin(cleanPin);
+      const officialName = identityCheck.cleanName || athlete.nome;
+      const officialCategory = identityCheck.calculatedCategory || athlete.categoria || "Master";
 
       // Salva no banco de dados com segurança
       await db
         .update(jogadores)
         .set({
+          nome: officialName,
+          categoria: officialCategory,
           pinHash: hashedPin,
           whatsapp: cleanPhone || athlete.whatsapp || null,
           dataNascimento: dataNascimento ? String(dataNascimento).trim() : (athlete.dataNascimento || null),
@@ -152,6 +156,8 @@ export async function POST(req: Request) {
           if (idx >= 0) {
             raw[idx] = {
               ...raw[idx],
+              jogador: officialName,
+              categoria: officialCategory,
               pinHash: hashedPin,
               whatsapp: cleanPhone || raw[idx].whatsapp,
               dataNascimento: dataNascimento ? String(dataNascimento).trim() : raw[idx].dataNascimento,
@@ -164,11 +170,11 @@ export async function POST(req: Request) {
       // Cria sessão segura de 30 dias
       const resObj = NextResponse.json({
         success: true,
-        message: `Titularidade confirmada e PIN ativado com sucesso! Bem-vindo(a), ${athlete.nome}!`,
+        message: `Titularidade confirmada e PIN ativado com sucesso! Bem-vindo(a), ${officialName}!`,
         player: {
           id: athlete.id,
-          nome: athlete.nome,
-          categoria: athlete.categoria,
+          nome: officialName,
+          categoria: officialCategory,
         },
       });
 

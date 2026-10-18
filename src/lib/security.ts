@@ -30,22 +30,91 @@ export function validatePopId(rawId: string): { isValid: boolean; error?: string
   return { isValid: true, cleanId };
 }
 
-// 3. Validador de Nome Completo (Nome + Sobrenome)
+const PREPOSITIONS = new Set(["de", "da", "do", "dos", "das", "e", "del", "van", "von", "di"]);
+const GENERATIONAL_SUFFIXES = new Set(["jr", "junior", "neto", "filho", "sobrinho", "segundo", "terceiro"]);
+
+// Helper de Distância de Levenshtein para tratar variações comuns (ex: Luiz vs Luis, Matheus vs Mateus)
+export function levenshteinDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
+}
+
+// 3. Validador e Formatador de Nome Completo (Nome + Sobrenomes oficiais)
+export function cleanAndFormatName(rawName?: string | null): string {
+  if (!rawName) return "";
+
+  // Remove pontuações e símbolos estranhos de forma suave, mantendo letras e acentos
+  const cleaned = rawName
+    .replace(/[,\.;:\[\]{}()\\\/_+=*&^%$#@!~?<>|"]/g, " ")
+    .replace(/['`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const words = cleaned.split(" ").filter((w) => w.length > 0);
+
+  const formatted = words
+    .map((w, idx) => {
+      const lower = w.toLowerCase();
+      // Preposições em minúsculo se não for a primeira palavra
+      if (idx > 0 && PREPOSITIONS.has(lower)) {
+        return lower;
+      }
+      // Iniciais soltas em maiúsculo
+      if (w.length === 1) {
+        return w.toUpperCase();
+      }
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    })
+    .join(" ");
+
+  return formatted;
+}
+
 export function validatePlayerName(rawName: string): { isValid: boolean; error?: string; cleanName?: string } {
-  const cleanName = sanitizeText(rawName).replace(/\s+/g, " ");
+  if (!rawName || typeof rawName !== "string") {
+    return { isValid: false, error: "Informe seu Nome Completo (Nome e Sobrenome oficial)." };
+  }
+
+  const cleanName = cleanAndFormatName(rawName);
 
   if (cleanName.length < 3) {
     return { isValid: false, error: "O nome deve ter pelo menos 3 caracteres." };
   }
 
-  const parts = cleanName.split(" ").filter((p) => p.length >= 2);
-  if (parts.length < 2) {
-    return { isValid: false, error: "Informe seu nome completo (Nome e Sobrenome oficial)." };
+  // Bloqueio de números
+  if (/\d/.test(rawName)) {
+    return { isValid: false, error: "O nome não pode conter números." };
   }
 
-  // Bloqueio de números e símbolos no nome
-  if (/\d/.test(cleanName) || /[!@#$%^&*()_+=\[\]{};':"\\|,.<>\/?]/.test(cleanName)) {
-    return { isValid: false, error: "O nome não pode conter números ou símbolos especiais." };
+  // Permite letras latinas e acentos do português
+  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s]+$/.test(cleanName)) {
+    return { isValid: false, error: "O nome contém caracteres ou símbolos inválidos." };
+  }
+
+  const parts = cleanName.split(" ").filter(Boolean);
+  if (parts.length < 2) {
+    return { isValid: false, error: "Informe seu nome completo (Nome e Sobrenome oficial)." };
   }
 
   // Lista básica anti-palavrões / trolls
@@ -57,12 +126,7 @@ export function validatePlayerName(rawName: string): { isValid: boolean; error?:
     }
   }
 
-  // Formatar em Title Case oficial
-  const titleCaseName = parts
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
-
-  return { isValid: true, cleanName: titleCaseName };
+  return { isValid: true, cleanName };
 }
 
 // Helper para normalizar nomes removendo acentos e pontuações
@@ -72,12 +136,49 @@ export function normalizeName(str?: string | null): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-    .replace(/[^\w\s]/g, "") // Remove pontuação
+    .replace(/[^\w\s]/g, " ") // Pontuação vira espaço
     .replace(/\s+/g, " ")
     .trim();
 }
 
-// 3.1. Algoritmo de Razoabilidade e Correspondência Inteligente de Nomes (Fuzzy Identity Match)
+// Extrai tokens significativos descartando preposições (de, da, do, dos, das, e)
+export function getSignificantTokens(name?: string | null): string[] {
+  return normalizeName(name)
+    .split(" ")
+    .filter((token) => token.length > 0 && !PREPOSITIONS.has(token));
+}
+
+// Compara se dois tokens/nomes são semanticamente equivalentes
+export function areTokensSimilar(t1: string, t2: string): boolean {
+  if (t1 === t2) return true;
+
+  // Casamento por inicial: 's' vs 'silva' ou 'm' vs 'morais'
+  if (t1.length === 1 && t2.startsWith(t1)) return true;
+  if (t2.length === 1 && t1.startsWith(t2)) return true;
+
+  // Sufixos geracionais equivalentes
+  if (
+    (t1 === "jr" && t2 === "junior") ||
+    (t1 === "junior" && t2 === "jr") ||
+    (t1 === "neto" && t2 === "neto") ||
+    (t1 === "filho" && t2 === "filho") ||
+    (t1 === "sobrinho" && t2 === "sobrinho")
+  ) {
+    return true;
+  }
+
+  // Variações fonéticas e ortográficas frequentes no Brasil (distância 1 para palavras com 4+ letras, distância 2 para 6+)
+  const minLen = Math.min(t1.length, t2.length);
+  if (minLen >= 4) {
+    const dist = levenshteinDistance(t1, t2);
+    if (dist <= 1) return true;
+    if (minLen >= 6 && dist <= 2) return true;
+  }
+
+  return false;
+}
+
+// 3.1. Algoritmo Resiliente de Titularidade (Fuzzy Identity Match multi-token)
 export function matchPlayerIdentity(
   inputName?: string | null,
   storedName?: string | null
@@ -90,83 +191,95 @@ export function matchPlayerIdentity(
     return { isMatch: true, confidence: 1.0, reason: "Primeiro registro" };
   }
 
-  // 1. Casamento Exato
+  // Casamento Exato Direto
   if (normInput === normStored) {
     return { isMatch: true, confidence: 1.0, reason: "Casamento exato" };
   }
 
-  const inputParts = normInput.split(" ").filter(Boolean);
-  const storedParts = normStored.split(" ").filter(Boolean);
+  const inputTokens = getSignificantTokens(inputName);
+  const storedTokens = getSignificantTokens(storedName);
 
-  if (inputParts.length === 0 || storedParts.length === 0) {
+  if (inputTokens.length === 0 || storedTokens.length === 0) {
     return { isMatch: false, confidence: 0, reason: "Nome vazio" };
   }
 
-  const inputFirst = inputParts[0];
-  const storedFirst = storedParts[0];
+  // Contabiliza quantos tokens do cadastro oficial estão presentes no nome digitado pelo atleta
+  const matchedStoredTokens = new Set<number>();
+  const matchedInputTokens = new Set<number>();
 
-  // 2. O primeiro nome DEVE ser compatível (ex: Cristian vs Cristian, Carlos vs Carlos)
-  const isFirstMatch =
-    inputFirst === storedFirst ||
-    (inputFirst.length > 3 && storedFirst.length > 3 && (inputFirst.includes(storedFirst) || storedFirst.includes(inputFirst)));
+  for (let sIdx = 0; sIdx < storedTokens.length; sIdx++) {
+    const sToken = storedTokens[sIdx];
+    for (let iIdx = 0; iIdx < inputTokens.length; iIdx++) {
+      if (matchedInputTokens.has(iIdx)) continue;
+      const iToken = inputTokens[iIdx];
 
-  if (!isFirstMatch) {
-    return {
-      isMatch: false,
-      confidence: 0,
-      reason: `Primeiro nome diferente: digitado "${inputFirst}" vs registrado "${storedFirst}"`,
-    };
-  }
-
-  // 3. Casamento por Iniciais ou Sobrenome (ex: "Cristian Silva" vs "Cristian S" ou "Carlos Junior" vs "Carlos J")
-  const inputRest = inputParts.slice(1);
-  const storedRest = storedParts.slice(1);
-
-  // Se o nome registrado tinha apenas 1 palavra (ex: apenas "Carlos") e o usuário digitou "Carlos Silva"
-  if (storedRest.length === 0 && isFirstMatch) {
-    return { isMatch: true, confidence: 0.85, reason: "Primeiro nome idêntico com sobrenome expandido" };
-  }
-
-  // Checa se alguma inicial ou sobrenome bate
-  let matchFound = false;
-  for (const sPart of storedRest) {
-    for (const iPart of inputRest) {
-      if (sPart === iPart) {
-        matchFound = true;
-        break;
-      }
-      // Se for inicial (ex: 's' vs 'silva' ou 'j' vs 'junior')
-      if (sPart.length === 1 && iPart.startsWith(sPart)) {
-        matchFound = true;
-        break;
-      }
-      if (iPart.length === 1 && sPart.startsWith(iPart)) {
-        matchFound = true;
-        break;
-      }
-      // Se um contiver o outro (ex: 'jr' vs 'junior')
-      if (
-        (sPart === "jr" && iPart === "junior") ||
-        (sPart === "junior" && iPart === "jr") ||
-        (sPart === "neto" && iPart === "neto") ||
-        (sPart === "filho" && iPart === "filho")
-      ) {
-        matchFound = true;
+      if (areTokensSimilar(sToken, iToken)) {
+        matchedStoredTokens.add(sIdx);
+        matchedInputTokens.add(iIdx);
         break;
       }
     }
-    if (matchFound) break;
   }
 
-  if (matchFound) {
-    return { isMatch: true, confidence: 0.9, reason: "Primeiro nome e sobrenome/inicial compatíveis" };
+  const storedCount = storedTokens.length;
+  const matchCount = matchedStoredTokens.size;
+
+  // 1. Se o registro tinha apenas 1 palavra (ex: "Carlos" ou "Massao")
+  if (storedCount === 1) {
+    if (matchCount >= 1) {
+      return { isMatch: true, confidence: 0.9, reason: "Nome único correspondido" };
+    }
+    return { isMatch: false, confidence: 0, reason: "Nome diferente" };
   }
 
-  return {
-    isMatch: false,
-    confidence: 0.4,
-    reason: `Sobrenome incompatível: "${inputRest.join(" ")}" vs registrado "${storedRest.join(" ")}"`,
-  };
+  // 2. Se o registro tinha 2 termos (ex: "Carlos Morais", "Cristian S", "Felipe Damasceno", "Morais, Carlos")
+  if (storedCount === 2) {
+    // Ambos os termos do registro oficial constam no nome informado pelo atleta
+    if (matchCount === 2) {
+      return {
+        isMatch: true,
+        confidence: 0.95,
+        reason: "Todos os termos do registro oficial constam no nome informado",
+      };
+    }
+
+    // Se 1 dos termos for um sufixo geracional (Neto, Junior, Filho) e o outro termo bateu
+    const unmatchedIdx = [0, 1].find((i) => !matchedStoredTokens.has(i));
+    if (unmatchedIdx !== undefined) {
+      const unmatchedToken = storedTokens[unmatchedIdx];
+      if (GENERATIONAL_SUFFIXES.has(unmatchedToken) && matchCount >= 1) {
+        return {
+          isMatch: true,
+          confidence: 0.85,
+          reason: "Termo principal correspondido com sufixo geracional opcional",
+        };
+      }
+    }
+
+    return {
+      isMatch: false,
+      confidence: matchCount / storedCount,
+      reason: `Apenas ${matchCount} de ${storedCount} termos do registro oficial foram localizados`,
+    };
+  }
+
+  // 3. Se o registro oficial tinha 3+ termos (ex: "João Pedro Oliveira", "Kaike Falcão de Oliveira")
+  if (storedCount >= 3) {
+    if (matchCount >= Math.min(2, storedCount)) {
+      return {
+        isMatch: true,
+        confidence: matchCount / storedCount,
+        reason: `${matchCount} de ${storedCount} termos oficiais correspondidos com sucesso`,
+      };
+    }
+    return {
+      isMatch: false,
+      confidence: matchCount / storedCount,
+      reason: `Termos insuficientes: ${matchCount} de ${storedCount}`,
+    };
+  }
+
+  return { isMatch: false, confidence: 0 };
 }
 
 // 4. Validador de WhatsApp / Telefone
@@ -246,11 +359,15 @@ export function calculatePokemonCategory(birthDateStr?: string | null): {
   return { isValid: true, categoria, age };
 }
 
-// 5.1 Validação de Titularidade (Cruzamento Rigoroso de Nome, Ano de Nascimento e Categoria)
 export function verifyAthleteIdentity(
   athlete: { nome: string; categoria?: string | null; dataNascimento?: string | null },
   input: { nome: string; dataNascimento: string }
-): { isValid: boolean; error?: string } {
+): {
+  isValid: boolean;
+  error?: string;
+  cleanName?: string;
+  calculatedCategory?: "Master" | "Senior" | "Junior";
+} {
   if (!input.nome || !input.nome.trim()) {
     return { isValid: false, error: "Informe seu Nome Completo (Nome e Sobrenome) para validar sua titularidade." };
   }
@@ -264,7 +381,7 @@ export function verifyAthleteIdentity(
   if (!match.isMatch) {
     return {
       isValid: false,
-      error: "O Nome Completo informado não confere com o titular cadastrado para este POP ID. Por segurança, digite seu nome e sobrenome exatamente como no cadastro oficial ou procure o organizador da Liga.",
+      error: `O Nome Completo informado ("${nameVal.cleanName}") não confere com o titular cadastrado para este POP ID. Por segurança, digite seu nome e sobrenome oficial como registrado na Liga ou contate o organizador.`,
     };
   }
 
@@ -277,15 +394,22 @@ export function verifyAthleteIdentity(
     return { isValid: false, error: catCheck.error };
   }
 
-  const expectedCat = athlete.categoria || "Master";
-  if (catCheck.categoria.toLowerCase() !== expectedCat.toLowerCase()) {
-    return {
-      isValid: false,
-      error: `A Data de Nascimento informada resulta na categoria "${catCheck.categoria}", que diverge da categoria oficial deste atleta no ranking da Liga ("${expectedCat}"). Verifique sua data de nascimento ou contate o organizador.`,
-    };
+  // Se o atleta já possuía data de nascimento registrada anteriormente, valida se coincide a categoria
+  if (athlete.dataNascimento) {
+    const existingCatCheck = calculatePokemonCategory(athlete.dataNascimento);
+    if (existingCatCheck.isValid && existingCatCheck.categoria.toLowerCase() !== catCheck.categoria.toLowerCase()) {
+      return {
+        isValid: false,
+        error: `A Data de Nascimento informada resulta na categoria "${catCheck.categoria}", divergindo do registro histórico oficial ("${existingCatCheck.categoria}"). Contate o organizador.`,
+      };
+    }
   }
 
-  return { isValid: true };
+  return {
+    isValid: true,
+    cleanName: nameVal.cleanName,
+    calculatedCategory: catCheck.categoria,
+  };
 }
 
 // 6. Criptografia de PIN (Hash SHA-256 com Salt)
