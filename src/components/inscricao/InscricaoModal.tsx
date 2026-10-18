@@ -292,7 +292,6 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
 
   const regStatus = useMemo(() => evaluatePremierRegistrationStatus(config), [config]);
   const isAbertas = regStatus.isOpen;
-  const isDlExigida = config.premierExigirDecklist === "true" || config.premierExigirDecklist === true;
   const maxVagas = parseInt(config.premierVagas || "32", 10);
   const vagasRestantes = Math.max(0, maxVagas - totalInscritos);
   const tema = config.premierTema || "lightning";
@@ -305,6 +304,8 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
       isMultiTurno
     );
   }, [config.premierTipo, config.premierNome, isMultiTurno]);
+
+  const isDlExigida = !isPreRelease && (config.premierExigirDecklist === "true" || config.premierExigirDecklist === true);
 
   const turno1Name = config.premierTurno1Nome || "1º Horário (14h00)";
   const turno2Name = config.premierTurno2Nome || "2º Horário (17h00)";
@@ -412,17 +413,18 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
       return;
     }
 
-    let finalDeckNome = selectedDeck === "Outro" ? customDeckNome.trim() : selectedDeck.trim();
-    if (!finalDeckNome && isPreRelease) {
-      finalDeckNome = "Kit Pré-Release (Formato Selado)";
-    }
+    let finalDeckNome = isPreRelease
+      ? "Kit Pré-Release (Formato Selado)"
+      : selectedDeck === "Outro"
+      ? customDeckNome.trim()
+      : selectedDeck.trim();
 
-    if (!finalDeckNome || finalDeckNome.toLowerCase() === "outro" || finalDeckNome.toLowerCase() === "outros") {
+    if (!isPreRelease && (!finalDeckNome || finalDeckNome.toLowerCase() === "outro" || finalDeckNome.toLowerCase() === "outros")) {
       setErrorMessage("Por favor, selecione ou digite o nome específico do baralho que irá jogar (a palavra 'Outro' não é permitida como nome de deck).");
       return;
     }
 
-    if (isDlExigida && parsedCardsCount !== 60 && !limitlessUrl.trim()) {
+    if (!isPreRelease && isDlExigida && parsedCardsCount !== 60 && !limitlessUrl.trim()) {
       const confirmed = window.confirm(
         `Aviso: A decklist inserida possui ${parsedCardsCount}/60 cartas. Deseja submeter mesmo assim e regularizar antes da Rodada 1?`
       );
@@ -442,9 +444,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
           categoria,
           whatsapp: whatsapp.trim(),
           deckNome: finalDeckNome,
-          tipoEnergia: "auto",
-          decklistRaw: decklistRaw.trim(),
-          limitlessUrl: limitlessUrl.trim(),
+          tipoEnergia: isPreRelease ? "colorless" : "auto",
+          decklistRaw: isPreRelease ? "" : decklistRaw.trim(),
+          limitlessUrl: isPreRelease ? "" : limitlessUrl.trim(),
           metodoPagamento,
           turno: selectedTurno || ((isMultiTurno || isPreRelease) ? turno1Name : "Único"),
           valor: effectiveValorFormatted,
@@ -1009,154 +1011,166 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     </div>
                   )}
 
-                  {/* Informação especial para formato de Pré-Release */}
-                  {isPreRelease && (
-                    <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs text-indigo-200 flex items-start gap-2">
-                      <Sparkles className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
-                      <p className="leading-relaxed text-[11px]">
-                        <strong>Formato Selado (Pré-Release):</strong> Cada competidor constrói seu baralho na hora a partir do kit oficial <em>Build & Battle Box</em>. Não é necessário enviar lista de cartas antecipada.
+                  {/* Baralho & Decklist: Dispensado no Pré-Release / Selado */}
+                  {isPreRelease ? (
+                    <div className="rounded-2xl border border-indigo-500/40 bg-indigo-950/30 backdrop-blur-md p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wider">
+                          <Sparkles className="h-4 w-4 text-amber-400" />
+                          Formato Selado • Kit Pré-Release
+                        </span>
+                        <span className="text-[10px] font-bold text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
+                          Decklist Dispensada
+                        </span>
+                      </div>
+                      <p className="text-xs text-indigo-200 leading-relaxed font-bold">
+                        📦 Baralho montado no evento com a Build & Battle Box oficial (40 cartas)
+                      </p>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        Neste formato, todos os atletas constroem seus decks na hora a partir dos pacotes lacrados do kit. Por isso, <strong>não é necessário enviar lista de cartas antecipada</strong>.
                       </p>
                     </div>
-                  )}
-
-                  {/* Baralho / Arquétipo do Deck (Menu de Escolha) */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                        <Layers className="h-3.5 w-3.5 text-blue-400" />
-                        Baralho / Arquétipo do Deck *
-                      </label>
-                      <span className="text-[10px] text-slate-400 font-normal">
-                        {effectiveDeckList.length} opções disponíveis
-                      </span>
-                    </div>
-                    <select
-                      required
-                      value={selectedDeck}
-                      onChange={(e) => setSelectedDeck(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
-                    >
-                      <option value="">-- Selecione o Baralho / Deck --</option>
-                      {effectiveDeckList.map((deck) => (
-                        <option key={deck} value={deck}>
-                          {deck}
-                        </option>
-                      ))}
-                      <option value="Outro">➕ Outro (Digitar manualmente...)</option>
-                    </select>
-
-                    {selectedDeck === "Outro" && (
-                      <div className="pt-1.5">
-                        <input
-                          type="text"
+                  ) : (
+                    <>
+                      {/* Baralho / Arquétipo do Deck (Menu de Escolha) */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <Layers className="h-3.5 w-3.5 text-blue-400" />
+                            Baralho / Arquétipo do Deck *
+                          </label>
+                          <span className="text-[10px] text-slate-400 font-normal">
+                            {effectiveDeckList.length} opções disponíveis
+                          </span>
+                        </div>
+                        <select
                           required
-                          value={customDeckNome}
-                          onChange={(e) => setCustomDeckNome(e.target.value)}
-                          placeholder="Digite o nome do baralho / arquétipo..."
-                          className="w-full rounded-xl border border-blue-500/50 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
-                          autoFocus
+                          value={selectedDeck}
+                          onChange={(e) => setSelectedDeck(e.target.value)}
+                          className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
+                        >
+                          <option value="">-- Selecione o Baralho / Deck --</option>
+                          {effectiveDeckList.map((deck) => (
+                            <option key={deck} value={deck}>
+                              {deck}
+                            </option>
+                          ))}
+                          <option value="Outro">➕ Outro (Digitar manualmente...)</option>
+                        </select>
+
+                        {selectedDeck === "Outro" && (
+                          <div className="pt-1.5">
+                            <input
+                              type="text"
+                              required
+                              value={customDeckNome}
+                              onChange={(e) => setCustomDeckNome(e.target.value)}
+                              placeholder="Digite o nome do baralho / arquétipo..."
+                              className="w-full rounded-xl border border-blue-500/50 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                              autoFocus
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Link do Limitless (Importador Automático) */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
+                            Importar via Link do Limitless (Opcional)
+                          </span>
+                          <span className="text-[10px] text-blue-400 font-semibold">Preenchimento Automático</span>
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={limitlessUrl}
+                            onChange={(e) => {
+                              setLimitlessUrl(e.target.value);
+                              if (e.target.value.includes("limitlesstcg.com/decks/list/")) {
+                                handleFetchLimitless(e.target.value);
+                              }
+                            }}
+                            placeholder="https://limitlesstcg.com/decks/list/..."
+                            className="flex-1 rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleFetchLimitless()}
+                            disabled={isFetchingLimitless || !limitlessUrl.trim()}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-3.5 py-2.5 text-xs font-bold text-white transition-all disabled:opacity-50 cursor-pointer shrink-0 shadow-md"
+                          >
+                            {isFetchingLimitless ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <span>Puxando...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                                <span>Puxar 60 Cartas</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        {limitlessFetchError && (
+                          <p className="text-[11px] font-semibold text-rose-400 flex items-center gap-1 mt-1">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                            {limitlessFetchError}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Decklist de 60 Cartas (Textarea + Card Counter) */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-purple-400" /> Decklist de 60 Cartas{" "}
+                            <span className="text-slate-400 font-normal">
+                              {isDlExigida ? "(Obrigatória)" : "(Opcional no envio)"}
+                            </span>
+                          </label>
+                          <span
+                            className={`text-[11px] font-black px-2 py-0.5 rounded-md border ${
+                              parsedCardsCount === 60
+                                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                                : "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                            }`}
+                          >
+                            {parsedCardsCount} / 60 Cartas {parsedCardsCount === 60 ? "✅" : ""}
+                          </span>
+                        </div>
+                        <textarea
+                          rows={4}
+                          value={decklistRaw}
+                          onChange={(e) => handleDecklistChange(e.target.value)}
+                          placeholder={`Cole a lista exportada do Pokémon TCG Live ou Limitless:\nExemplo:\n4 Dragapult ex TWM 130\n2 Drakloak TWM 129\n4 Arven OBF 186\n...`}
+                          className="w-full rounded-xl border border-white/10 bg-slate-900/90 p-3 text-xs font-mono text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none leading-relaxed"
                         />
                       </div>
-                    )}
-                  </div>
 
-
-                  {/* Link do Limitless (Importador Automático) */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
-                        Importar via Link do Limitless (Opcional)
-                      </span>
-                      <span className="text-[10px] text-blue-400 font-semibold">Preenchimento Automático</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        value={limitlessUrl}
-                        onChange={(e) => {
-                          setLimitlessUrl(e.target.value);
-                          if (e.target.value.includes("limitlesstcg.com/decks/list/")) {
-                            handleFetchLimitless(e.target.value);
-                          }
-                        }}
-                        placeholder="https://limitlesstcg.com/decks/list/..."
-                        className="flex-1 rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleFetchLimitless()}
-                        disabled={isFetchingLimitless || !limitlessUrl.trim()}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-3.5 py-2.5 text-xs font-bold text-white transition-all disabled:opacity-50 cursor-pointer shrink-0 shadow-md"
-                      >
-                        {isFetchingLimitless ? (
-                          <>
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            <span>Puxando...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                            <span>Puxar 60 Cartas</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    {limitlessFetchError && (
-                      <p className="text-[11px] font-semibold text-rose-400 flex items-center gap-1 mt-1">
-                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                        {limitlessFetchError}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Decklist de 60 Cartas (Textarea + Card Counter) */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                        <FileText className="h-3.5 w-3.5 text-purple-400" /> Decklist de 60 Cartas{" "}
-                        <span className="text-slate-400 font-normal">
-                          {isDlExigida ? "(Obrigatória)" : "(Opcional no envio)"}
-                        </span>
-                      </label>
-                      <span
-                        className={`text-[11px] font-black px-2 py-0.5 rounded-md border ${
-                          parsedCardsCount === 60
-                            ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                            : "bg-amber-500/20 border-amber-500/40 text-amber-300"
-                        }`}
-                      >
-                        {parsedCardsCount} / 60 Cartas {parsedCardsCount === 60 ? "✅" : ""}
-                      </span>
-                    </div>
-                    <textarea
-                      rows={4}
-                      value={decklistRaw}
-                      onChange={(e) => handleDecklistChange(e.target.value)}
-                      placeholder={`Cole a lista exportada do Pokémon TCG Live ou Limitless:\nExemplo:\n4 Dragapult ex TWM 130\n2 Drakloak TWM 129\n4 Arven OBF 186\n...`}
-                      className="w-full rounded-xl border border-white/10 bg-slate-900/90 p-3 text-xs font-mono text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none leading-relaxed"
-                    />
-                  </div>
-
-                  {/* Visualizador Gráfico de Cartas com Artes Oficiais em Tempo Real */}
-                  {parsedDeckData.totalCards > 0 && (
-                    <div className="space-y-1.5 pt-1 animate-fadeIn">
-                      <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 text-emerald-300">
-                          <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-                          Visualização Oficial do Baralho (60 Cartas)
-                        </span>
-                        <span className="text-[10px] text-slate-400">Artes oficiais carregadas</span>
-                      </label>
-                      <DecklistVisualGallery
-                        parsedData={parsedDeckData}
-                        deckName={selectedDeck === "Outro" ? customDeckNome || "Baralho Personalizado" : selectedDeck || "Baralho do Jogador"}
-                        playerName={nome || "Treinador"}
-                        popId={popId}
-                        eventName={config.premierNome || "Liga Atlântica TCG"}
-                        rawText={decklistRaw}
-                      />
-                    </div>
+                      {/* Visualizador Gráfico de Cartas com Artes Oficiais em Tempo Real */}
+                      {parsedDeckData.totalCards > 0 && (
+                        <div className="space-y-1.5 pt-1 animate-fadeIn">
+                          <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-emerald-300">
+                              <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                              Visualização Oficial do Baralho (60 Cartas)
+                            </span>
+                            <span className="text-[10px] text-slate-400">Artes oficiais carregadas</span>
+                          </label>
+                          <DecklistVisualGallery
+                            parsedData={parsedDeckData}
+                            deckName={selectedDeck === "Outro" ? customDeckNome || "Baralho Personalizado" : selectedDeck || "Baralho do Jogador"}
+                            playerName={nome || "Treinador"}
+                            popId={popId}
+                            eventName={config.premierNome || "Liga Atlântica TCG"}
+                            rawText={decklistRaw}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Escolha da Forma de Pagamento */}

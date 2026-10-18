@@ -135,13 +135,23 @@ export async function POST(req: Request) {
       );
     }
 
-    const exigirDecklist = configMap.premierExigirDecklist === "true" || configMap.premierExigirDecklist === true;
+    const finalEventName = eventoNome || configMap.premierNome || "League Challenge — Liga Atlântica";
+    const finalEventDate = etapaData || configMap.premierData || new Date().toISOString().split("T")[0];
+
+    const isPreReleaseEvent =
+      finalEventName.toLowerCase().includes("release") ||
+      (configMap.premierTipo && String(configMap.premierTipo).toLowerCase().includes("release")) ||
+      isBothTurnosSelected(turno);
+
+    const exigirDecklist =
+      !isPreReleaseEvent &&
+      (configMap.premierExigirDecklist === "true" || configMap.premierExigirDecklist === true);
     const rawDecklistText = (decklistRaw || "").trim();
 
     let totalCartas = 0;
     let isValidDeck = false;
 
-    if (rawDecklistText) {
+    if (rawDecklistText && !isPreReleaseEvent) {
       const parsed = parseAndValidateDecklist(rawDecklistText);
       totalCartas = parsed.totalCards;
       isValidDeck = parsed.isValid;
@@ -158,9 +168,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
-    const finalEventName = eventoNome || configMap.premierNome || "League Challenge — Liga Atlântica";
-    const finalEventDate = etapaData || configMap.premierData || new Date().toISOString().split("T")[0];
     
     // Calcula categoria oficial Play! Pokémon com base no ano de nascimento (Temporada Oficial)
     let finalCategory = categoria || "Master";
@@ -176,7 +183,9 @@ export async function POST(req: Request) {
       }
     }
 
-    const finalDeckNome = sanitizeText(deckNome) || "A definir";
+    const finalDeckNome = isPreReleaseEvent
+      ? "Kit Pré-Release (Formato Selado)"
+      : sanitizeText(deckNome) || "A definir";
 
     // Auto-detecta energia inteligente caso o usuário não tenha selecionado ou seja genérica
     const finalTipoEnergia =
@@ -416,12 +425,17 @@ export async function POST(req: Request) {
     waMsg += `👤 *Jogador:* ${nameVal.cleanName}\n`;
     waMsg += `🆔 *POP ID:* ${popVal.cleanId}\n`;
     waMsg += `🎂 *Nascimento:* ${formattedNasc ? `${formattedNasc} (${finalCategory})` : finalCategory}\n`;
-    waMsg += `🃏 *Deck:* ${finalDeckNome} (${totalCartas}/60 cartas)\n`;
-    if (limitlessUrl) {
-      waMsg += `🔗 *Limitless:* ${limitlessUrl}\n`;
-    }
-    if (rawDecklistText) {
-      waMsg += `\n📜 *LISTA (${totalCartas} cartas):*\n${rawDecklistText}\n`;
+    if (isPreReleaseEvent) {
+      waMsg += `📦 *Formato:* Selado (Kit Pré-Release Build & Battle Box)\n`;
+      waMsg += `ℹ️ *Decklist:* Montada na hora do evento (dispensada no cadastro)\n`;
+    } else {
+      waMsg += `🃏 *Deck:* ${finalDeckNome} (${totalCartas}/60 cartas)\n`;
+      if (limitlessUrl) {
+        waMsg += `🔗 *Limitless:* ${limitlessUrl}\n`;
+      }
+      if (rawDecklistText) {
+        waMsg += `\n📜 *LISTA (${totalCartas} cartas):*\n${rawDecklistText}\n`;
+      }
     }
 
     // 7.1. Cálculo do Valor da Inscrição (1 inscrição vs 2 inscrições para ambos horários)

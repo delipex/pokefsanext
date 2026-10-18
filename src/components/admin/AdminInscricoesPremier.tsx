@@ -201,12 +201,25 @@ export function AdminInscricoesPremier({
       setPremierSubtitulo(cal.descricao);
     }
 
-    if (cal.evento?.toLowerCase().includes("challenge")) {
+    if (cal.evento?.toLowerCase().includes("release")) {
+      setPremierTipo("Pre-Release");
+      setPremierMultiplicador("1.0");
+      setPremierExigirDecklist(false);
+      setPremierMultiTurno(true);
+      setPremierTurno1Nome("1º Horário (14h00)");
+      setPremierTurno2Nome("2º Horário (17h00)");
+      setPremierHorario("1º Horário às 14h00 • 2º Horário às 17h00");
+      if (!premierObs || premierObs.includes("Traga sua decklist")) {
+        setPremierObs("Torneio de Pré-Release Oficial no Formato Selado com Build & Battle Box (40 cartas montadas na hora). Escolha seu horário de participação no formulário.");
+      }
+    } else if (cal.evento?.toLowerCase().includes("challenge")) {
       setPremierTipo("Challenge");
       setPremierMultiplicador("1.5");
+      setPremierExigirDecklist(true);
     } else if (cal.evento?.toLowerCase().includes("cup")) {
       setPremierTipo("Cup");
       setPremierMultiplicador("1.5");
+      setPremierExigirDecklist(true);
     } else {
       setPremierTipo("Especial");
     }
@@ -891,14 +904,24 @@ export function AdminInscricoesPremier({
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Exigência de Decklist (60 Cartas)</label>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Exigência de Decklist (60 Cartas)
+                  {premierTipo === "Pre-Release" && (
+                    <span className="ml-2 text-[10px] text-amber-400 font-bold bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30">
+                      Desativada (Pré-Release / Selado)
+                    </span>
+                  )}
+                </label>
                 <select
-                  value={String(premierExigirDecklist)}
+                  value={premierTipo === "Pre-Release" ? "false" : String(premierExigirDecklist)}
                   onChange={(e) => setPremierExigirDecklist(e.target.value === "true")}
-                  className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
+                  disabled={premierTipo === "Pre-Release"}
+                  className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white disabled:opacity-60 disabled:cursor-not-allowed"
                 >
+                  <option value="false">
+                    📝 Desativada / Opcional {premierTipo === "Pre-Release" ? "(Padrão Pré-Release - cartas montadas no evento)" : "(pode entregar até a Rodada 1)"}
+                  </option>
                   <option value="true">📜 Obrigatória no formulário (60 cartas)</option>
-                  <option value="false">📝 Opcional (pode entregar até a Rodada 1)</option>
                 </select>
               </div>
             </div>
