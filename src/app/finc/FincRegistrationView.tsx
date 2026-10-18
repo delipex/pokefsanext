@@ -25,6 +25,9 @@ import {
   Search,
   Loader2,
   X,
+  Edit3,
+  LogOut,
+  UserCheck,
 } from "lucide-react";
 import { FincPassportCard } from "@/components/finc/FincPassportCard";
 
@@ -173,6 +176,7 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [confirmedData, setConfirmedData] = useState<{
+    id?: number;
     protocolo: string;
     nome: string;
     whatsappLink: string;
@@ -184,8 +188,17 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
     ra?: string | null;
     intencao?: string;
     possuiDeck?: string;
+    observacoes?: string | null;
+    whatsapp?: string;
+    email?: string | null;
   } | null>(null);
   const [hasCopied, setHasCopied] = useState(false);
+
+  // Reconhecimento automático no aparelho e modo de edição de inscrição existente
+  const [savedRegistration, setSavedRegistration] = useState<any | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingProtocolo, setEditingProtocolo] = useState<string | null>(null);
 
   // Estados e controle de consulta de inscrição anterior
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -217,9 +230,12 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
       parsedDays = [item.dias];
     }
 
-    setConfirmedData({
+    const confItem = {
+      id: item.id,
       protocolo: item.protocolo,
       nome: item.nome,
+      whatsapp: item.whatsapp,
+      email: item.email || null,
       whatsappLink: `https://wa.me/5575992683072?text=${encodeURIComponent(
         `Olá! Segue minha credencial confirmada da Arena Geek TCG (FINC 2026):\n\n🎫 *Protocolo:* ${item.protocolo}\n👤 *Nome:* ${item.nome}`
       )}`,
@@ -231,10 +247,99 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
       ra: item.ra || null,
       intencao: item.intencao || "torneio",
       possuiDeck: item.possuiDeck || "sim",
-    });
+      observacoes: item.observacoes || null,
+    };
 
+    try {
+      localStorage.setItem("finc_protocolo", item.protocolo);
+      localStorage.setItem("finc_nome", item.nome);
+    } catch {}
+
+    setConfirmedData(confItem);
+    setSavedRegistration(confItem);
     setIsSearchModalOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleStartEdit = (item: any) => {
+    let tJogos = item.torneioJogos || [];
+    let oJogos = item.oficinaJogos || [];
+    let turnos = item.turnos || [];
+
+    if (tJogos.length === 0 && oJogos.length === 0 && item.jogos) {
+      try {
+        const parsed = typeof item.jogos === "string" ? JSON.parse(item.jogos) : item.jogos;
+        if (Array.isArray(parsed)) {
+          tJogos = parsed;
+        } else if (parsed && typeof parsed === "object") {
+          tJogos = parsed.torneio || [];
+          oJogos = parsed.oficinas || [];
+        }
+      } catch {}
+    }
+
+    if (turnos.length === 0 && item.dias) {
+      try {
+        const d = typeof item.dias === "string" ? JSON.parse(item.dias) : item.dias;
+        turnos = Array.isArray(d) ? d : [d];
+      } catch {}
+    }
+
+    setNome(item.nome || "");
+    setWhatsapp(formatPhoneInput(item.whatsapp || ""));
+    setEmail(item.email || "");
+    setTipoParticipante(item.tipoParticipante || "externo");
+    setRa(item.ra || "");
+    setTorneioJogos(tJogos);
+    setOficinaJogos(oJogos);
+    setSelectedTurnos(turnos.length > 0 ? turnos : ["21_noite", "22_tarde", "22_noite"]);
+    setObservacoes(item.observacoes || "");
+
+    const newTermos: Record<string, boolean> = {};
+    for (const t of tJogos) {
+      newTermos[t] = true;
+    }
+    setTermosTorneio(newTermos);
+
+    setIsEditing(true);
+    setEditingId(item.id || null);
+    setEditingProtocolo(item.protocolo);
+    setConfirmedData(null);
+
+    setTimeout(() => {
+      const formEl = document.getElementById("formulario-finc");
+      if (formEl) {
+        formEl.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 150);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingId(null);
+    setEditingProtocolo(null);
+    setErrorMessage("");
+  };
+
+  const handleForgetSavedRegistration = () => {
+    try {
+      localStorage.removeItem("finc_protocolo");
+      localStorage.removeItem("finc_nome");
+    } catch {}
+    setSavedRegistration(null);
+    setIsEditing(false);
+    setEditingId(null);
+    setEditingProtocolo(null);
+    setConfirmedData(null);
+    setNome("");
+    setWhatsapp("");
+    setEmail("");
+    setRa("");
+    setObservacoes("");
+    setTorneioJogos(["pokemon"]);
+    setOficinaJogos([]);
+    setTermosTorneio({ pokemon: false });
+    setSelectedTurnos(["21_noite", "22_tarde", "22_noite"]);
   };
 
   const handleSearchSubmit = async (e: React.FormEvent) => {
@@ -335,10 +440,17 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
     }
   };
 
-  // Carrega protocolo caso venha via URL (ex: scan do QR code ou link direto)
+  // Carrega protocolo caso venha via URL ou do LocalStorage (reconhecimento automático)
   useEffect(() => {
-    if (initialProtocol && initialProtocol.trim() !== "") {
-      fetch(`/api/finc?protocolo=${encodeURIComponent(initialProtocol.trim())}`)
+    const hasInitial = !!(initialProtocol && initialProtocol.trim() !== "");
+    const targetProt = hasInitial
+      ? initialProtocol!.trim()
+      : typeof window !== "undefined"
+      ? localStorage.getItem("finc_protocolo")
+      : null;
+
+    if (targetProt) {
+      fetch(`/api/finc?protocolo=${encodeURIComponent(targetProt.trim())}`)
         .then((res) => res.json())
         .then((data) => {
           if (data?.inscricao) {
@@ -365,9 +477,12 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
               parsedDays = [ins.dias];
             }
 
-            setConfirmedData({
+            const item = {
+              id: ins.id,
               protocolo: ins.protocolo,
               nome: ins.nome,
+              whatsapp: ins.whatsapp,
+              email: ins.email || null,
               whatsappLink: `https://wa.me/5575992683072?text=${encodeURIComponent(
                 `Olá! Segue minha credencial confirmada da Arena Geek TCG (FINC 2026):\n\n🎫 *Protocolo:* ${ins.protocolo}\n👤 *Nome:* ${ins.nome}`
               )}`,
@@ -379,7 +494,15 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
               ra: ins.ra || null,
               intencao: ins.intencao || "torneio",
               possuiDeck: ins.possuiDeck || "sim",
-            });
+              observacoes: ins.observacoes || null,
+            };
+
+            setSavedRegistration(item);
+
+            // Se veio explicitamente com ?protocolo= na URL, abre o passaporte de vez
+            if (hasInitial) {
+              setConfirmedData(item);
+            }
           }
         })
         .catch(() => {});
@@ -402,7 +525,6 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
       prev.includes(id) ? (prev.length > 1 ? prev.filter((t) => t !== id) : prev) : [...prev, id]
     );
   };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -450,32 +572,41 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
 
     setIsSubmitting(true);
     try {
+      const method = isEditing ? "PUT" : "POST";
+      const payload: any = {
+        id: editingId,
+        protocolo: editingProtocolo,
+        nome: nome.trim(),
+        whatsapp: cleanPhone,
+        email: email.trim(),
+        tipoParticipante,
+        ra: tipoParticipante === "unef" || tipoParticipante === "unifan" ? ra.trim() : "",
+        jogosTorneio: torneioJogos,
+        jogosOficina: oficinaJogos,
+        termosTorneio,
+        jogos: [...new Set([...torneioJogos, ...oficinaJogos])],
+        dias: selectedTurnos,
+        observacoes: observacoes.trim(),
+        status: "confirmado",
+      };
+
       const res = await fetch("/api/finc", {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: nome.trim(),
-          whatsapp: cleanPhone,
-          email: email.trim(),
-          tipoParticipante,
-          ra: tipoParticipante === "unef" || tipoParticipante === "unifan" ? ra.trim() : "",
-          jogosTorneio: torneioJogos,
-          jogosOficina: oficinaJogos,
-          termosTorneio,
-          jogos: [...new Set([...torneioJogos, ...oficinaJogos])],
-          dias: selectedTurnos,
-          observacoes: observacoes.trim(),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Erro ao realizar inscrição.");
+        throw new Error(data.error || "Erro ao processar inscrição.");
       }
 
-      setConfirmedData({
+      const confItem = {
+        id: data.inscricao?.id || editingId,
         protocolo: data.protocolo,
         nome: nome.trim(),
+        whatsapp: cleanPhone,
+        email: email.trim() || null,
         whatsappLink: data.whatsappLink,
         jogos: [...new Set([...torneioJogos, ...oficinaJogos])],
         torneioJogos,
@@ -485,7 +616,19 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
         ra: tipoParticipante === "unef" || tipoParticipante === "unifan" ? ra.trim() : null,
         intencao: torneioJogos.length > 0 && oficinaJogos.length > 0 ? "ambos" : torneioJogos.length > 0 ? "torneio" : "oficina_aprender",
         possuiDeck: torneioJogos.length > 0 ? "sim" : "nao",
-      });
+        observacoes: observacoes.trim() || null,
+      };
+
+      try {
+        localStorage.setItem("finc_protocolo", data.protocolo);
+        localStorage.setItem("finc_nome", nome.trim());
+      } catch {}
+
+      setConfirmedData(confItem);
+      setSavedRegistration(confItem);
+      setIsEditing(false);
+      setEditingId(null);
+      setEditingProtocolo(null);
 
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
@@ -635,8 +778,12 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
             onClose={() => {
               setConfirmedData(null);
             }}
+            onEdit={() => handleStartEdit(confirmedData)}
             onNewRegistration={() => {
               setConfirmedData(null);
+              setIsEditing(false);
+              setEditingId(null);
+              setEditingProtocolo(null);
               setNome("");
               setWhatsapp("");
               setEmail("");
@@ -647,6 +794,62 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
         </section>
       ) : (
         <>
+          {/* RECONHECIMENTO AUTOMÁTICO DE PARTICIPANTE PREVIAMENTE INSCRITO */}
+          {savedRegistration && !confirmedData && !isEditing && (
+            <div className="rounded-3xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/70 via-slate-900/90 to-slate-950 p-4 sm:p-5 backdrop-blur-xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left animate-in fade-in zoom-in-95">
+              <div className="flex items-center gap-3.5">
+                <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shrink-0 text-emerald-400 shadow-inner">
+                  <CheckCircle2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                    <span>✓ Inscrição Ativa & Confirmada</span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
+                    Olá, {savedRegistration.nome}!
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Sua vaga está garantida na Arena Geek TCG • Protocolo:{" "}
+                    <strong className="text-emerald-300 font-mono">{savedRegistration.protocolo}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmedData(savedRegistration);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-4 py-2.5 shadow-lg shadow-emerald-600/25 transition-all cursor-pointer"
+                >
+                  <QrCode className="h-4 w-4" />
+                  <span>Ver Passaporte</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleStartEdit(savedRegistration)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold text-xs px-3.5 py-2.5 transition-all cursor-pointer"
+                >
+                  <Edit3 className="h-4 w-4 text-cyan-400" />
+                  <span>Alterar Escolhas</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleForgetSavedRegistration}
+                  title="Inscrever outra pessoa ou desconectar deste aparelho"
+                  className="inline-flex items-center gap-1 rounded-xl border border-white/10 hover:border-white/20 bg-slate-800/40 hover:bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer text-xs px-2.5 py-2.5"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="text-[11px] hidden sm:inline">Nova Pessoa</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* BARRA DE CONSULTA DE INSCRIÇÃO ANTERIOR (BAIXAR IMAGEM / WHATSAPP) */}
           <div className="rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/60 via-slate-900/80 to-slate-950 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
             <div className="flex items-center gap-3.5">
@@ -673,17 +876,44 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
               <span>Consultar e Baixar Passaporte</span>
             </button>
           </div>
-        /* 2. FORMULÁRIO DE INSCRIÇÃO COM CAIXINHAS INTERATIVAS */
-        <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 sm:space-y-8">
-          <div className="border-b border-white/10 pb-4">
-            <div className="flex items-center gap-2 text-cyan-400 font-black text-xs uppercase tracking-wider">
-              <Globe className="h-4 w-4" />
-              Credenciamento • Participantes Externos
+
+          {/* 2. FORMULÁRIO DE INSCRIÇÃO COM CAIXINHAS INTERATIVAS */}
+          <section id="formulario-finc" className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 sm:space-y-8">
+            <div className="border-b border-white/10 pb-4">
+              <div className="flex items-center gap-2 text-cyan-400 font-black text-xs uppercase tracking-wider">
+                <Globe className="h-4 w-4" />
+                {isEditing ? "Atualização de Cadastro" : "Credenciamento • Participantes Externos"}
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
+                {isEditing ? "Altere suas preferências ou turnos" : "Selecione suas preferências e turnos de presença"}
+              </h2>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
-              Selecione suas preferências e turnos de presença
-            </h2>
-          </div>
+
+            {/* BANNER DE MODO DE EDIÇÃO */}
+            {isEditing && (
+              <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/60 via-slate-900/80 to-slate-950 p-4 text-xs flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl animate-in fade-in">
+                <div className="flex items-center gap-3 text-center sm:text-left">
+                  <div className="h-9 w-9 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0 text-amber-400">
+                    <Edit3 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-white block">
+                      Editando Inscrição: <strong className="font-mono text-amber-300">{editingProtocolo}</strong> ({nome})
+                    </span>
+                    <span className="text-slate-300 text-[11px]">
+                      Altere suas modalidades, turnos ou informações. Ao salvar, seu passaporte será atualizado sem gerar duplicatas.
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 text-white font-bold text-xs shrink-0 cursor-pointer transition-all"
+                >
+                  Cancelar Edição
+                </button>
+              </div>
+            )}
 
           <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
             {/* ETAPA 1: TORNEIOS COMPETITIVOS (CAIXINHAS COM 1ª, 2ª E 3ª OPÇÃO) */}
@@ -1126,16 +1356,24 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
             )}
 
             {/* BOTÃO SUBMIT */}
-            <div className="pt-2">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-600 hover:from-cyan-400 hover:to-fuchsia-500 py-3.5 px-6 text-sm sm:text-base font-black text-white shadow-xl shadow-cyan-600/20 transition-all transform active:scale-[0.99] cursor-pointer disabled:opacity-50"
+                className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 px-6 text-sm sm:text-base font-black text-white shadow-xl transition-all transform active:scale-[0.99] cursor-pointer disabled:opacity-50 ${
+                  isEditing
+                    ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 shadow-emerald-600/25"
+                    : "bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-600 hover:from-cyan-400 hover:to-fuchsia-500 shadow-cyan-600/20"
+                }`}
               >
                 {isSubmitting ? (
                   <>
                     <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Gerando passaporte...</span>
+                    <span>{isEditing ? "Salvando alterações..." : "Gerando passaporte..."}</span>
+                  </>
+                ) : isEditing ? (
+                  <>
+                    <Check className="h-5 w-5 text-emerald-300" />
+                    <span>Salvar Alterações na Inscrição ({editingProtocolo})</span>
                   </>
                 ) : (
                   <>
@@ -1145,9 +1383,10 @@ export function FincRegistrationView({ initialProtocol }: { initialProtocol?: st
                 )}
               </button>
               <p className="text-center text-[11px] text-slate-400 mt-2">
-                Inscrição 100% gratuita. Seu passaporte e QR Code são gerados na hora.
+                {isEditing
+                  ? "Suas alterações serão salvas diretamente neste protocolo sem criar cadastros duplicados."
+                  : "Inscrição 100% gratuita. Seu passaporte e QR Code são gerados na hora."}
               </p>
-            </div>
           </form>
         </section>
       </>

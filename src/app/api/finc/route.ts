@@ -386,6 +386,7 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const {
       id,
+      protocolo,
       nome,
       whatsapp,
       email = "",
@@ -398,8 +399,8 @@ export async function PUT(request: Request) {
       status = "confirmado",
     } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: "ID da inscrição é obrigatório." }, { status: 400 });
+    if (!id && !protocolo) {
+      return NextResponse.json({ error: "ID ou Protocolo da inscrição é obrigatório." }, { status: 400 });
     }
 
     if (!nome || typeof nome !== "string" || nome.trim().length < 3) {
@@ -430,6 +431,10 @@ export async function PUT(request: Request) {
 
     const computedPossuiDeck = cleanTorneio.length > 0 ? "sim" : "nao";
 
+    const whereClause = id
+      ? eq(inscricoesFinc.id, Number(id))
+      : eq(inscricoesFinc.protocolo, String(protocolo).trim().toUpperCase());
+
     const updated = await db
       .update(inscricoesFinc)
       .set({
@@ -449,17 +454,38 @@ export async function PUT(request: Request) {
         observacoes: observacoes ? observacoes.trim() : null,
         status,
       })
-      .where(eq(inscricoesFinc.id, Number(id)))
+      .where(whereClause)
       .returning();
 
     if (!updated || updated.length === 0) {
       return NextResponse.json({ error: "Inscrição não encontrada para atualização." }, { status: 404 });
     }
 
+    const updatedRow = updated[0];
+
+    const diasMap: Record<string, string> = {
+      "21_noite": "21/10 Noite (17h-22h)",
+      "21": "21/10 Noite",
+      "22_tarde": "22/10 Tarde (14h-18h)",
+      "22_noite": "22/10 Noite (18h-20h)",
+      "22": "22/10 Tarde & Noite",
+    };
+    const diasFormatados = diasArray.map((d: string) => diasMap[d] || d).join(", ");
+
+    const zapText = encodeURIComponent(
+      `Olá! Atualizei minha inscrição para a ARENA GEEK (FINC 2026).\n\n` +
+      `🎫 *Protocolo:* ${updatedRow.protocolo}\n` +
+      `👤 *Nome:* ${updatedRow.nome}\n` +
+      `📅 *Presença:* ${diasFormatados}\n\n` +
+      `Comprovante atualizado!`
+    );
+
     return NextResponse.json({
       success: true,
       message: "Inscrição atualizada com sucesso!",
-      inscricao: updated[0],
+      protocolo: updatedRow.protocolo,
+      inscricao: updatedRow,
+      whatsappLink: `https://wa.me/5575992683072?text=${zapText}`,
     });
   } catch (err: any) {
     console.error("Erro ao atualizar inscrição FINC:", err);

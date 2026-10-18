@@ -21,6 +21,7 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Edit3,
 } from "lucide-react";
 
 export interface FincInscricaoData {
@@ -47,6 +48,7 @@ interface FincPassportCardProps {
   inscricao: FincInscricaoData;
   onClose?: () => void;
   onNewRegistration?: () => void;
+  onEdit?: () => void;
   isModal?: boolean;
 }
 
@@ -70,6 +72,7 @@ export function FincPassportCard({
   inscricao,
   onClose,
   onNewRegistration,
+  onEdit,
   isModal = false,
 }: FincPassportCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -551,6 +554,17 @@ export function FincPassportCard({
             <Printer className="h-3.5 w-3.5 text-cyan-400" />
             <span>Imprimir</span>
           </button>
+
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-950/40 hover:bg-cyan-900/60 px-3.5 py-2.5 text-xs font-bold text-cyan-300 hover:text-white transition-all cursor-pointer"
+            >
+              <Edit3 className="h-3.5 w-3.5 text-cyan-400" />
+              <span>Editar Inscrição</span>
+            </button>
+          )}
 
           {onNewRegistration && (
             <button
