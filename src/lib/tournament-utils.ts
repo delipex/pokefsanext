@@ -186,3 +186,46 @@ export function evaluatePremierRegistrationStatus(
     isExplicitlyClosed: false,
   };
 }
+
+/**
+ * Converte qualquer representação de valor monetário (ex: "35,00", "R$ 180,00", "180.50") para number
+ */
+export function parseBRLMoney(val: string | number | undefined | null): number {
+  if (val === undefined || val === null) return 0;
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  let s = String(val).replace(/[^\d.,]/g, "").trim();
+  if (s.includes(".") && s.includes(",")) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (s.includes(",")) {
+    s = s.replace(",", ".");
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+/**
+ * Formata um número para a representação monetária brasileira padrão (ex: "35,00", "360,00")
+ */
+export function formatBRLMoney(num: number): string {
+  return (isNaN(num) ? 0 : num).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/**
+ * Verifica se uma string de turno indica participação em ambos os horários (Kit Duplo / 2 Inscrições)
+ */
+export function isBothTurnosSelected(turno?: string | null): boolean {
+  if (!turno) return false;
+  const t = String(turno).toLowerCase().trim();
+  return (
+    t.includes("ambos") ||
+    t.includes("duplo") ||
+    t.includes("2 horários") ||
+    t.includes("2 horarios") ||
+    t.includes("dois horários") ||
+    t.includes("dois horarios") ||
+    (t.includes("1") && t.includes("2"))
+  );
+}

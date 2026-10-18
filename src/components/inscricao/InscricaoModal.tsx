@@ -34,7 +34,12 @@ import { CategoryBadge } from "@/components/ui/CategoryBadge";
 import defaultDecks from "@/data/decks.json";
 import { parsePTCGDecklist, ParsedDecklistResult } from "@/lib/decklist-parser";
 import { DecklistVisualGallery } from "@/components/deck/DecklistVisualGallery";
-import { evaluatePremierRegistrationStatus } from "@/lib/tournament-utils";
+import {
+  evaluatePremierRegistrationStatus,
+  parseBRLMoney,
+  formatBRLMoney,
+  isBothTurnosSelected,
+} from "@/lib/tournament-utils";
 
 // Catálogo padrão de baralhos cadastrados da Liga
 const CATALOG_DECKS: string[] = Array.from(
@@ -301,6 +306,70 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     );
   }, [config.premierTipo, config.premierNome, isMultiTurno]);
 
+  const turno1Name = config.premierTurno1Nome || "1º Horário (14h00)";
+  const turno2Name = config.premierTurno2Nome || "2º Horário (17h00)";
+  const ambosTurnosName = "Ambos os Horários (Kit Duplo)";
+
+  const isAmbosTurnos = useMemo(() => {
+    return isBothTurnosSelected(selectedTurno);
+  }, [selectedTurno]);
+
+  const baseValorNumber = useMemo(() => {
+    return parseBRLMoney(config.premierValor || "35,00");
+  }, [config.premierValor]);
+
+  const baseValorFormatted = useMemo(() => {
+    return formatBRLMoney(baseValorNumber);
+  }, [baseValorNumber]);
+
+  const quantidadeInscricoes = isAmbosTurnos ? 2 : 1;
+  const effectiveValorNumber = baseValorNumber * quantidadeInscricoes;
+  const effectiveValorFormatted = useMemo(() => {
+    return formatBRLMoney(effectiveValorNumber);
+  }, [effectiveValorNumber]);
+
+  const showAmbosOption = useMemo(() => {
+    return (
+      isPreRelease ||
+      isMultiTurno ||
+      config.premierPermitirAmbosTurnos === "true" ||
+      config.premierPermitirAmbosTurnos === true
+    );
+  }, [isPreRelease, isMultiTurno, config.premierPermitirAmbosTurnos]);
+
+  const handleSelectTurno = (chosen: "t1" | "t2" | "ambos") => {
+    if (chosen === "ambos") {
+      setSelectedTurno((prev) => (isBothTurnosSelected(prev) ? "" : ambosTurnosName));
+      return;
+    }
+
+    const isCurrentlyAmbos = isBothTurnosSelected(selectedTurno);
+    const isCurrentT1 = selectedTurno === turno1Name;
+    const isCurrentT2 = selectedTurno === turno2Name;
+
+    if (chosen === "t1") {
+      if (isCurrentT1) {
+        setSelectedTurno("");
+      } else if (isCurrentT2) {
+        setSelectedTurno(ambosTurnosName);
+      } else if (isCurrentlyAmbos) {
+        setSelectedTurno(turno2Name);
+      } else {
+        setSelectedTurno(turno1Name);
+      }
+    } else if (chosen === "t2") {
+      if (isCurrentT2) {
+        setSelectedTurno("");
+      } else if (isCurrentT1) {
+        setSelectedTurno(ambosTurnosName);
+      } else if (isCurrentlyAmbos) {
+        setSelectedTurno(turno1Name);
+      } else {
+        setSelectedTurno(turno2Name);
+      }
+    }
+  };
+
   const effectiveDeckList = useMemo(() => {
     if (isPreRelease && !deckCatalogList.includes("Kit Pré-Release (Formato Selado)")) {
       return ["Kit Pré-Release (Formato Selado)", ...deckCatalogList];
@@ -338,7 +407,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
       return;
     }
 
-    if (isMultiTurno && !selectedTurno) {
+    if ((isMultiTurno || isPreRelease) && !selectedTurno) {
       setErrorMessage("Por favor, selecione qual horário/sessão você deseja participar.");
       return;
     }
@@ -377,12 +446,13 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
           decklistRaw: decklistRaw.trim(),
           limitlessUrl: limitlessUrl.trim(),
           metodoPagamento,
-          turno: selectedTurno || (isMultiTurno ? config.premierTurno1Nome || "1º Horário" : "Único"),
+          turno: selectedTurno || ((isMultiTurno || isPreRelease) ? turno1Name : "Único"),
+          valor: effectiveValorFormatted,
+          quantidade: quantidadeInscricoes,
           eventoNome: config.premierNome || "Torneio Oficial Liga Atlântica",
           etapaData: config.premierData || new Date().toISOString().split("T")[0],
         }),
       });
-
 
       const data = await res.json();
 
@@ -397,7 +467,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
         waUrl: data.waUrl,
         chavePix: data.chavePix || config.premierPix || "",
         titularPix: data.titularPix || config.premierTitular || "",
-        valor: data.valor || config.premierValor || "0,00",
+        valor: data.valor || effectiveValorFormatted,
         item: data.item,
       });
       setTotalInscritos((prev) => prev + 1);
@@ -507,9 +577,16 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                           Dados para Pagamento PIX
                         </span>
                       </div>
-                      <span className="text-sm font-black text-emerald-400">
-                        R$ {successData.valor}
-                      </span>
+                      <div className="text-right">
+                        <span className="text-sm font-black text-emerald-400">
+                          R$ {successData.valor}
+                        </span>
+                        {isBothTurnosSelected(successData.item?.turno || selectedTurno) && (
+                          <span className="block text-[10px] text-amber-300 font-bold">
+                            Kit Duplo (2 Inscrições)
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
@@ -533,14 +610,21 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 text-left space-y-2">
-                    <div className="flex items-center gap-2 text-blue-300">
-                      <MapPin className="h-4 w-4 text-blue-400" />
-                      <span className="text-xs font-bold uppercase tracking-wider">
-                        Pagamento no Dia do Evento (Presencial)
-                      </span>
+                    <div className="flex items-center justify-between text-blue-300">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-blue-400" />
+                        <span className="text-xs font-bold uppercase tracking-wider">
+                          Pagamento no Dia do Evento (Presencial)
+                        </span>
+                      </div>
+                      {isBothTurnosSelected(successData.item?.turno || selectedTurno) && (
+                        <span className="text-[10px] text-amber-300 font-bold bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30">
+                          2 Inscrições
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                      Sua pré-inscrição foi registrada com sucesso! Por favor, apresente-se na recepção antes da Rodada 1 para efetuar o pagamento de <strong>R$ {successData.valor}</strong> e confirmar o seu check-in.
+                      Sua pré-inscrição foi registrada com sucesso! Por favor, apresente-se na recepção antes da Rodada 1 para efetuar o pagamento de <strong>R$ {successData.valor}</strong>{isBothTurnosSelected(successData.item?.turno || selectedTurno) ? " referente aos 2 horários (Kit Duplo)" : ""} e confirmar o seu check-in.
                     </p>
                   </div>
                 )}
@@ -809,83 +893,93 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     </div>
                   </div>
 
-                  {/* Seleção de Horário / Turno (quando Multi-Turno está ativo: escolhe 1 ou outro) */}
-                  {isMultiTurno && (
+                  {/* Seleção de Horário / Turno (quando Multi-Turno ou Pré-Release está ativo) */}
+                  {(isMultiTurno || isPreRelease) && (
                     <div className="space-y-2 p-3.5 rounded-2xl border border-indigo-500/40 bg-indigo-950/30 backdrop-blur-md">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wider">
                           <Clock className="h-4 w-4 text-indigo-400" />
                           <span>Escolha seu Horário de Participação *</span>
                         </label>
-                        <span className="text-[10px] text-indigo-300 font-bold bg-indigo-500/20 px-2.5 py-0.5 rounded-full border border-indigo-500/30">
-                          Escolha 1 ou outro
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                          isAmbosTurnos
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                            : "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                        }`}>
+                          {isAmbosTurnos ? "2 Inscrições (Kit Duplo)" : "Escolha 1 ou ambos"}
                         </span>
                       </div>
 
-                      <div className={`grid grid-cols-1 ${config.premierPermitirAmbosTurnos === "true" || config.premierPermitirAmbosTurnos === true ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-2.5 pt-1`}>
+                      <div className={`grid grid-cols-1 ${showAmbosOption ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-2.5 pt-1`}>
                         {/* Opção 1: Turno 1 (ex: 14h00) */}
                         <button
                           type="button"
-                          onClick={() => setSelectedTurno(config.premierTurno1Nome || "1º Horário (14h00)")}
+                          onClick={() => handleSelectTurno("t1")}
                           className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                            selectedTurno === (config.premierTurno1Nome || "1º Horário (14h00)")
+                            selectedTurno === turno1Name
                               ? "bg-indigo-600/30 border-indigo-400 shadow-lg shadow-indigo-500/20 ring-2 ring-indigo-400/60 text-white"
+                              : isAmbosTurnos
+                              ? "bg-indigo-950/40 border-indigo-500/50 text-white"
                               : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-300"
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black flex items-center gap-1.5">
                               <span>🕒</span>
-                              <span>{config.premierTurno1Nome || "1º Horário (14h00)"}</span>
+                              <span>{turno1Name}</span>
                             </span>
                             <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
-                              selectedTurno === (config.premierTurno1Nome || "1º Horário (14h00)")
+                              selectedTurno === turno1Name || isAmbosTurnos
                                 ? "bg-indigo-500 border-indigo-400 text-white font-black"
                                 : "border-white/20"
                             }`}>
-                              {selectedTurno === (config.premierTurno1Nome || "1º Horário (14h00)") ? "✓" : ""}
+                              {selectedTurno === turno1Name || isAmbosTurnos ? "✓" : ""}
                             </span>
                           </div>
-                          <p className="text-[10px] text-slate-400">
-                            Primeira sessão do torneio
-                          </p>
+                          <div className="flex items-center justify-between text-[11px] pt-1">
+                            <span className="text-slate-400">1 Inscrição</span>
+                            <span className="font-bold text-white">R$ {baseValorFormatted}</span>
+                          </div>
                         </button>
 
                         {/* Opção 2: Turno 2 (ex: 17h00) */}
                         <button
                           type="button"
-                          onClick={() => setSelectedTurno(config.premierTurno2Nome || "2º Horário (17h00)")}
+                          onClick={() => handleSelectTurno("t2")}
                           className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                            selectedTurno === (config.premierTurno2Nome || "2º Horário (17h00)")
+                            selectedTurno === turno2Name
                               ? "bg-purple-600/30 border-purple-400 shadow-lg shadow-purple-500/20 ring-2 ring-purple-400/60 text-white"
+                              : isAmbosTurnos
+                              ? "bg-purple-950/40 border-purple-500/50 text-white"
                               : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-300"
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black flex items-center gap-1.5">
                               <span>🕒</span>
-                              <span>{config.premierTurno2Nome || "2º Horário (17h00)"}</span>
+                              <span>{turno2Name}</span>
                             </span>
                             <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
-                              selectedTurno === (config.premierTurno2Nome || "2º Horário (17h00)")
+                              selectedTurno === turno2Name || isAmbosTurnos
                                 ? "bg-purple-500 border-purple-400 text-white font-black"
                                 : "border-white/20"
                             }`}>
-                              {selectedTurno === (config.premierTurno2Nome || "2º Horário (17h00)") ? "✓" : ""}
+                              {selectedTurno === turno2Name || isAmbosTurnos ? "✓" : ""}
                             </span>
                           </div>
-                          <p className="text-[10px] text-slate-400">
-                            Segunda sessão do torneio
-                          </p>
+                          <div className="flex items-center justify-between text-[11px] pt-1">
+                            <span className="text-slate-400">1 Inscrição</span>
+                            <span className="font-bold text-white">R$ {baseValorFormatted}</span>
+                          </div>
                         </button>
 
-                        {/* Opção 3: Ambos os Horários (apenas se expressamente habilitado nas configs) */}
-                        {(config.premierPermitirAmbosTurnos === "true" || config.premierPermitirAmbosTurnos === true) && (
+                        {/* Opção 3: Ambos os Horários (Kit Duplo) */}
+                        {showAmbosOption && (
                           <button
                             type="button"
-                            onClick={() => setSelectedTurno("Ambos os Horários (Kit Duplo)")}
+                            onClick={() => handleSelectTurno("ambos")}
                             className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                              selectedTurno === "Ambos os Horários (Kit Duplo)"
+                              isAmbosTurnos
                                 ? "bg-emerald-600/30 border-emerald-400 shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-400/60 text-white"
                                 : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-300"
                             }`}
@@ -896,16 +990,19 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                                 <span>Ambos os Horários</span>
                               </span>
                               <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
-                                selectedTurno === "Ambos os Horários (Kit Duplo)"
+                                isAmbosTurnos
                                   ? "bg-emerald-500 border-emerald-400 text-white font-black"
                                   : "border-white/20"
                               }`}>
-                                {selectedTurno === "Ambos os Horários (Kit Duplo)" ? "✓" : ""}
+                                {isAmbosTurnos ? "✓" : ""}
                               </span>
                             </div>
-                            <p className="text-[10px] text-slate-400">
-                              Participe de ambas as sessões
-                            </p>
+                            <div className="flex items-center justify-between text-[11px] pt-1">
+                              <span className="text-emerald-300 font-semibold">2 Inscrições (Kit Duplo)</span>
+                              <span className="font-black text-emerald-400">
+                                R$ {formatBRLMoney(baseValorNumber * 2)}
+                              </span>
+                            </div>
                           </button>
                         )}
                       </div>
@@ -1069,9 +1166,16 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         <CreditCard className="h-3.5 w-3.5 text-emerald-400" />
                         Forma de Pagamento da Inscrição *
                       </span>
-                      <span className="text-[10px] text-slate-400 font-semibold">
-                        {config.premierValor ? `R$ ${config.premierValor}` : "Escolha a opção"}
-                      </span>
+                      <div className="text-right">
+                        <span className="text-xs font-black text-emerald-400">
+                          R$ {effectiveValorFormatted}
+                        </span>
+                        {isAmbosTurnos && (
+                          <span className="block text-[10px] text-amber-300 font-semibold">
+                            (2x R$ {baseValorFormatted})
+                          </span>
+                        )}
+                      </div>
                     </label>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -1166,12 +1270,19 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                       ) : existingRegistration ? (
                         <>
                           <Sparkles className="h-4 w-4 text-blue-300" />
-                          <span>Salvar Alterações na Inscrição</span>
+                          <span>
+                            Salvar Alterações • R$ {effectiveValorFormatted}
+                            {isAmbosTurnos ? " (2 Inscrições)" : ""}
+                          </span>
                         </>
                       ) : (
                         <>
                           <Sparkles className="h-4 w-4 text-amber-300" />
-                          <span>Confirmar Inscrição & Obter Protocolo</span>
+                          <span>
+                            {isAmbosTurnos
+                              ? `Confirmar Inscrição Dupla (2 Horários) • R$ ${effectiveValorFormatted}`
+                              : `Confirmar Inscrição • R$ ${effectiveValorFormatted}`}
+                          </span>
                         </>
                       )}
                     </button>

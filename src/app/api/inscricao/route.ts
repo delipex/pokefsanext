@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { client } from "@/db/index";
 import { jogadorDecklists, jogadores, configuracoes } from "@/db/schema";
@@ -12,8 +13,12 @@ import {
 } from "@/lib/security";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
 import { inferDeckEnergy } from "@/lib/deck-normalizer";
-import { revalidatePath } from "next/cache";
-import { evaluatePremierRegistrationStatus } from "@/lib/tournament-utils";
+import {
+  evaluatePremierRegistrationStatus,
+  parseBRLMoney,
+  formatBRLMoney,
+  isBothTurnosSelected,
+} from "@/lib/tournament-utils";
 
 // GET: Retorna as configurações do torneio ativo e total de inscritos
 export async function GET() {
@@ -419,12 +424,23 @@ export async function POST(req: Request) {
       waMsg += `\n📜 *LISTA (${totalCartas} cartas):*\n${rawDecklistText}\n`;
     }
 
-    if (isPresencial) {
-      waMsg += `\n💰 *Pagamento:* No Dia do Evento (Presencial no Balcão)\n⚠️ *Aviso:* Realizar o pagamento na recepção antes do início da Rodada 1.`;
-    } else {
-      waMsg += `\n💰 *Pagamento:* PIX Antecipado (R$ ${configMap.premierValor || "0,00"})\n📎 *Comprovante:* Segue anexo o comprovante PIX da inscrição.`;
-    }
+    // 7.1. Cálculo do Valor da Inscrição (1 inscrição vs 2 inscrições para ambos horários)
+    const isAmbos = isBothTurnosSelected(turno) || body.quantidade === 2;
+    const qtdInscricoes = isAmbos ? 2 : 1;
+    const basePriceNum = parseBRLMoney(configMap.premierValor || "35,00");
+    const totalValorNum = basePriceNum * qtdInscricoes;
+    const finalValorStr = formatBRLMoney(totalValorNum);
+    const baseValorStr = formatBRLMoney(basePriceNum);
 
+    if (isPresencial) {
+      waMsg += `\n💰 *Pagamento:* No Dia do Evento (Presencial no Balcão)\n`;
+      waMsg += `💵 *Valor:* R$ ${finalValorStr}${isAmbos ? ` (2 Inscrições / Kit Duplo)` : ``}\n`;
+      waMsg += `⚠️ *Aviso:* Realizar o pagamento na recepção antes do início da Rodada 1.`;
+    } else {
+      waMsg += `\n💰 *Pagamento:* PIX Antecipado\n`;
+      waMsg += `💵 *Valor:* R$ ${finalValorStr}${isAmbos ? ` (2 Inscrições / Kit Duplo - 2x R$ ${baseValorStr})` : ``}\n`;
+      waMsg += `📎 *Comprovante:* Segue anexo o comprovante PIX da inscrição.`;
+    }
 
     const encodedWa = encodeURIComponent(waMsg);
     const waUrl = waContact
@@ -444,7 +460,9 @@ export async function POST(req: Request) {
       waUrl,
       chavePix: configMap.premierPix || "",
       titularPix: configMap.premierTitular || "",
-      valor: configMap.premierValor || "0,00",
+      valor: finalValorStr,
+      baseValor: baseValorStr,
+      quantidade: qtdInscricoes,
       message: isUpdate
         ? "Inscrição atualizada com sucesso! Suas alterações foram registradas no sistema."
         : "Inscrição confirmada com sucesso! Guarde seu protocolo e envie o comprovante PIX.",
