@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -228,8 +228,6 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     setErrorMessage(null);
     controlledOnClose?.();
   };
-
-  const hiddenDateInputRef = useRef<HTMLInputElement>(null);
 
   const handleBirthDateChange = (raw: string) => {
     const formatted = formatBirthDateMask(raw);
@@ -869,56 +867,23 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                           <span>Data de Nascimento *</span>
                         </label>
                         {dataNascimento && calculatePokemonAgeCategory(dataNascimento).isValid && (
-                          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            {calculatePokemonAgeCategory(dataNascimento).age} anos
+                          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            {calculatePokemonAgeCategory(dataNascimento).age} anos • {calculatePokemonAgeCategory(dataNascimento).categoria}
                           </span>
                         )}
                       </div>
-                      <div className="relative flex items-center">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          required
-                          value={dataNascimento}
-                          onChange={(e) => handleBirthDateChange(e.target.value)}
-                          placeholder="DD/MM/AAAA"
-                          maxLength={10}
-                          className="w-full rounded-xl border border-white/10 bg-slate-900/90 pl-3.5 pr-10 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            try {
-                              hiddenDateInputRef.current?.showPicker?.();
-                            } catch {
-                              hiddenDateInputRef.current?.click();
-                            }
-                          }}
-                          className="absolute right-2 p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-white/5 transition-all cursor-pointer"
-                          title="Abrir calendário"
-                        >
-                          <Calendar className="h-4 w-4" />
-                        </button>
-                        <input
-                          ref={hiddenDateInputRef}
-                          type="date"
-                          tabIndex={-1}
-                          aria-hidden="true"
-                          max="2026-10-19"
-                          min="1940-01-01"
-                          value={normalizeDateToISO(dataNascimento)}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              const br = formatDateToBR(e.target.value);
-                              handleBirthDateChange(br);
-                            }
-                          }}
-                          className="sr-only"
-                          style={{ colorScheme: "dark" }}
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        required
+                        value={dataNascimento}
+                        onChange={(e) => handleBirthDateChange(e.target.value)}
+                        placeholder="DD/MM/AAAA (ex: 20/05/1998)"
+                        maxLength={10}
+                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                      />
                       <span className="text-[10px] text-slate-400 block">
-                        Ex: 15/05/2000 (digite os 8 números ou abra o calendário).
+                        Padrão brasileiro: dia/mês/ano (ex: 20/05/1998).
                       </span>
                     </div>
 
