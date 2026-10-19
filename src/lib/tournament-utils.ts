@@ -229,3 +229,82 @@ export function isBothTurnosSelected(turno?: string | null): boolean {
     (t.includes("1") && t.includes("2"))
   );
 }
+
+/**
+ * Máscara inteligente para digitação de data de nascimento no formato brasileiro DD/MM/AAAA.
+ * Aceita números contínuos, barras ou formato ISO e devolve sempre DD/MM/AAAA.
+ */
+export function formatBirthDateMask(input: string): string {
+  if (!input) return "";
+  const trimmed = input.trim();
+  // Se já for formato ISO YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return formatDateToBR(trimmed);
+  }
+  const digits = trimmed.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+/**
+ * Validação rigorosa e cálculo oficial da categoria Play! Pokémon a partir da data de nascimento.
+ */
+export function calculatePokemonAgeCategory(birthStr?: string | null): {
+  categoria: "Master" | "Senior" | "Junior";
+  age?: number;
+  year?: number;
+  isValid: boolean;
+  statusText?: string;
+} {
+  if (!birthStr) return { categoria: "Master", isValid: false };
+  const iso = normalizeDateToISO(birthStr);
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    return { categoria: "Master", isValid: false };
+  }
+  const parts = iso.split("-");
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
+
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return { categoria: "Master", isValid: false };
+  const currentYear = new Date().getFullYear();
+  if (y < 1920 || y > currentYear || m < 1 || m > 12 || d < 1 || d > 31) {
+    return { categoria: "Master", isValid: false };
+  }
+
+  // Verifica dias do mês selecionado (considerando anos bissextos)
+  const daysInMonth = new Date(y, m, 0).getDate();
+  if (d > daysInMonth) {
+    return { categoria: "Master", isValid: false };
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  const birthThisYear = new Date(today.getFullYear(), m - 1, d);
+  if (today < birthThisYear) {
+    age--;
+  }
+
+  // Regras Oficiais Play! Pokémon:
+  // Junior: Nascidos a partir de 2014
+  // Senior: Nascidos entre 2010 e 2013
+  // Master: Nascidos até 2009
+  let categoria: "Master" | "Senior" | "Junior" = "Master";
+  if (y >= 2014) {
+    categoria = "Junior";
+  } else if (y >= 2010) {
+    categoria = "Senior";
+  } else {
+    categoria = "Master";
+  }
+
+  return {
+    categoria,
+    age: Math.max(0, age),
+    year: y,
+    isValid: true,
+    statusText: `${categoria} (${Math.max(0, age)} anos)`,
+  };
+}
+

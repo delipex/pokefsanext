@@ -314,31 +314,27 @@ export function calculatePokemonCategory(birthDateStr?: string | null): {
     return { isValid: false, categoria: "Master", error: "Data de nascimento é obrigatória." };
   }
 
-  let birth: Date;
+  let birthYear = 0;
   if (birthDateStr.includes("/")) {
     const parts = birthDateStr.split("/");
     if (parts.length === 3) {
-      const d = parseInt(parts[0], 10);
-      const m = parseInt(parts[1], 10) - 1;
-      const y = parseInt(parts[2], 10);
-      birth = new Date(y, m, d);
-    } else {
-      birth = new Date(birthDateStr);
+      birthYear = parseInt(parts[2], 10);
+    }
+  } else if (birthDateStr.includes("-")) {
+    const parts = birthDateStr.split("-");
+    if (parts.length === 3) {
+      birthYear = parts[0].length === 4 ? parseInt(parts[0], 10) : parseInt(parts[2], 10);
     }
   } else {
-    birth = new Date(birthDateStr);
+    const d = new Date(birthDateStr);
+    if (!isNaN(d.getTime())) {
+      birthYear = d.getFullYear();
+    }
   }
 
-  if (isNaN(birth.getTime())) {
-    return { isValid: false, categoria: "Master", error: "Data de nascimento inválida." };
-  }
-
-  const today = new Date();
-  const birthYear = birth.getFullYear();
-  const currentYear = today.getFullYear();
-
-  if (birthYear < 1940 || birthYear > currentYear - 4) {
-    return { isValid: false, categoria: "Master", error: "Data de nascimento fora do intervalo válido." };
+  const currentYear = new Date().getFullYear();
+  if (isNaN(birthYear) || birthYear < 1920 || birthYear > currentYear - 4) {
+    return { isValid: false, categoria: "Master", error: "Data de nascimento inválida ou fora do intervalo válido." };
   }
 
   const age = currentYear - birthYear;

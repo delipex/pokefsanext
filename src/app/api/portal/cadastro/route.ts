@@ -13,6 +13,7 @@ import {
   matchPlayerIdentity,
 } from "@/lib/security";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { normalizeDateToISO } from "@/lib/tournament-utils";
 import fs from "fs";
 import path from "path";
 
@@ -144,7 +145,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const catCheck = calculatePokemonCategory(dataNascimento);
+    const isoNasc = normalizeDateToISO(dataNascimento) || String(dataNascimento).trim();
+    const catCheck = calculatePokemonCategory(isoNasc);
     if (!catCheck.isValid) {
       return NextResponse.json(
         { error: `Não foi possível se cadastrar devido a: ${catCheck.error}` },
@@ -172,7 +174,7 @@ export async function POST(req: Request) {
           nome: cleanName,
           categoria,
           whatsapp: cleanPhone,
-          dataNascimento: dataNascimento ? String(dataNascimento).trim() : null,
+          dataNascimento: isoNasc,
           cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
           pinHash: hashedPin,
           status: "ativo",
@@ -187,7 +189,7 @@ export async function POST(req: Request) {
           nome: cleanName,
           categoria,
           whatsapp: cleanPhone,
-          dataNascimento: dataNascimento ? String(dataNascimento).trim() : null,
+          dataNascimento: isoNasc,
           cidade: cidade ? String(cidade).trim() : "Feira de Santana - BA",
           pinHash: hashedPin,
           status: "ativo",

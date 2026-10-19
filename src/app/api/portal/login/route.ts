@@ -5,6 +5,7 @@ import { jogadores } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { validatePopId, verifyPin, hashPin, checkRateLimit } from "@/lib/security";
 import { ensureDatabaseSchema } from "@/db/migrate-auto";
+import { normalizeDateToISO } from "@/lib/tournament-utils";
 
 export async function POST(req: Request) {
   try {
@@ -139,7 +140,7 @@ export async function POST(req: Request) {
           categoria: officialCategory,
           pinHash: hashedPin,
           whatsapp: cleanPhone || athlete.whatsapp || null,
-          dataNascimento: dataNascimento ? String(dataNascimento).trim() : (athlete.dataNascimento || null),
+          dataNascimento: dataNascimento ? (normalizeDateToISO(dataNascimento) || String(dataNascimento).trim()) : (athlete.dataNascimento || null),
           status: "ativo",
           ativo: true,
         })

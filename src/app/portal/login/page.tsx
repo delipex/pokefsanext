@@ -18,6 +18,7 @@ import {
   Check,
   ChevronLeft,
 } from "lucide-react";
+import { formatBirthDateMask, normalizeDateToISO } from "@/lib/tournament-utils";
 
 export default function PlayerLoginPage() {
   const router = useRouter();
@@ -168,7 +169,7 @@ export default function PlayerLoginPage() {
         body: JSON.stringify({
           popId: activationData.popId,
           nome: activationNome,
-          dataNascimento: activationDataNasc,
+          dataNascimento: normalizeDateToISO(activationDataNasc) || activationDataNasc,
           whatsapp: activationWhatsapp,
           pin: activationPin,
           confirmPin: activationConfirmPin,
@@ -205,7 +206,7 @@ export default function PlayerLoginPage() {
           popId: cadPopId,
           nome: cadNome,
           whatsapp: cadWhatsapp,
-          dataNascimento: cadDataNasc,
+          dataNascimento: normalizeDateToISO(cadDataNasc) || cadDataNasc,
           pin: cadPin,
           cidade: cadCidade,
           honeypot: cadHoneypot,
@@ -349,14 +350,17 @@ export default function PlayerLoginPage() {
                       Data de Nascimento:
                     </label>
                     <input
-                      type="date"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="DD/MM/AAAA (Ex: 15/05/2000)"
+                      maxLength={10}
                       value={activationDataNasc}
-                      onChange={(e) => setActivationDataNasc(e.target.value)}
+                      onChange={(e) => setActivationDataNasc(formatBirthDateMask(e.target.value))}
                       className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans"
                       required
                     />
                     <span className="text-[10px] text-slate-400 block">
-                      Valida a categoria oficial do atleta.
+                      Valida a categoria oficial do atleta (DD/MM/AAAA).
                     </span>
                   </div>
 
@@ -591,9 +595,12 @@ export default function PlayerLoginPage() {
                     Data de Nascimento:
                   </label>
                   <input
-                    type="date"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="DD/MM/AAAA (Ex: 15/05/2000)"
+                    maxLength={10}
                     value={cadDataNasc}
-                    onChange={(e) => setCadDataNasc(e.target.value)}
+                    onChange={(e) => setCadDataNasc(formatBirthDateMask(e.target.value))}
                     className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none font-sans"
                     required
                   />

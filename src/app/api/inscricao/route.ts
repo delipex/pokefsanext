@@ -18,6 +18,9 @@ import {
   parseBRLMoney,
   formatBRLMoney,
   isBothTurnosSelected,
+  normalizeDateToISO,
+  formatDateToBR,
+  calculatePokemonAgeCategory,
 } from "@/lib/tournament-utils";
 
 // GET: Retorna as configurações do torneio ativo e total de inscritos
@@ -169,19 +172,10 @@ export async function POST(req: Request) {
       );
     }
     
-    // Calcula categoria oficial Play! Pokémon com base no ano de nascimento (Temporada Oficial)
-    let finalCategory = categoria || "Master";
-    if (dataNascimento) {
-      const parts = dataNascimento.split("-");
-      if (parts.length === 3) {
-        const yr = parseInt(parts[0], 10);
-        if (!isNaN(yr)) {
-          if (yr >= 2014) finalCategory = "Junior";
-          else if (yr >= 2010) finalCategory = "Senior";
-          else finalCategory = "Master";
-        }
-      }
-    }
+    // Normaliza data de nascimento e calcula categoria oficial Play! Pokémon (Temporada Oficial)
+    const isoNascimento = normalizeDateToISO(dataNascimento);
+    const catCheck = calculatePokemonAgeCategory(isoNascimento || dataNascimento);
+    let finalCategory = catCheck.isValid ? catCheck.categoria : (categoria || "Master");
 
     const finalDeckNome = isPreReleaseEvent
       ? "Kit Pré-Release (Formato Selado)"
@@ -284,7 +278,7 @@ export async function POST(req: Request) {
             jogadorNome: nameVal.cleanName!,
             categoria: finalCategory,
             turno: turno || existingItem.turno || null,
-            dataNascimento: dataNascimento || existingItem.dataNascimento,
+            dataNascimento: isoNascimento || existingItem.dataNascimento,
             whatsapp: body.whatsapp || existingItem.whatsapp,
             deckNome: finalDeckNome,
             tipoEnergia: finalTipoEnergia,
@@ -308,7 +302,7 @@ export async function POST(req: Request) {
             nameVal.cleanName!,
             finalCategory,
             turno || existingItem.turno || null,
-            dataNascimento || existingItem.dataNascimento || null,
+            isoNascimento || existingItem.dataNascimento || null,
             body.whatsapp || existingItem.whatsapp || null,
             finalDeckNome,
             finalTipoEnergia,
@@ -333,7 +327,7 @@ export async function POST(req: Request) {
             jogadorNome: nameVal.cleanName!,
             categoria: finalCategory,
             turno: turno || null,
-            dataNascimento: dataNascimento || null,
+            dataNascimento: isoNascimento || null,
             whatsapp: body.whatsapp || null,
             eventoNome: finalEventName,
             etapaData: finalEventDate,
@@ -359,7 +353,7 @@ export async function POST(req: Request) {
             nameVal.cleanName!,
             finalCategory,
             turno || null,
-            dataNascimento || null,
+            isoNascimento || null,
             body.whatsapp || null,
             finalEventName,
             finalEventDate,
@@ -388,7 +382,7 @@ export async function POST(req: Request) {
           id: popVal.cleanId!,
           nome: nameVal.cleanName!,
           categoria: finalCategory,
-          dataNascimento: dataNascimento || null,
+          dataNascimento: isoNascimento || null,
           ativo: true,
           deckAtivoNome: finalDeckNome,
           decklistTexto: rawDecklistText,
@@ -398,7 +392,7 @@ export async function POST(req: Request) {
           .update(jogadores)
           .set({
             categoria: finalCategory,
-            dataNascimento: dataNascimento || existingPlayer[0].dataNascimento,
+            dataNascimento: isoNascimento || existingPlayer[0].dataNascimento,
             deckAtivoNome: finalDeckNome,
             decklistTexto: rawDecklistText || existingPlayer[0].decklistTexto,
           })
@@ -409,11 +403,7 @@ export async function POST(req: Request) {
     }
 
     // 7. Montar Link Direto do WhatsApp para Envio do Comprovante ou Confirmação
-    const formattedNasc = dataNascimento
-      ? dataNascimento.includes("-")
-        ? dataNascimento.split("-").reverse().join("/")
-        : dataNascimento
-      : "";
+    const formattedNasc = formatDateToBR(isoNascimento || dataNascimento);
 
     const waContact = (configMap.premierWaContato || "").replace(/\D/g, "");
     let waMsg = `🏆 *INSCRIÇÃO & DECKLIST - LIGA ATLÂNTICA*\n`;
