@@ -3,9 +3,9 @@ import { FincRegistrationView } from "./FincRegistrationView";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://pokefsa.vercel.app"),
-  title: "Inscrições Espaço TCG • Arena Geek | FINC 2026",
+  title: "Cronograma Espaço TCG • Arena Geek | FINC 2026",
   description:
-    "Garanta sua vaga nos torneios e oficinas de Pokémon, Yu-Gi-Oh!, One Piece, Digimon e Riftbound no Espaço TCG da Arena Geek na FINC 2026 (21 e 22 de Outubro).",
+    "Confira o cronograma de torneios e oficinas de Pokémon TCG, One Piece e Digimon no Espaço TCG da Arena Geek na FINC 2026 (21 e 22 de Outubro). Entrada exclusiva com pulseira oficial.",
   icons: {
     icon: [
       { url: "/finc/icon.png", sizes: "512x512", type: "image/png" },
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Arena Geek • Espaço TCG @ FINC 2026",
-    description: "Inscrições abertas para torneios e oficinas de TCG nos dias 21 e 22 de Outubro. Gestão Técnica: Atlântica Mais.",
+    description: "Cronograma oficial dos torneios e oficinas de TCG nos dias 21 e 22 de Outubro. Entrada exclusiva com pulseira retirada na Atlântica Mais até 20/10.",
     images: ["/finc/arena-geek-tcg.png"],
   },
 };

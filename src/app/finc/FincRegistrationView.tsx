@@ -34,6 +34,8 @@ import {
   Award,
   Info,
   Users,
+  Ticket,
+  AlertTriangle,
 } from "lucide-react";
 import { FincPassportCard } from "@/components/finc/FincPassportCard";
 
@@ -200,8 +202,8 @@ export const CRONOGRAMA_TURNOS: CronogramaTurnoData[] = [
     diaSemana: "Quarta-feira",
     dataExtenso: "21 de Outubro de 2026",
     turnoNome: "Turno Noite",
-    horarioTurno: "17:00 às 22:00",
-    faseTag: "1º Dia • Abertura, Credenciamento e Rodadas Iniciais",
+    horarioTurno: "A partir das 17:00 • Torneio às 18:00",
+    faseTag: "1º Dia • Torneio Oficial de Pokémon TCG e Digimon TCG",
     accentBorder: "border-cyan-500/40",
     accentBg: "bg-cyan-950/20",
     accentText: "text-cyan-300",
@@ -210,33 +212,25 @@ export const CRONOGRAMA_TURNOS: CronogramaTurnoData[] = [
     eventos: [
       {
         horario: "17:00 - 18:00",
-        titulo: "Abertura dos Portões & Credenciamento TCG",
+        titulo: "Abertura dos Portões & Acesso Exclusivo com Pulseira",
         descricao:
-          "Recepção dos participantes na Arena Geek, validação de passaportes digitais com QR Code e entrega dos crachás no balcão TCG.",
+          "Recepção dos jogadores na Arena Geek e conferência das pulseiras oficiais (retiradas na Atlântica Mais até dia 20) e passaportes digitais com QR Code.",
         tipo: "geral",
       },
       {
         horario: "18:00 - 21:30",
-        titulo: "Torneios Oficiais • Rodadas Suíças Inaugurais",
+        titulo: "Torneio Oficial • Pokémon TCG & Digimon Card Game",
         descricao:
-          "Início das disputas competitivas de Pokémon TCG (Standard), Yu-Gi-Oh! (Advanced Format), One Piece Card Game e Digimon. Acompanhamento dos juízes oficiais da Atlântica Mais.",
+          "Início pontual às 18:00! Disputas competitivas das rodadas suíças oficiais de Pokémon TCG (Standard) e Digimon Card Game com corpo de arbitragem da Atlântica Mais.",
         tipo: "torneio",
-        jogos: ["pokemon", "yugioh", "onepiece", "digimon"],
+        jogos: ["pokemon", "digimon"],
         destaque: true,
       },
       {
-        horario: "18:00 - 21:30",
-        titulo: "Bancadas Didáticas & Oficinas Abertas para Iniciantes",
-        descricao:
-          "Mesas práticas com instrutores para quem deseja aprender a jogar do zero. Decks didáticos fornecidos gratuitamente na hora para Pokémon, Yu-Gi-Oh!, One Piece, Digimon e o novo Riftbound TCG.",
-        tipo: "oficina",
-        jogos: ["pokemon", "yugioh", "onepiece", "digimon", "riftbound"],
-      },
-      {
         horario: "21:30 - 22:00",
-        titulo: "Fechamento do 1º Turno & Divulgação das Parciais",
+        titulo: "Encerramento da Noite 1 & Resultados",
         descricao:
-          "Consolidação dos placares da primeira rodada suíça e publicação dos pareamentos para as disputas do dia seguinte.",
+          "Conclusão das partidas, apuração dos placares de Pokémon e Digimon e orientações para as atividades de quinta-feira.",
         tipo: "geral",
       },
     ],
@@ -247,8 +241,8 @@ export const CRONOGRAMA_TURNOS: CronogramaTurnoData[] = [
     diaSemana: "Quinta-feira",
     dataExtenso: "22 de Outubro de 2026",
     turnoNome: "Turno Tarde",
-    horarioTurno: "14:00 às 18:00",
-    faseTag: "2º Dia • Rodadas Classificatórias & Oficinas Livres",
+    horarioTurno: "14:00 às 18:00 • Oficinas das 15:00 às 17:00",
+    faseTag: "2º Dia • Oficinas Gratuitas para Iniciantes",
     accentBorder: "border-fuchsia-500/40",
     accentBg: "bg-fuchsia-950/20",
     accentText: "text-fuchsia-300",
@@ -256,34 +250,26 @@ export const CRONOGRAMA_TURNOS: CronogramaTurnoData[] = [
     badgeText: "text-fuchsia-300",
     eventos: [
       {
-        horario: "14:00 - 14:30",
-        titulo: "Reabertura da Arena Geek & Check-in da Tarde",
+        horario: "14:00 - 15:00",
+        titulo: "Reabertura da Arena Geek & Recepção com Pulseira",
         descricao:
-          "Recepção dos competidores, validação de presenças e acolhimento dos novos visitantes da FINC 2026.",
+          "Abertura do espaço temático e recepção dos participantes munidos de sua pulseira oficial da FINC 2026.",
         tipo: "geral",
       },
       {
-        horario: "14:30 - 17:30",
-        titulo: "Rodadas Suíças Intermediárias & Definição do Top Cut",
+        horario: "15:00 - 17:00",
+        titulo: "Oficinas Didáticas • Pokémon TCG, One Piece & Digimon",
         descricao:
-          "Rodadas suíças decisivas para apuração da pontuação geral e definição dos classificados para os playoffs finais de cada card game.",
-        tipo: "torneio",
-        jogos: ["pokemon", "yugioh", "onepiece", "digimon"],
+          "Bancadas didáticas com instrutores dedicados para quem quer aprender a jogar do zero! Decks didáticos fornecidos gratuitamente no local para Pokémon TCG, One Piece Card Game e Digimon Card Game.",
+        tipo: "oficina",
+        jogos: ["pokemon", "onepiece", "digimon"],
         destaque: true,
       },
       {
-        horario: "14:30 - 17:30",
-        titulo: "Oficinas Livres, Desafios Casuais & Free Play",
+        horario: "17:00 - 18:00",
+        titulo: "Free Play & Check-in dos Torneios Noturnos",
         descricao:
-          "Espaço aberto para trocas de cartas, desafios livres com amigos e bancadas práticas guiadas para novos jogadores.",
-        tipo: "oficina",
-        jogos: ["pokemon", "yugioh", "onepiece", "digimon", "riftbound"],
-      },
-      {
-        horario: "17:30 - 18:00",
-        titulo: "Intervalo Técnico & Chaveamento das Finais",
-        descricao:
-          "Auditoria das pontuações pelas mesas de arbitragem e anúncio oficial dos finalistas que disputarão o pódio no turno da noite.",
+          "Espaço livre para troca de cartas e preparação dos competidores para os torneios de Pokémon e One Piece do turno da noite.",
         tipo: "geral",
       },
     ],
@@ -294,8 +280,8 @@ export const CRONOGRAMA_TURNOS: CronogramaTurnoData[] = [
     diaSemana: "Quinta-feira",
     dataExtenso: "22 de Outubro de 2026",
     turnoNome: "Turno Noite",
-    horarioTurno: "18:00 às 20:00",
-    faseTag: "2º Dia • Finais Eliminatórias, Cerimônia & Premiação",
+    horarioTurno: "18:00 às 20:00 • Início às 18:00",
+    faseTag: "2º Dia • Torneio de Pokémon e One Piece + Pódio",
     accentBorder: "border-amber-500/40",
     accentBg: "bg-amber-950/20",
     accentText: "text-amber-300",
@@ -304,18 +290,18 @@ export const CRONOGRAMA_TURNOS: CronogramaTurnoData[] = [
     eventos: [
       {
         horario: "18:00 - 19:30",
-        titulo: "Grande Final (Top Cut / Playoffs Eliminatórios)",
+        titulo: "Torneio Oficial • Pokémon TCG & One Piece Card Game",
         descricao:
-          "As partidas mais aguardadas do evento! Semifinais e Grande Final de todas as modalidades e disputa de 3º lugar com torcida.",
+          "Início pontual às 18:00! Torneios competitivos e grandes Finais de Pokémon TCG e One Piece Card Game (OP TCG) com torcida e arbitragem oficial.",
         tipo: "torneio",
-        jogos: ["pokemon", "yugioh", "onepiece", "digimon"],
+        jogos: ["pokemon", "onepiece"],
         destaque: true,
       },
       {
         horario: "19:30 - 20:00",
         titulo: "Cerimônia de Premiação & Encerramento Oficial",
         descricao:
-          "Consagração dos campeões, entrega dos troféus oficiais da Arena Geek, certificados de participação, medalhas de honra e encerramento oficial da edição 2026.",
+          "Consagração dos grandes campeões, entrega dos troféus oficiais da Arena Geek FINC 2026, medalhas aos finalistas e encerramento oficial.",
         tipo: "premiacao",
         destaque: true,
       },
@@ -325,10 +311,10 @@ export const CRONOGRAMA_TURNOS: CronogramaTurnoData[] = [
 
 export const GAME_BADGES_MAP: Record<string, { name: string; color: string; bg: string }> = {
   pokemon: { name: "Pokémon TCG", color: "text-amber-300", bg: "bg-amber-500/15 border-amber-500/30" },
-  yugioh: { name: "Yu-Gi-Oh!", color: "text-purple-300", bg: "bg-purple-500/15 border-purple-500/30" },
-  onepiece: { name: "One Piece", color: "text-rose-300", bg: "bg-rose-500/15 border-rose-500/30" },
-  digimon: { name: "Digimon", color: "text-blue-300", bg: "bg-blue-500/15 border-blue-500/30" },
-  riftbound: { name: "Riftbound TCG", color: "text-emerald-300", bg: "bg-emerald-500/15 border-emerald-500/30" },
+  onepiece: { name: "One Piece CG", color: "text-rose-300", bg: "bg-rose-500/15 border-rose-500/30" },
+  digimon: { name: "Digimon CG", color: "text-blue-300", bg: "bg-blue-500/15 border-blue-500/30" },
+  yugioh: { name: "Yu-Gi-Oh! (Cancelado)", color: "text-slate-400", bg: "bg-slate-800/40 border-slate-700/50 line-through" },
+  riftbound: { name: "Riftbound (Cancelado)", color: "text-slate-400", bg: "bg-slate-800/40 border-slate-700/50 line-through" },
 };
 
 export function FincRegistrationView({
@@ -904,7 +890,7 @@ export function FincRegistrationView({
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto font-normal">
-              Disputas oficiais e oficinas didáticas de Pokémon TCG, Yu-Gi-Oh!, One Piece, Digimon e Riftbound.
+              Disputas oficiais e oficinas didáticas de Pokémon TCG, One Piece Card Game e Digimon.
             </p>
           </div>
 
@@ -964,7 +950,7 @@ export function FincRegistrationView({
                   Período de Inscrições Concluído
                 </h2>
                 <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-                  As inscrições antecipadas pela internet foram finalizadas. Quem já se inscreveu pode <strong>consultar ou baixar seu passaporte digital logo abaixo</strong>. Para dúvidas sobre o evento ou informações sobre vagas remanescentes no balcão presencial de credenciamento, fale com a organização:
+                  As inscrições antecipadas pela internet foram finalizadas. Quem já se inscreveu pode <strong>consultar ou baixar seu passaporte digital logo abaixo</strong>. Lembre-se: a entrada no evento só é permitida com a <strong>pulseira oficial (retirada presencial na Atlântica Mais até dia 20/10)</strong>. Para dúvidas, fale com a organização:
                 </p>
               </div>
             </div>
@@ -1100,7 +1086,7 @@ export function FincRegistrationView({
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              Quarta 21 (17h-22h)
+              Quarta 21 (18h Torneio)
             </button>
             <button
               type="button"
@@ -1111,7 +1097,7 @@ export function FincRegistrationView({
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              Quinta 22 Tarde (14h-18h)
+              Quinta 22 Tarde (15h Oficinas)
             </button>
             <button
               type="button"
@@ -1122,8 +1108,45 @@ export function FincRegistrationView({
                   : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
             >
-              Quinta 22 Noite (18h-20h)
+              Quinta 22 Noite (18h Torneio)
             </button>
+          </div>
+        </div>
+
+        {/* AVISO CRÍTICO: ENTRADA COM PULSEIRA OFICIAL */}
+        <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/70 bg-gradient-to-r from-amber-950/80 via-slate-900/90 to-amber-950/80 p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+          <div className="h-12 w-12 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center shrink-0 text-amber-400 shadow-lg shadow-amber-500/10">
+            <Ticket className="h-6 w-6" />
+          </div>
+          <div className="space-y-1 flex-1">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-500/20 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-amber-300">
+                <AlertTriangle className="h-3 w-3 text-amber-400" />
+                Atenção Obrigatória de Acesso
+              </span>
+              <span className="text-[11px] font-bold text-amber-300 font-mono">Retirada até dia 20 de Outubro</span>
+            </div>
+            <h3 className="text-sm sm:text-base font-black text-white">
+              Entrada Permitida Exclusivamente com o Uso da Pulseira Oficial
+            </h3>
+            <p className="text-xs text-slate-200 leading-relaxed">
+              A entrada no Cajueiro Convenções <strong>só será permitida com o uso da pulseira oficial da FINC</strong>. A retirada deve ser realizada presencialmente na <strong>loja Atlântica Mais até o dia 20 de Outubro (terça-feira)</strong>. Faça a retirada com antecedência munido de seu documento ou passaporte!
+            </p>
+          </div>
+        </div>
+
+        {/* COMUNICADO DE CANCELAMENTO DE YU-GI-OH! E RIFTBOUND */}
+        <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 via-slate-900/70 to-slate-950 p-4 flex flex-col sm:flex-row items-center sm:items-start gap-3.5 text-center sm:text-left shadow-lg">
+          <div className="h-10 w-10 rounded-xl bg-rose-500/20 border border-rose-400/40 flex items-center justify-center shrink-0 text-rose-400">
+            <AlertCircle className="h-5 w-5" />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-rose-300 flex items-center justify-center sm:justify-start gap-1.5">
+              <span>* Comunicado Oficial: Ajuste de Modalidades</span>
+            </span>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Os torneios e oficinas de <strong>Yu-Gi-Oh! TCG</strong> e <strong>Riftbound TCG</strong> foram cancelados nesta edição da FINC 2026 devido ao quórum de participantes e ao grande volume concentrado nos demais card games (<strong>Pokémon TCG, One Piece Card Game e Digimon Card Game</strong>). As bancadas e a equipe de arbitragem estarão dedicadas exclusivamente às modalidades ativas.
+            </p>
           </div>
         </div>
 
@@ -1237,20 +1260,23 @@ export function FincRegistrationView({
           <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-4 space-y-2">
             <div className="flex items-center gap-2 text-amber-300 font-bold">
               <Swords className="h-4 w-4 text-amber-400" />
-              <span>Torneios Oficiais (Competitivo)</span>
+              <span>Torneios Oficiais (Quarta às 18h & Quinta às 18h)</span>
             </div>
             <p className="text-slate-300 text-[11px] leading-relaxed">
-              Disputados em formato suíço oficial. Cada participante inscrito deve <strong>trazer seu próprio deck legal</strong> construído de acordo com as regras do formato (Standard / Advanced) e protetores (sleeves).
+              <strong>Quarta (18h)</strong>: Torneios de Pokémon TCG e Digimon Card Game.<br />
+              <strong>Quinta (18h)</strong>: Torneios de Pokémon TCG e One Piece Card Game.<br />
+              Competidores inscritos devem <strong>trazer seu próprio deck legal</strong> construído no formato com protetores (sleeves).
             </p>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-4 space-y-2">
             <div className="flex items-center gap-2 text-cyan-300 font-bold">
               <BookOpen className="h-4 w-4 text-cyan-400" />
-              <span>Bancadas Didáticas (Oficinas Gratuitas)</span>
+              <span>Oficinas Didáticas Gratuitas (Quinta das 15h às 17h)</span>
             </div>
             <p className="text-slate-300 text-[11px] leading-relaxed">
-              Não tem cartas ou quer aprender um card game novo? <strong>Decks didáticos prontos são fornecidos gratuitamente no local</strong> com instrutores da Atlântica Mais ensinando as regras passo a passo.
+              <strong>Quinta-feira das 15:00 às 17:00</strong>: Mesas práticas de aprendizado guiado para <strong>Pokémon TCG, One Piece e Digimon</strong>.<br />
+              <strong>Decks didáticos fornecidos gratuitamente no local</strong> para quem quer aprender as regras do zero.
             </p>
           </div>
         </div>
