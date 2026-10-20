@@ -30,6 +30,10 @@ import {
   UserCheck,
   MessageCircle,
   Phone,
+  Swords,
+  Award,
+  Info,
+  Users,
 } from "lucide-react";
 import { FincPassportCard } from "@/components/finc/FincPassportCard";
 
@@ -164,6 +168,169 @@ export const LUCAS_WHATSAPP_LINK = `https://wa.me/${LUCAS_WHATSAPP_NUMBER}?text=
   "Olá Lucas! Tenho uma dúvida sobre as inscrições da Arena Geek TCG na FINC 2026."
 )}`;
 
+export interface CronogramaEventoItem {
+  horario: string;
+  titulo: string;
+  descricao: string;
+  tipo: "torneio" | "oficina" | "geral" | "premiacao";
+  jogos?: string[];
+  destaque?: boolean;
+}
+
+export interface CronogramaTurnoData {
+  id: "21_noite" | "22_tarde" | "22_noite";
+  diaNumero: string;
+  diaSemana: string;
+  dataExtenso: string;
+  turnoNome: string;
+  horarioTurno: string;
+  faseTag: string;
+  accentBorder: string;
+  accentBg: string;
+  accentText: string;
+  badgeBg: string;
+  badgeText: string;
+  eventos: CronogramaEventoItem[];
+}
+
+export const CRONOGRAMA_TURNOS: CronogramaTurnoData[] = [
+  {
+    id: "21_noite",
+    diaNumero: "21",
+    diaSemana: "Quarta-feira",
+    dataExtenso: "21 de Outubro de 2026",
+    turnoNome: "Turno Noite",
+    horarioTurno: "17:00 às 22:00",
+    faseTag: "1º Dia • Abertura, Credenciamento e Rodadas Iniciais",
+    accentBorder: "border-cyan-500/40",
+    accentBg: "bg-cyan-950/20",
+    accentText: "text-cyan-300",
+    badgeBg: "bg-cyan-500/10 border-cyan-500/30",
+    badgeText: "text-cyan-300",
+    eventos: [
+      {
+        horario: "17:00 - 18:00",
+        titulo: "Abertura dos Portões & Credenciamento TCG",
+        descricao:
+          "Recepção dos participantes na Arena Geek, validação de passaportes digitais com QR Code e entrega dos crachás no balcão TCG.",
+        tipo: "geral",
+      },
+      {
+        horario: "18:00 - 21:30",
+        titulo: "Torneios Oficiais • Rodadas Suíças Inaugurais",
+        descricao:
+          "Início das disputas competitivas de Pokémon TCG (Standard), Yu-Gi-Oh! (Advanced Format), One Piece Card Game e Digimon. Acompanhamento dos juízes oficiais da Atlântica Mais.",
+        tipo: "torneio",
+        jogos: ["pokemon", "yugioh", "onepiece", "digimon"],
+        destaque: true,
+      },
+      {
+        horario: "18:00 - 21:30",
+        titulo: "Bancadas Didáticas & Oficinas Abertas para Iniciantes",
+        descricao:
+          "Mesas práticas com instrutores para quem deseja aprender a jogar do zero. Decks didáticos fornecidos gratuitamente na hora para Pokémon, Yu-Gi-Oh!, One Piece, Digimon e o novo Riftbound TCG.",
+        tipo: "oficina",
+        jogos: ["pokemon", "yugioh", "onepiece", "digimon", "riftbound"],
+      },
+      {
+        horario: "21:30 - 22:00",
+        titulo: "Fechamento do 1º Turno & Divulgação das Parciais",
+        descricao:
+          "Consolidação dos placares da primeira rodada suíça e publicação dos pareamentos para as disputas do dia seguinte.",
+        tipo: "geral",
+      },
+    ],
+  },
+  {
+    id: "22_tarde",
+    diaNumero: "22",
+    diaSemana: "Quinta-feira",
+    dataExtenso: "22 de Outubro de 2026",
+    turnoNome: "Turno Tarde",
+    horarioTurno: "14:00 às 18:00",
+    faseTag: "2º Dia • Rodadas Classificatórias & Oficinas Livres",
+    accentBorder: "border-fuchsia-500/40",
+    accentBg: "bg-fuchsia-950/20",
+    accentText: "text-fuchsia-300",
+    badgeBg: "bg-fuchsia-500/10 border-fuchsia-500/30",
+    badgeText: "text-fuchsia-300",
+    eventos: [
+      {
+        horario: "14:00 - 14:30",
+        titulo: "Reabertura da Arena Geek & Check-in da Tarde",
+        descricao:
+          "Recepção dos competidores, validação de presenças e acolhimento dos novos visitantes da FINC 2026.",
+        tipo: "geral",
+      },
+      {
+        horario: "14:30 - 17:30",
+        titulo: "Rodadas Suíças Intermediárias & Definição do Top Cut",
+        descricao:
+          "Rodadas suíças decisivas para apuração da pontuação geral e definição dos classificados para os playoffs finais de cada card game.",
+        tipo: "torneio",
+        jogos: ["pokemon", "yugioh", "onepiece", "digimon"],
+        destaque: true,
+      },
+      {
+        horario: "14:30 - 17:30",
+        titulo: "Oficinas Livres, Desafios Casuais & Free Play",
+        descricao:
+          "Espaço aberto para trocas de cartas, desafios livres com amigos e bancadas práticas guiadas para novos jogadores.",
+        tipo: "oficina",
+        jogos: ["pokemon", "yugioh", "onepiece", "digimon", "riftbound"],
+      },
+      {
+        horario: "17:30 - 18:00",
+        titulo: "Intervalo Técnico & Chaveamento das Finais",
+        descricao:
+          "Auditoria das pontuações pelas mesas de arbitragem e anúncio oficial dos finalistas que disputarão o pódio no turno da noite.",
+        tipo: "geral",
+      },
+    ],
+  },
+  {
+    id: "22_noite",
+    diaNumero: "22",
+    diaSemana: "Quinta-feira",
+    dataExtenso: "22 de Outubro de 2026",
+    turnoNome: "Turno Noite",
+    horarioTurno: "18:00 às 20:00",
+    faseTag: "2º Dia • Finais Eliminatórias, Cerimônia & Premiação",
+    accentBorder: "border-amber-500/40",
+    accentBg: "bg-amber-950/20",
+    accentText: "text-amber-300",
+    badgeBg: "bg-amber-500/10 border-amber-500/30",
+    badgeText: "text-amber-300",
+    eventos: [
+      {
+        horario: "18:00 - 19:30",
+        titulo: "Grande Final (Top Cut / Playoffs Eliminatórios)",
+        descricao:
+          "As partidas mais aguardadas do evento! Semifinais e Grande Final de todas as modalidades e disputa de 3º lugar com torcida.",
+        tipo: "torneio",
+        jogos: ["pokemon", "yugioh", "onepiece", "digimon"],
+        destaque: true,
+      },
+      {
+        horario: "19:30 - 20:00",
+        titulo: "Cerimônia de Premiação & Encerramento Oficial",
+        descricao:
+          "Consagração dos campeões, entrega dos troféus oficiais da Arena Geek, certificados de participação, medalhas de honra e encerramento oficial da edição 2026.",
+        tipo: "premiacao",
+        destaque: true,
+      },
+    ],
+  },
+];
+
+export const GAME_BADGES_MAP: Record<string, { name: string; color: string; bg: string }> = {
+  pokemon: { name: "Pokémon TCG", color: "text-amber-300", bg: "bg-amber-500/15 border-amber-500/30" },
+  yugioh: { name: "Yu-Gi-Oh!", color: "text-purple-300", bg: "bg-purple-500/15 border-purple-500/30" },
+  onepiece: { name: "One Piece", color: "text-rose-300", bg: "bg-rose-500/15 border-rose-500/30" },
+  digimon: { name: "Digimon", color: "text-blue-300", bg: "bg-blue-500/15 border-blue-500/30" },
+  riftbound: { name: "Riftbound TCG", color: "text-emerald-300", bg: "bg-emerald-500/15 border-emerald-500/30" },
+};
+
 export function FincRegistrationView({
   initialProtocol,
   previewClosed,
@@ -241,6 +408,9 @@ export function FincRegistrationView({
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
+
+  // Filtro de exibição do cronograma
+  const [cronogramaTab, setCronogramaTab] = useState<"todos" | "21_noite" | "22_tarde" | "22_noite">("todos");
 
   const handleSelectSearchResult = (item: any) => {
     let parsedGames: string[] = [];
@@ -714,15 +884,15 @@ export function FincRegistrationView({
           </div>
 
           <div className="space-y-2">
-            {isClosed ? (
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-amber-300">
-                <Clock className="h-3.5 w-3.5 text-amber-400" />
-                Inscrições Online Encerradas • Espaço TCG Arena Geek
+            {!isClosed ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-cyan-300">
+                <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+                Inscrições Abertas até 19/10 às 12h00 • Espaço TCG Arena Geek
               </div>
             ) : (
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-cyan-300">
                 <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-                Inscrições Abertas até 19/10 às 12h00 • Espaço TCG Arena Geek
+                FINC 2026 • Espaço TCG Arena Geek
               </div>
             )}
 
@@ -738,18 +908,8 @@ export function FincRegistrationView({
             </p>
           </div>
 
-          {/* AVISO DO EVENTO / TERMO DE CREDENCIAMENTO */}
-          {isClosed ? (
-            <div className="mx-auto max-w-2xl rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/70 via-slate-900/80 to-slate-950 p-3.5 sm:p-4 text-xs text-amber-200 flex flex-col sm:flex-row items-center justify-center gap-3 shadow-xl">
-              <div className="h-8 w-8 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0">
-                <Clock className="h-4 w-4 text-amber-400" />
-              </div>
-              <p className="leading-relaxed text-center sm:text-left">
-                <strong className="text-white block sm:inline">Inscrições Online Finalizadas: </strong>
-                O período de novas inscrições encerrou em <strong>19/10 às 12h00</strong>. A consulta e o download de passaportes confirmados continuam disponíveis abaixo.
-              </p>
-            </div>
-          ) : (
+          {/* TERMO DE CREDENCIAMENTO QUANDO ABERTO */}
+          {!isClosed && (
             <div className="mx-auto max-w-2xl rounded-2xl border border-cyan-400/40 bg-gradient-to-r from-cyan-950/70 via-slate-900/80 to-blue-950/70 p-3.5 sm:p-4 text-xs text-cyan-200 flex flex-col sm:flex-row items-center justify-center gap-3 shadow-xl">
               <div className="h-8 w-8 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0">
                 <Globe className="h-4 w-4 text-cyan-400" />
@@ -781,8 +941,50 @@ export function FincRegistrationView({
         </div>
       </section>
 
+      {/* 2. BANNER ÚNICO DE ENCERRAMENTO COM BOTÃO DE WHATSAPP DO LUCAS */}
+      {isClosed && (
+        <section className="relative overflow-hidden rounded-3xl border border-emerald-500/40 bg-gradient-to-br from-slate-900/95 via-emerald-950/30 to-slate-950 p-5 sm:p-7 shadow-2xl backdrop-blur-xl">
+          <div className="pointer-events-none absolute -top-24 right-0 h-48 w-48 rounded-full bg-emerald-500/15 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 left-0 h-48 w-48 rounded-full bg-amber-500/10 blur-3xl" />
+
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5 text-center md:text-left">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/10">
+                <Clock className="h-7 w-7 text-amber-400" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-amber-300">
+                    <Clock className="h-3 w-3 text-amber-400" />
+                    Inscrições Online Encerradas
+                  </span>
+                  <span className="text-[11px] text-slate-400">Prazo finalizado em 19/10 às 12h00</span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-black text-white">
+                  Período de Inscrições Concluído
+                </h2>
+                <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                  As inscrições antecipadas pela internet foram finalizadas. Quem já se inscreveu pode <strong>consultar ou baixar seu passaporte digital logo abaixo</strong>. Para dúvidas sobre o evento ou informações sobre vagas remanescentes no balcão presencial de credenciamento, fale com a organização:
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={LUCAS_WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full md:w-auto inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm py-3.5 px-6 shadow-xl shadow-emerald-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shrink-0"
+            >
+              <MessageCircle className="h-5 w-5 text-white" />
+              <span>Dúvidas no WhatsApp • Lucas (75) 99107-6987</span>
+              <ExternalLink className="h-3.5 w-3.5 opacity-80" />
+            </a>
+          </div>
+        </section>
+      )}
+
       {/* CASO JÁ TENHA ENVIADO OU CONSULTADO A INSCRIÇÃO: MOSTRA O PASSAPORTE DIGITAL */}
-      {confirmedData ? (
+      {confirmedData && (
         <section className="relative overflow-hidden rounded-3xl border border-cyan-500/40 bg-gradient-to-b from-slate-900/95 via-slate-950 to-slate-950 p-5 sm:p-8 shadow-2xl text-center space-y-6">
           {/* BARRA SUPERIOR PARA RETORNAR AO FORMULÁRIO OU FECHAR */}
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
@@ -798,7 +1000,7 @@ export function FincRegistrationView({
               }}
               className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
             >
-              <span>{isClosed ? "← Voltar para Consulta" : "← Voltar ao Formulário"}</span>
+              <span>← Voltar para Consulta & Cronograma</span>
             </button>
 
             <button
@@ -851,160 +1053,352 @@ export function FincRegistrationView({
             isClosed={isClosed}
           />
         </section>
-      ) : (
-        <>
-          {/* RECONHECIMENTO AUTOMÁTICO DE PARTICIPANTE PREVIAMENTE INSCRITO */}
-          {savedRegistration && !confirmedData && !isEditing && (
-            <div className="rounded-3xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/70 via-slate-900/90 to-slate-950 p-4 sm:p-5 backdrop-blur-xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left animate-in fade-in zoom-in-95">
-              <div className="flex items-center gap-3.5">
-                <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shrink-0 text-emerald-400 shadow-inner">
-                  <CheckCircle2 className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-[10px] font-black uppercase tracking-wider text-emerald-300">
-                    <span>✓ Inscrição Ativa & Confirmada</span>
+      )}
+
+      {/* 3. CAMPO DE CRONOGRAMA OFICIAL DA ARENA GEEK TCG */}
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 p-5 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
+        <div className="pointer-events-none absolute -top-32 right-1/4 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-1/4 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl" />
+
+        {/* Header do Cronograma */}
+        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between gap-4 border-b border-white/10 pb-5 text-center md:text-left">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-black uppercase tracking-wider text-cyan-300">
+              <Calendar className="h-3.5 w-3.5 text-cyan-400" />
+              Programação Oficial • 21 e 22 de Outubro
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              Cronograma da{" "}
+              <span className="bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-400 bg-clip-text text-transparent">
+                Arena Geek TCG
+              </span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+              Horários de torneios competitivos, bancadas didáticas para iniciantes e cerimônia de premiação no Cajueiro Convenções.
+            </p>
+          </div>
+
+          {/* Filtros rápidos em abas */}
+          <div className="flex flex-wrap items-center justify-center gap-1.5 p-1 rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setCronogramaTab("todos")}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                cronogramaTab === "todos"
+                  ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-600/30"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Todos os Turnos
+            </button>
+            <button
+              type="button"
+              onClick={() => setCronogramaTab("21_noite")}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                cronogramaTab === "21_noite"
+                  ? "bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 shadow-md shadow-cyan-500/20"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Quarta 21 (17h-22h)
+            </button>
+            <button
+              type="button"
+              onClick={() => setCronogramaTab("22_tarde")}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                cronogramaTab === "22_tarde"
+                  ? "bg-fuchsia-500/20 border border-fuchsia-400/50 text-fuchsia-200 shadow-md shadow-fuchsia-500/20"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Quinta 22 Tarde (14h-18h)
+            </button>
+            <button
+              type="button"
+              onClick={() => setCronogramaTab("22_noite")}
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                cronogramaTab === "22_noite"
+                  ? "bg-amber-500/20 border border-amber-400/50 text-amber-200 shadow-md shadow-amber-500/20"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Quinta 22 Noite (18h-20h)
+            </button>
+          </div>
+        </div>
+
+        {/* Grade de Cartões dos Turnos */}
+        <div className="grid grid-cols-1 gap-5">
+          {CRONOGRAMA_TURNOS.filter((t) => cronogramaTab === "todos" || t.id === cronogramaTab).map((turno) => (
+            <div
+              key={turno.id}
+              className={`rounded-3xl border ${turno.accentBorder} ${turno.accentBg} p-5 sm:p-6 backdrop-blur-md shadow-xl transition-all space-y-4`}
+            >
+              {/* Topo do Turno */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-white/10 pb-3.5">
+                <div className="flex items-center gap-3">
+                  <div className={`h-11 w-11 rounded-2xl ${turno.badgeBg} flex flex-col items-center justify-center shrink-0 border shadow-inner`}>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">DIA</span>
+                    <span className={`text-base font-black ${turno.accentText} leading-none mt-0.5`}>{turno.diaNumero}</span>
                   </div>
-                  <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
-                    Olá, {savedRegistration.nome}!
-                  </h3>
-                  <p className="text-xs text-slate-300">
-                    Sua vaga está garantida na Arena Geek TCG • Protocolo:{" "}
-                    <strong className="text-emerald-300 font-mono">{savedRegistration.protocolo}</strong>
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base sm:text-lg font-black text-white">{turno.diaSemana} • {turno.turnoNome}</h3>
+                    </div>
+                    <span className="text-xs text-slate-300">{turno.dataExtenso}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${turno.badgeBg} ${turno.badgeText}`}>
+                    <Clock className="h-3.5 w-3.5" />
+                    {turno.horarioTurno}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300">
+                    {turno.faseTag}
+                  </span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConfirmedData(savedRegistration);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-4 py-2.5 shadow-lg shadow-emerald-600/25 transition-all cursor-pointer"
-                >
-                  <QrCode className="h-4 w-4" />
-                  <span>Ver Passaporte</span>
-                </button>
-
-                {!isClosed ? (
-                  <button
-                    type="button"
-                    onClick={() => handleStartEdit(savedRegistration)}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold text-xs px-3.5 py-2.5 transition-all cursor-pointer"
+              {/* Linha do Tempo de Atividades deste Turno */}
+              <div className="space-y-3">
+                {turno.eventos.map((ev, idx) => (
+                  <div
+                    key={idx}
+                    className="relative flex flex-col sm:flex-row sm:items-start gap-2.5 sm:gap-4 p-3.5 rounded-2xl border border-white/5 bg-slate-900/60 hover:border-white/15 transition-all"
                   >
-                    <Edit3 className="h-4 w-4 text-cyan-400" />
-                    <span>Alterar Escolhas</span>
-                  </button>
-                ) : (
-                  <a
-                    href={LUCAS_WHATSAPP_LINK}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 font-bold text-xs px-3.5 py-2.5 transition-all cursor-pointer"
-                  >
-                    <MessageCircle className="h-4 w-4 text-emerald-400" />
-                    <span>Dúvidas (Lucas)</span>
-                  </a>
-                )}
+                    {/* Horário */}
+                    <div className="sm:w-32 shrink-0">
+                      <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-slate-300 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
+                        <Clock className="h-3 w-3 text-cyan-400" />
+                        {ev.horario}
+                      </span>
+                    </div>
 
-                <button
-                  type="button"
-                  onClick={handleForgetSavedRegistration}
-                  title={isClosed ? "Consultar outro participante neste aparelho" : "Inscrever outra pessoa ou desconectar deste aparelho"}
-                  className="inline-flex items-center gap-1 rounded-xl border border-white/10 hover:border-white/20 bg-slate-800/40 hover:bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer text-xs px-2.5 py-2.5"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                  <span className="text-[11px] hidden sm:inline">{isClosed ? "Outra Consulta" : "Nova Pessoa"}</span>
-                </button>
+                    {/* Conteúdo */}
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                          {ev.tipo === "torneio" && <Swords className="h-4 w-4 text-rose-400 shrink-0" />}
+                          {ev.tipo === "oficina" && <BookOpen className="h-4 w-4 text-cyan-400 shrink-0" />}
+                          {ev.tipo === "premiacao" && <Trophy className="h-4 w-4 text-amber-400 shrink-0" />}
+                          {ev.tipo === "geral" && <Sparkles className="h-4 w-4 text-fuchsia-400 shrink-0" />}
+                          <span>{ev.titulo}</span>
+                        </h4>
+
+                        {ev.tipo === "torneio" && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-500/15 border border-rose-500/30 text-rose-300">
+                            Competitivo
+                          </span>
+                        )}
+                        {ev.tipo === "oficina" && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-cyan-500/15 border border-cyan-500/30 text-cyan-300">
+                            Didático / Aberto
+                          </span>
+                        )}
+                        {ev.tipo === "premiacao" && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                            Pódio Oficial
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        {ev.descricao}
+                      </p>
+
+                      {/* Badges de TCGs envolvidos */}
+                      {ev.jogos && ev.jogos.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          {ev.jogos.map((jId) => {
+                            const badge = GAME_BADGES_MAP[jId];
+                            if (!badge) return null;
+                            return (
+                              <span
+                                key={jId}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.bg} ${badge.color}`}
+                              >
+                                {badge.name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          )}
+          ))}
+        </div>
 
-          {/* BARRA DE CONSULTA DE INSCRIÇÃO ANTERIOR (BAIXAR IMAGEM / WHATSAPP) */}
-          <div className="rounded-3xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/60 via-slate-900/80 to-slate-950 p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+        {/* Guia Rápido dos Jogos & Orientações */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2 border-t border-white/10 text-xs">
+          <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-4 space-y-2">
+            <div className="flex items-center gap-2 text-amber-300 font-bold">
+              <Swords className="h-4 w-4 text-amber-400" />
+              <span>Torneios Oficiais (Competitivo)</span>
+            </div>
+            <p className="text-slate-300 text-[11px] leading-relaxed">
+              Disputados em formato suíço oficial. Cada participante inscrito deve <strong>trazer seu próprio deck legal</strong> construído de acordo com as regras do formato (Standard / Advanced) e protetores (sleeves).
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-4 space-y-2">
+            <div className="flex items-center gap-2 text-cyan-300 font-bold">
+              <BookOpen className="h-4 w-4 text-cyan-400" />
+              <span>Bancadas Didáticas (Oficinas Gratuitas)</span>
+            </div>
+            <p className="text-slate-300 text-[11px] leading-relaxed">
+              Não tem cartas ou quer aprender um card game novo? <strong>Decks didáticos prontos são fornecidos gratuitamente no local</strong> com instrutores da Atlântica Mais ensinando as regras passo a passo.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. SEÇÃO DE CONSULTA DE INSCRIÇÃO DA FINC (LOGO ABAIXO DO CRONOGRAMA) */}
+      <section id="consulta-finc" className="space-y-4">
+        {/* RECONHECIMENTO AUTOMÁTICO SE HOUVER INSCRIÇÃO SALVA NO APARELHO */}
+        {savedRegistration && !confirmedData && (
+          <div className="rounded-3xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/70 via-slate-900/90 to-slate-950 p-4 sm:p-5 backdrop-blur-xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left animate-in fade-in zoom-in-95">
             <div className="flex items-center gap-3.5">
+              <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shrink-0 text-emerald-400 shadow-inner">
+                <CheckCircle2 className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                  <span>✓ Inscrição Ativa & Confirmada</span>
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
+                  Olá, {savedRegistration.nome}!
+                </h3>
+                <p className="text-xs text-slate-300">
+                  Sua presença está confirmada na Arena Geek TCG • Protocolo:{" "}
+                  <strong className="text-emerald-300 font-mono">{savedRegistration.protocolo}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmedData(savedRegistration);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs px-4 py-2.5 shadow-lg shadow-emerald-600/25 transition-all cursor-pointer"
+              >
+                <QrCode className="h-4 w-4" />
+                <span>Ver Passaporte</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleForgetSavedRegistration}
+                title="Consultar outro participante neste aparelho"
+                className="inline-flex items-center gap-1 rounded-xl border border-white/10 hover:border-white/20 bg-slate-800/40 hover:bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer text-xs px-3 py-2.5"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="text-[11px]">Consultar Outro</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* CAIXA DE BUSCA DIRETA POR WHATSAPP OU PROTOCOLO */}
+        <div className="rounded-3xl border border-cyan-500/30 bg-gradient-to-br from-slate-900/90 via-slate-950 to-slate-950 p-5 sm:p-7 shadow-2xl backdrop-blur-xl space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-white/10 pb-4 text-center sm:text-left">
+            <div className="flex items-center gap-3">
               <div className="h-11 w-11 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center shrink-0 text-cyan-300 shadow-inner">
                 <QrCode className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">Já realizou sua inscrição anteriormente?</h3>
+                <h3 className="text-base sm:text-lg font-bold text-white">Consultar Inscrição da FINC</h3>
                 <p className="text-xs text-slate-400">
-                  Consulte seu cadastro e baixe a imagem do seu passaporte para salvar ou enviar no WhatsApp
+                  Localize sua credencial com QR Code pelo WhatsApp ou Protocolo para salvar ou apresentar na entrada
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setIsSearchModalOpen(true);
-                setSearchError("");
-                setSearchResults([]);
-              }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs px-5 py-3 transition-all shadow-lg shadow-cyan-600/25 cursor-pointer shrink-0"
-            >
-              <Search className="h-4 w-4" />
-              <span>Consultar e Baixar Passaporte</span>
-            </button>
           </div>
 
-          {/* SE ENCERRADO: CARD DE INSCRIÇÕES ENCERRADAS COM BOTÃO DO WHATSAPP DO LUCAS */}
-          {/* SE ABERTO: FORMULÁRIO DE INSCRIÇÃO COM CAIXINHAS INTERATIVAS */}
-          {isClosed ? (
-            <section className="relative overflow-hidden rounded-3xl border border-emerald-500/40 bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 p-6 sm:p-8 shadow-2xl backdrop-blur-xl text-center space-y-6">
-              <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl" />
+          <form onSubmit={handleSearchSubmit} className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Digite seu WhatsApp (com DDD) ou Protocolo (ex: 75991076987 ou FINC-TCG-...)"
+                className="flex-1 rounded-xl border border-white/20 bg-slate-950 px-4 py-3 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={isSearching || !searchQuery.trim()}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs sm:text-sm px-6 py-3 transition-all shadow-lg shadow-cyan-600/25 cursor-pointer disabled:opacity-50 shrink-0"
+              >
+                {isSearching ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Consultando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4" />
+                    <span>Localizar Passaporte</span>
+                  </>
+                )}
+              </button>
+            </div>
 
-              <div className="relative z-10 max-w-xl mx-auto space-y-3">
-                <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
-                  <MessageCircle className="h-8 w-8 text-emerald-400" />
+            {searchError && (
+              <div className="rounded-xl border border-rose-500/40 bg-rose-950/40 p-3 text-xs text-rose-300 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+                  <span>{searchError}</span>
                 </div>
-
-                <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-amber-300">
-                  <Clock className="h-3.5 w-3.5 text-amber-400" />
-                  Inscrições Encerradas em 19/10 às 12h00
-                </div>
-
-                <h2 className="text-2xl sm:text-3xl font-black text-white">
-                  Inscrições Online Encerradas
-                </h2>
-
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  O período de novas inscrições para os torneios e oficinas de Card Games da Arena Geek na FINC 2026 foi finalizado. Você pode consultar seu passaporte ou falar com nossa coordenação.
-                </p>
-              </div>
-
-              {/* CARD DO BOTÃO WHATSAPP DO LUCAS DA ATLÂNTICA */}
-              <div className="relative z-10 mx-auto max-w-lg rounded-3xl border border-emerald-500/40 bg-gradient-to-br from-emerald-950/70 via-slate-900/90 to-teal-950/70 p-5 sm:p-6 shadow-2xl space-y-4 text-center">
-                <div className="space-y-1.5">
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center justify-center gap-1.5">
-                    <MessageCircle className="h-4 w-4" />
-                    Atendimento & Suporte aos Participantes
-                  </span>
-                  <p className="text-xs text-slate-300">
-                    Ficou com alguma dúvida sobre sua vaga, confirmação de presença, cronograma ou cancelamento? Fale diretamente com <strong>Lucas da Atlântica</strong>:
-                  </p>
-                </div>
-
                 <a
                   href={LUCAS_WHATSAPP_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm sm:text-base py-4 px-6 shadow-xl shadow-emerald-600/30 hover:shadow-emerald-600/50 hover:scale-[1.02] active:scale-[0.99] transition-all cursor-pointer"
+                  className="text-xs font-bold text-emerald-400 hover:underline shrink-0"
                 >
-                  <MessageCircle className="h-5 w-5" />
-                  <span>Tirar Dúvidas com Lucas • (75) 99107-6987</span>
-                  <ExternalLink className="h-4 w-4 opacity-70" />
+                  Tirar dúvidas com Lucas (75 99107-6987)
                 </a>
+              </div>
+            )}
 
-                <div className="text-[11px] text-slate-400 flex items-center justify-center gap-2 pt-0.5">
-                  <span>Coordenação da Liga Atlântica</span>
-                  <span>•</span>
-                  <span className="text-emerald-300 font-mono font-bold">(75) 99107-6987</span>
+            {/* MÚLTIPLOS RESULTADOS */}
+            {searchResults.length > 1 && (
+              <div className="space-y-2 pt-2 border-t border-white/10">
+                <span className="text-[11px] font-bold text-slate-300 block">
+                  Encontramos {searchResults.length} inscrições com este número. Escolha qual deseja abrir:
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {searchResults.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSelectSearchResult(item)}
+                      className="p-3 rounded-xl border border-white/10 bg-slate-950 hover:border-cyan-500/50 hover:bg-cyan-950/30 transition-all flex items-center justify-between cursor-pointer text-left"
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-white">{item.nome}</div>
+                        <div className="text-[10px] font-mono text-cyan-300">{item.protocolo}</div>
+                      </div>
+                      <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1 rounded-lg">
+                        Ver Passaporte →
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
-            </section>
-          ) : (
-            <section id="formulario-finc" className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 sm:space-y-8">
+            )}
+          </form>
+        </div>
+      </section>
+
+      {/* 5. FORMULÁRIO DE INSCRIÇÃO (APENAS SE NÃO ESTIVER ENCERRADO) */}
+      {!isClosed && (
+        <section id="formulario-finc" className="rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6 sm:space-y-8">
               <div className="border-b border-white/10 pb-4">
                 <div className="flex items-center gap-2 text-cyan-400 font-black text-xs uppercase tracking-wider">
                   <Globe className="h-4 w-4" />
@@ -1533,8 +1927,6 @@ export function FincRegistrationView({
           </form>
         </section>
       )}
-    </>
-  )}
 
       {/* MODAL DE CONSULTA DE INSCRIÇÃO ANTERIOR (RECUPERAÇÃO DE PASSAPORTE) */}
       {isSearchModalOpen && (
