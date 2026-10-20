@@ -170,153 +170,6 @@ export const LUCAS_WHATSAPP_LINK = `https://wa.me/${LUCAS_WHATSAPP_NUMBER}?text=
   "Olá Lucas! Tenho uma dúvida sobre as inscrições da Arena Geek TCG na FINC 2026."
 )}`;
 
-export interface CronogramaEventoItem {
-  horario: string;
-  titulo: string;
-  descricao: string;
-  tipo: "torneio" | "oficina" | "geral" | "premiacao";
-  jogos?: string[];
-  destaque?: boolean;
-}
-
-export interface CronogramaTurnoData {
-  id: "21_noite" | "22_tarde" | "22_noite";
-  diaNumero: string;
-  diaSemana: string;
-  dataExtenso: string;
-  turnoNome: string;
-  horarioTurno: string;
-  faseTag: string;
-  accentBorder: string;
-  accentBg: string;
-  accentText: string;
-  badgeBg: string;
-  badgeText: string;
-  eventos: CronogramaEventoItem[];
-}
-
-export const CRONOGRAMA_TURNOS: CronogramaTurnoData[] = [
-  {
-    id: "21_noite",
-    diaNumero: "21",
-    diaSemana: "Quarta-feira",
-    dataExtenso: "21 de Outubro de 2026",
-    turnoNome: "Turno Noite",
-    horarioTurno: "A partir das 17:00 • Torneio às 18:00",
-    faseTag: "1º Dia • Torneio Oficial de Pokémon TCG e Digimon TCG",
-    accentBorder: "border-cyan-500/40",
-    accentBg: "bg-cyan-950/20",
-    accentText: "text-cyan-300",
-    badgeBg: "bg-cyan-500/10 border-cyan-500/30",
-    badgeText: "text-cyan-300",
-    eventos: [
-      {
-        horario: "17:00 - 18:00",
-        titulo: "Abertura dos Portões & Acesso Exclusivo com Pulseira",
-        descricao:
-          "Recepção dos jogadores na Arena Geek e conferência das pulseiras oficiais (retiradas na Atlântica Mais até dia 20) e passaportes digitais com QR Code.",
-        tipo: "geral",
-      },
-      {
-        horario: "18:00 - 21:30",
-        titulo: "Torneio Oficial • Pokémon TCG & Digimon Card Game",
-        descricao:
-          "Início pontual às 18:00! Disputas competitivas das rodadas suíças oficiais de Pokémon TCG (Standard) e Digimon Card Game com corpo de arbitragem da Atlântica Mais.",
-        tipo: "torneio",
-        jogos: ["pokemon", "digimon"],
-        destaque: true,
-      },
-      {
-        horario: "21:30 - 22:00",
-        titulo: "Encerramento da Noite 1 & Resultados",
-        descricao:
-          "Conclusão das partidas, apuração dos placares de Pokémon e Digimon e orientações para as atividades de quinta-feira.",
-        tipo: "geral",
-      },
-    ],
-  },
-  {
-    id: "22_tarde",
-    diaNumero: "22",
-    diaSemana: "Quinta-feira",
-    dataExtenso: "22 de Outubro de 2026",
-    turnoNome: "Turno Tarde",
-    horarioTurno: "14:00 às 18:00 • Oficinas das 15:00 às 17:00",
-    faseTag: "2º Dia • Oficinas Gratuitas para Iniciantes",
-    accentBorder: "border-fuchsia-500/40",
-    accentBg: "bg-fuchsia-950/20",
-    accentText: "text-fuchsia-300",
-    badgeBg: "bg-fuchsia-500/10 border-fuchsia-500/30",
-    badgeText: "text-fuchsia-300",
-    eventos: [
-      {
-        horario: "14:00 - 15:00",
-        titulo: "Reabertura da Arena Geek & Recepção com Pulseira",
-        descricao:
-          "Abertura do espaço temático e recepção dos participantes munidos de sua pulseira oficial da FINC 2026.",
-        tipo: "geral",
-      },
-      {
-        horario: "15:00 - 17:00",
-        titulo: "Oficinas Didáticas • Pokémon TCG, One Piece & Digimon",
-        descricao:
-          "Bancadas didáticas com instrutores dedicados para quem quer aprender a jogar do zero! Decks didáticos fornecidos gratuitamente no local para Pokémon TCG, One Piece Card Game e Digimon Card Game.",
-        tipo: "oficina",
-        jogos: ["pokemon", "onepiece", "digimon"],
-        destaque: true,
-      },
-      {
-        horario: "17:00 - 18:00",
-        titulo: "Free Play & Check-in dos Torneios Noturnos",
-        descricao:
-          "Espaço livre para troca de cartas e preparação dos competidores para os torneios de Pokémon e One Piece do turno da noite.",
-        tipo: "geral",
-      },
-    ],
-  },
-  {
-    id: "22_noite",
-    diaNumero: "22",
-    diaSemana: "Quinta-feira",
-    dataExtenso: "22 de Outubro de 2026",
-    turnoNome: "Turno Noite",
-    horarioTurno: "18:00 às 20:00 • Início às 18:00",
-    faseTag: "2º Dia • Torneio de Pokémon e One Piece + Pódio",
-    accentBorder: "border-amber-500/40",
-    accentBg: "bg-amber-950/20",
-    accentText: "text-amber-300",
-    badgeBg: "bg-amber-500/10 border-amber-500/30",
-    badgeText: "text-amber-300",
-    eventos: [
-      {
-        horario: "18:00 - 19:30",
-        titulo: "Torneio Oficial • Pokémon TCG & One Piece Card Game",
-        descricao:
-          "Início pontual às 18:00! Torneios competitivos e grandes Finais de Pokémon TCG e One Piece Card Game (OP TCG) com torcida e arbitragem oficial.",
-        tipo: "torneio",
-        jogos: ["pokemon", "onepiece"],
-        destaque: true,
-      },
-      {
-        horario: "19:30 - 20:00",
-        titulo: "Cerimônia de Premiação & Encerramento Oficial",
-        descricao:
-          "Consagração dos grandes campeões, entrega dos troféus oficiais da Arena Geek FINC 2026, medalhas aos finalistas e encerramento oficial.",
-        tipo: "premiacao",
-        destaque: true,
-      },
-    ],
-  },
-];
-
-export const GAME_BADGES_MAP: Record<string, { name: string; color: string; bg: string }> = {
-  pokemon: { name: "Pokémon TCG", color: "text-amber-300", bg: "bg-amber-500/15 border-amber-500/30" },
-  onepiece: { name: "One Piece CG", color: "text-rose-300", bg: "bg-rose-500/15 border-rose-500/30" },
-  digimon: { name: "Digimon CG", color: "text-blue-300", bg: "bg-blue-500/15 border-blue-500/30" },
-  yugioh: { name: "Yu-Gi-Oh! (Cancelado)", color: "text-slate-400", bg: "bg-slate-800/40 border-slate-700/50 line-through" },
-  riftbound: { name: "Riftbound (Cancelado)", color: "text-slate-400", bg: "bg-slate-800/40 border-slate-700/50 line-through" },
-};
-
 export function FincRegistrationView({
   initialProtocol,
   previewClosed,
@@ -395,8 +248,6 @@ export function FincRegistrationView({
   const [searchError, setSearchError] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
-  // Filtro de exibição do cronograma
-  const [cronogramaTab, setCronogramaTab] = useState<"todos" | "21_noite" | "22_tarde" | "22_noite">("todos");
 
   const handleSelectSearchResult = (item: any) => {
     let parsedGames: string[] = [];
@@ -1041,243 +892,120 @@ export function FincRegistrationView({
         </section>
       )}
 
-      {/* 3. CAMPO DE CRONOGRAMA OFICIAL DA ARENA GEEK TCG */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-slate-900/90 via-slate-950 to-slate-950 p-5 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
-        <div className="pointer-events-none absolute -top-32 right-1/4 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 left-1/4 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl" />
-
-        {/* Header do Cronograma */}
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between gap-4 border-b border-white/10 pb-5 text-center md:text-left">
-          <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-black uppercase tracking-wider text-cyan-300">
-              <Calendar className="h-3.5 w-3.5 text-cyan-400" />
-              Programação Oficial • 21 e 22 de Outubro
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Cronograma da{" "}
-              <span className="bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-amber-400 bg-clip-text text-transparent">
-                Arena Geek TCG
-              </span>
+      {/* 3. CRONOGRAMA SIMPLIFICADO & DIRETO (OTIMIZADO PARA MOBILE) */}
+      <section className="rounded-3xl border border-white/10 bg-slate-900/90 p-4 sm:p-6 shadow-2xl backdrop-blur-xl space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-cyan-400" />
+            <h2 className="text-lg sm:text-xl font-black text-white">
+              Cronograma • Arena Geek TCG
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
-              Horários de torneios competitivos, bancadas didáticas para iniciantes e cerimônia de premiação no Cajueiro Convenções.
-            </p>
           </div>
+          <span className="text-xs text-slate-400 font-medium">Cajueiro Convenções • 21 e 22 de Outubro</span>
+        </div>
 
-          {/* Filtros rápidos em abas */}
-          <div className="flex flex-wrap items-center justify-center gap-1.5 p-1 rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur-md">
-            <button
-              type="button"
-              onClick={() => setCronogramaTab("todos")}
-              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                cronogramaTab === "todos"
-                  ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-600/30"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              Todos os Turnos
-            </button>
-            <button
-              type="button"
-              onClick={() => setCronogramaTab("21_noite")}
-              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                cronogramaTab === "21_noite"
-                  ? "bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 shadow-md shadow-cyan-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              Quarta 21 (18h Torneio)
-            </button>
-            <button
-              type="button"
-              onClick={() => setCronogramaTab("22_tarde")}
-              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                cronogramaTab === "22_tarde"
-                  ? "bg-fuchsia-500/20 border border-fuchsia-400/50 text-fuchsia-200 shadow-md shadow-fuchsia-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              Quinta 22 Tarde (15h Oficinas)
-            </button>
-            <button
-              type="button"
-              onClick={() => setCronogramaTab("22_noite")}
-              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                cronogramaTab === "22_noite"
-                  ? "bg-amber-500/20 border border-amber-400/50 text-amber-200 shadow-md shadow-amber-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              Quinta 22 Noite (18h Torneio)
-            </button>
+        {/* AVISO RÁPIDO DE PULSEIRA & CANCELAMENTOS */}
+        <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-slate-900/80 to-slate-950 p-3 sm:p-3.5 text-xs text-amber-200 flex items-start gap-3 shadow-lg">
+          <Ticket className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-0.5 text-left flex-1">
+            <p className="leading-snug">
+              <strong className="text-white">Entrada com pulseira obrigatória: </strong>
+              Retirar na loja <strong>Atlântica Mais até o dia 20 de Outubro</strong> para ter acesso ao Cajueiro Convenções.
+            </p>
+            <p className="text-[11px] text-slate-400">
+              * Torneios e oficinas de Yu-Gi-Oh! e Riftbound cancelados por falta de quórum de participantes.
+            </p>
           </div>
         </div>
 
-        {/* AVISO CRÍTICO: ENTRADA COM PULSEIRA OFICIAL */}
-        <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/70 bg-gradient-to-r from-amber-950/80 via-slate-900/90 to-amber-950/80 p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-          <div className="h-12 w-12 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center shrink-0 text-amber-400 shadow-lg shadow-amber-500/10">
-            <Ticket className="h-6 w-6" />
-          </div>
-          <div className="space-y-1 flex-1">
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-500/20 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-amber-300">
-                <AlertTriangle className="h-3 w-3 text-amber-400" />
-                Atenção Obrigatória de Acesso
+        {/* CARDS VISUAIS E COMPACTOS DOS DIAS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* QUARTA-FEIRA 21/10 */}
+          <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-cyan-950/25 via-slate-900/70 to-slate-950 p-4 space-y-2.5">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-black text-[10px] uppercase">
+                  Quarta • 21/10
+                </span>
+                <span className="text-xs font-bold text-slate-300">Noite</span>
+              </div>
+              <span className="text-xs font-bold font-mono text-cyan-300">18:00 às 21:30</span>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1">
+                <Swords className="h-3.5 w-3.5 text-rose-400" /> Torneios (Início às 18h)
               </span>
-              <span className="text-[11px] font-bold text-amber-300 font-mono">Retirada até dia 20 de Outubro</span>
-            </div>
-            <h3 className="text-sm sm:text-base font-black text-white">
-              Entrada Permitida Exclusivamente com o Uso da Pulseira Oficial
-            </h3>
-            <p className="text-xs text-slate-200 leading-relaxed">
-              A entrada no Cajueiro Convenções <strong>só será permitida com o uso da pulseira oficial da FINC</strong>. A retirada deve ser realizada presencialmente na <strong>loja Atlântica Mais até o dia 20 de Outubro (terça-feira)</strong>. Faça a retirada com antecedência munido de seu documento ou passaporte!
-            </p>
-          </div>
-        </div>
-
-        {/* COMUNICADO DE CANCELAMENTO DE YU-GI-OH! E RIFTBOUND */}
-        <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/40 via-slate-900/70 to-slate-950 p-4 flex flex-col sm:flex-row items-center sm:items-start gap-3.5 text-center sm:text-left shadow-lg">
-          <div className="h-10 w-10 rounded-xl bg-rose-500/20 border border-rose-400/40 flex items-center justify-center shrink-0 text-rose-400">
-            <AlertCircle className="h-5 w-5" />
-          </div>
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-rose-300 flex items-center justify-center sm:justify-start gap-1.5">
-              <span>* Comunicado Oficial: Ajuste de Modalidades</span>
-            </span>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Os torneios e oficinas de <strong>Yu-Gi-Oh! TCG</strong> e <strong>Riftbound TCG</strong> foram cancelados nesta edição da FINC 2026 devido ao quórum de participantes e ao grande volume concentrado nos demais card games (<strong>Pokémon TCG, One Piece Card Game e Digimon Card Game</strong>). As bancadas e a equipe de arbitragem estarão dedicadas exclusivamente às modalidades ativas.
-            </p>
-          </div>
-        </div>
-
-        {/* Grade de Cartões dos Turnos */}
-        <div className="grid grid-cols-1 gap-5">
-          {CRONOGRAMA_TURNOS.filter((t) => cronogramaTab === "todos" || t.id === cronogramaTab).map((turno) => (
-            <div
-              key={turno.id}
-              className={`rounded-3xl border ${turno.accentBorder} ${turno.accentBg} p-5 sm:p-6 backdrop-blur-md shadow-xl transition-all space-y-4`}
-            >
-              {/* Topo do Turno */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-white/10 pb-3.5">
-                <div className="flex items-center gap-3">
-                  <div className={`h-11 w-11 rounded-2xl ${turno.badgeBg} flex flex-col items-center justify-center shrink-0 border shadow-inner`}>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-none">DIA</span>
-                    <span className={`text-base font-black ${turno.accentText} leading-none mt-0.5`}>{turno.diaNumero}</span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base sm:text-lg font-black text-white">{turno.diaSemana} • {turno.turnoNome}</h3>
-                    </div>
-                    <span className="text-xs text-slate-300">{turno.dataExtenso}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${turno.badgeBg} ${turno.badgeText}`}>
-                    <Clock className="h-3.5 w-3.5" />
-                    {turno.horarioTurno}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-slate-300">
-                    {turno.faseTag}
-                  </span>
-                </div>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                  🟡 Pokémon TCG
+                </span>
+                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-500/15 border border-blue-500/30 text-blue-300">
+                  🔵 Digimon TCG
+                </span>
               </div>
-
-              {/* Linha do Tempo de Atividades deste Turno */}
-              <div className="space-y-3">
-                {turno.eventos.map((ev, idx) => (
-                  <div
-                    key={idx}
-                    className="relative flex flex-col sm:flex-row sm:items-start gap-2.5 sm:gap-4 p-3.5 rounded-2xl border border-white/5 bg-slate-900/60 hover:border-white/15 transition-all"
-                  >
-                    {/* Horário */}
-                    <div className="sm:w-32 shrink-0">
-                      <span className="inline-flex items-center gap-1 text-xs font-mono font-bold text-slate-300 bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
-                        <Clock className="h-3 w-3 text-cyan-400" />
-                        {ev.horario}
-                      </span>
-                    </div>
-
-                    {/* Conteúdo */}
-                    <div className="flex-1 space-y-1.5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-                          {ev.tipo === "torneio" && <Swords className="h-4 w-4 text-rose-400 shrink-0" />}
-                          {ev.tipo === "oficina" && <BookOpen className="h-4 w-4 text-cyan-400 shrink-0" />}
-                          {ev.tipo === "premiacao" && <Trophy className="h-4 w-4 text-amber-400 shrink-0" />}
-                          {ev.tipo === "geral" && <Sparkles className="h-4 w-4 text-fuchsia-400 shrink-0" />}
-                          <span>{ev.titulo}</span>
-                        </h4>
-
-                        {ev.tipo === "torneio" && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-500/15 border border-rose-500/30 text-rose-300">
-                            Competitivo
-                          </span>
-                        )}
-                        {ev.tipo === "oficina" && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-cyan-500/15 border border-cyan-500/30 text-cyan-300">
-                            Didático / Aberto
-                          </span>
-                        )}
-                        {ev.tipo === "premiacao" && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500/15 border border-amber-500/30 text-amber-300">
-                            Pódio Oficial
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="text-xs text-slate-300 leading-relaxed">
-                        {ev.descricao}
-                      </p>
-
-                      {/* Badges de TCGs envolvidos */}
-                      {ev.jogos && ev.jogos.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                          {ev.jogos.map((jId) => {
-                            const badge = GAME_BADGES_MAP[jId];
-                            if (!badge) return null;
-                            return (
-                              <span
-                                key={jId}
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${badge.bg} ${badge.color}`}
-                              >
-                                {badge.name}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-[11px] text-slate-400 pt-0.5">
+                Trazer deck próprio legal no formato. Início pontual às 18:00.
+              </p>
             </div>
-          ))}
-        </div>
-
-        {/* Guia Rápido dos Jogos & Orientações */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2 border-t border-white/10 text-xs">
-          <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-4 space-y-2">
-            <div className="flex items-center gap-2 text-amber-300 font-bold">
-              <Swords className="h-4 w-4 text-amber-400" />
-              <span>Torneios Oficiais (Quarta às 18h & Quinta às 18h)</span>
-            </div>
-            <p className="text-slate-300 text-[11px] leading-relaxed">
-              <strong>Quarta (18h)</strong>: Torneios de Pokémon TCG e Digimon Card Game.<br />
-              <strong>Quinta (18h)</strong>: Torneios de Pokémon TCG e One Piece Card Game.<br />
-              Competidores inscritos devem <strong>trazer seu próprio deck legal</strong> construído no formato com protetores (sleeves).
-            </p>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-4 space-y-2">
-            <div className="flex items-center gap-2 text-cyan-300 font-bold">
-              <BookOpen className="h-4 w-4 text-cyan-400" />
-              <span>Oficinas Didáticas Gratuitas (Quinta das 15h às 17h)</span>
+          {/* QUINTA-FEIRA 22/10 */}
+          <div className="rounded-2xl border border-fuchsia-500/30 bg-gradient-to-b from-fuchsia-950/25 via-slate-900/70 to-slate-950 p-4 space-y-2.5">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded bg-fuchsia-500/20 text-fuchsia-300 font-black text-[10px] uppercase">
+                  Quinta • 22/10
+                </span>
+                <span className="text-xs font-bold text-slate-300">Tarde & Noite</span>
+              </div>
+              <span className="text-xs font-bold font-mono text-fuchsia-300">Até às 21:30</span>
             </div>
-            <p className="text-slate-300 text-[11px] leading-relaxed">
-              <strong>Quinta-feira das 15:00 às 17:00</strong>: Mesas práticas de aprendizado guiado para <strong>Pokémon TCG, One Piece e Digimon</strong>.<br />
-              <strong>Decks didáticos fornecidos gratuitamente no local</strong> para quem quer aprender as regras do zero.
-            </p>
+
+            {/* TARDE: OFICINAS */}
+            <div className="space-y-1.5 border-b border-white/5 pb-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1">
+                  <BookOpen className="h-3.5 w-3.5 text-cyan-400" /> Oficinas Gratuitas
+                </span>
+                <span className="text-[11px] font-mono text-cyan-300 font-bold">15h às 17h</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                  🟡 Pokémon
+                </span>
+                <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-rose-500/15 border border-rose-500/30 text-rose-300">
+                  🔴 One Piece
+                </span>
+                <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-blue-500/15 border border-blue-500/30 text-blue-300">
+                  🔵 Digimon
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Aprenda a jogar do zero. Decks fornecidos no local.
+              </p>
+            </div>
+
+            {/* NOITE: TORNEIOS */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1">
+                  <Swords className="h-3.5 w-3.5 text-rose-400" /> Torneios (Início às 18h)
+                </span>
+                <span className="text-[11px] font-mono text-amber-300 font-bold">18h às 21h30</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                  🟡 Pokémon TCG
+                </span>
+                <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/15 border border-rose-500/30 text-rose-300">
+                  🔴 One Piece CG
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Trazer deck próprio legal no formato. Encerramento às 21:30.
+              </p>
+            </div>
           </div>
         </div>
       </section>
