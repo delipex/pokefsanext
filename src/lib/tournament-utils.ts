@@ -219,14 +219,57 @@ export function formatBRLMoney(num: number): string {
 export function isBothTurnosSelected(turno?: string | null): boolean {
   if (!turno) return false;
   const t = String(turno).toLowerCase().trim();
-  return (
+
+  // Palavras-chave explícitas de ambos os turnos / kit duplo
+  if (
     t.includes("ambos") ||
     t.includes("duplo") ||
+    t.includes("2 inscri") ||
+    t.includes("duas inscri") ||
     t.includes("2 horários") ||
     t.includes("2 horarios") ||
     t.includes("dois horários") ||
-    t.includes("dois horarios") ||
-    (t.includes("1") && t.includes("2"))
+    t.includes("dois horarios")
+  ) {
+    return true;
+  }
+
+  // Combinações explícitas de horários (ex: "1º e 2º", "1º + 2º", "1 e 2", "14h e 17h")
+  // NOTA: NUNCA usar simples (t.includes("1") && t.includes("2")), pois "2º Horário (17h00)" possui o dígito 1 em 17h!
+  const hasBothExplicit =
+    /\b1[ºªo°]?\s*(?:e|\+|&|\/)\s*2[ºªo°]?\b/i.test(t) ||
+    /\b(?:14(?:h(?:00)?|:00)?)\s*(?:e|\+|&|\/)\s*(?:17(?:h(?:00)?|:00)?)\b/i.test(t);
+
+  return hasBothExplicit;
+}
+
+/**
+ * Detecta se uma string de turno refere-se ao 1º Horário/Turno (14h00) de forma individual
+ */
+export function isTurno1Only(turno?: string | null): boolean {
+  if (!turno || isBothTurnosSelected(turno)) return false;
+  const t = String(turno).toLowerCase().trim();
+  if (/\b(?:2[ºªo°]|17(?:h(?:00)?|:00)?)\b/i.test(t)) return false;
+
+  return (
+    /\b(?:1[ºªo°]|14(?:h(?:00)?|:00)?|manh[aã])\b/i.test(t) ||
+    /\b1\s*hor[aá]rio\b/i.test(t) ||
+    /^\s*1[ºªo°\s]/i.test(t)
+  );
+}
+
+/**
+ * Detecta se uma string de turno refere-se ao 2º Horário/Turno (17h00) de forma individual
+ */
+export function isTurno2Only(turno?: string | null): boolean {
+  if (!turno || isBothTurnosSelected(turno)) return false;
+  const t = String(turno).toLowerCase().trim();
+  if (/\b(?:1[ºªo°]|14(?:h(?:00)?|:00)?)\b/i.test(t)) return false;
+
+  return (
+    /\b(?:2[ºªo°]|17(?:h(?:00)?|:00)?|tarde|noite)\b/i.test(t) ||
+    /\b2\s*hor[aá]rio\b/i.test(t) ||
+    /^\s*2[ºªo°\s]/i.test(t)
   );
 }
 

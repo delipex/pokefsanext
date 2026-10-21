@@ -339,30 +339,14 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
       return;
     }
 
-    const isCurrentlyAmbos = isBothTurnosSelected(selectedTurno);
-    const isCurrentT1 = selectedTurno === turno1Name;
-    const isCurrentT2 = selectedTurno === turno2Name;
-
     if (chosen === "t1") {
-      if (isCurrentT1) {
-        setSelectedTurno("");
-      } else if (isCurrentT2) {
-        setSelectedTurno(ambosTurnosName);
-      } else if (isCurrentlyAmbos) {
-        setSelectedTurno(turno2Name);
-      } else {
-        setSelectedTurno(turno1Name);
-      }
-    } else if (chosen === "t2") {
-      if (isCurrentT2) {
-        setSelectedTurno("");
-      } else if (isCurrentT1) {
-        setSelectedTurno(ambosTurnosName);
-      } else if (isCurrentlyAmbos) {
-        setSelectedTurno(turno1Name);
-      } else {
-        setSelectedTurno(turno2Name);
-      }
+      setSelectedTurno((prev) => (prev === turno1Name ? "" : turno1Name));
+      return;
+    }
+
+    if (chosen === "t2") {
+      setSelectedTurno((prev) => (prev === turno2Name ? "" : turno2Name));
+      return;
     }
   };
 

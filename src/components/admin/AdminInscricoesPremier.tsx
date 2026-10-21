@@ -36,7 +36,13 @@ import {
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { parsePTCGDecklist } from "@/lib/decklist-parser";
 import { DecklistVisualGallery } from "@/components/deck/DecklistVisualGallery";
-import { evaluatePremierRegistrationStatus, formatDateToBR } from "@/lib/tournament-utils";
+import {
+  evaluatePremierRegistrationStatus,
+  formatDateToBR,
+  isBothTurnosSelected,
+  isTurno1Only,
+  isTurno2Only,
+} from "@/lib/tournament-utils";
 
 interface AdminInscricoesPremierProps {
   initialConfig: Record<string, any>;
@@ -554,12 +560,12 @@ export function AdminInscricoesPremier({
     let t2 = 0;
     let ambos = 0;
     decklists.forEach((item) => {
-      const t = (item.turno || "").toLowerCase();
-      if (t.includes("ambos") || t.includes("kit duplo") || t.includes("duplo")) {
+      const t = item.turno || "";
+      if (isBothTurnosSelected(t)) {
         ambos++;
-      } else if (t.includes("1") || t.includes("manhã") || t.includes("manha")) {
+      } else if (isTurno1Only(t)) {
         t1++;
-      } else if (t.includes("2") || t.includes("tarde")) {
+      } else if (isTurno2Only(t)) {
         t2++;
       }
     });
@@ -587,11 +593,11 @@ export function AdminInscricoesPremier({
         selectedTurnoFilter === "all" ||
         !selectedTurnoFilter ||
         (selectedTurnoFilter === "ambos"
-          ? (item.turno && (item.turno.toLowerCase().includes("ambos") || item.turno.toLowerCase().includes("duplo")))
+          ? isBothTurnosSelected(item.turno)
           : selectedTurnoFilter === "1"
-          ? (item.turno && (item.turno.toLowerCase().includes("1") || item.turno.toLowerCase().includes("manhã") || item.turno.toLowerCase().includes("manha")))
+          ? isTurno1Only(item.turno)
           : selectedTurnoFilter === "2"
-          ? (item.turno && (item.turno.toLowerCase().includes("2") || item.turno.toLowerCase().includes("tarde")))
+          ? isTurno2Only(item.turno)
           : item.turno === selectedTurnoFilter);
 
       return matchSearch && matchCategory && matchPayment && matchEvent && matchTurno;
