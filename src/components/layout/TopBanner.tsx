@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { Sparkles } from "lucide-react";
 
 interface TopBannerProps {
@@ -10,9 +9,6 @@ interface TopBannerProps {
 }
 
 export function TopBanner({ avisoTopo, linkWhatsApp, ativo = true }: TopBannerProps) {
-  const pathname = usePathname();
-  if (pathname === "/finc") return null;
-
   const isEnabled = ativo === true || ativo === "true" || ativo === "1";
   const cleanAviso = avisoTopo?.trim();
 

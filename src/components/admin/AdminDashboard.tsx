@@ -51,7 +51,6 @@ import { AdminTemporadasManager } from "./AdminTemporadasManager";
 import { AdminAuditoria } from "./AdminAuditoria";
 import { AdminRegrasManager } from "./AdminRegrasManager";
 import { AdminBracketManager } from "./AdminBracketManager";
-import { AdminFincManager } from "./AdminFincManager";
 
 interface AdminToast {
   id: string;
@@ -112,7 +111,7 @@ export function AdminDashboard({
 }: AdminDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<
-    "tdf" | "etapas" | "jogadores" | "decks" | "metagame" | "inscricoes" | "temporadas" | "calendario" | "config" | "bracket" | "finc"
+    "tdf" | "etapas" | "jogadores" | "decks" | "metagame" | "inscricoes" | "temporadas" | "calendario" | "config" | "bracket"
   >("tdf");
 
   const formatDateBR = (dateStr: string) => {
@@ -1650,18 +1649,6 @@ export function AdminDashboard({
           >
             <Swords className="h-3.5 w-3.5" />
             <span>Finais / Top Cut</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("finc")}
-            className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-all cursor-pointer shrink-0 ${
-              activeTab === "finc"
-                ? "bg-gradient-to-r from-cyan-500 via-blue-600 to-fuchsia-600 text-white font-black shadow-md shadow-cyan-500/30"
-                : "text-cyan-400/90 hover:text-cyan-300 hover:bg-cyan-500/10"
-            }`}
-          >
-            <Gamepad2 className="h-3.5 w-3.5" />
-            <span>FINC Geek</span>
           </button>
 
 
@@ -3929,10 +3916,7 @@ export function AdminDashboard({
         <AdminBracketManager />
       )}
 
-      {/* 8. ABA FINC • ARENA GEEK TCG */}
-      {activeTab === "finc" && (
-        <AdminFincManager />
-      )}
+
 
       {/* Modal de Diagnóstico do Banco de Dados */}
       {isDbModalOpen && (

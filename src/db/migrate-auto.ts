@@ -209,26 +209,9 @@ export async function ensureDatabaseSchema() {
       status TEXT NOT NULL DEFAULT 'pendente',
       created_at TEXT DEFAULT (datetime('now'))
     );`,
-    `CREATE TABLE IF NOT EXISTS inscricoes_finc (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      protocolo TEXT NOT NULL UNIQUE,
-      nome TEXT NOT NULL,
-      whatsapp TEXT NOT NULL,
-      email TEXT,
-      tipo_participante TEXT DEFAULT 'externo',
-      ra TEXT,
-      jogos TEXT NOT NULL,
-      dias TEXT NOT NULL,
-      intencao TEXT DEFAULT 'torneio',
-      possui_deck TEXT DEFAULT 'sim',
-      observacoes TEXT,
-      status TEXT DEFAULT 'confirmado',
-      created_at TEXT DEFAULT (datetime('now'))
-    );`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_decks_nome ON decks(nome);`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_etapas_data ON etapas(data);`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_configuracoes_chave ON configuracoes(chave);`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS idx_inscricoes_finc_protocolo ON inscricoes_finc(protocolo);`,
   ];
 
   // Executa criação das tabelas e índices
@@ -286,7 +269,6 @@ export async function ensureDatabaseSchema() {
     `ALTER TABLE jogador_decklists ADD COLUMN updated_at TEXT;`,
     `ALTER TABLE jogador_decklists ADD COLUMN historico_edicoes TEXT DEFAULT '[]';`,
     `ALTER TABLE jogador_decklists ADD COLUMN turno TEXT;`,
-    `ALTER TABLE inscricoes_finc ADD COLUMN ra TEXT;`,
   ];
 
 

@@ -351,7 +351,7 @@ export function AdminInscricoesPremier({
       );
       const isCup = Boolean(ev.evento && ev.evento.toLowerCase().includes("cup"));
       const isChallenge = Boolean(ev.evento && ev.evento.toLowerCase().includes("challenge"));
-      const isSpecial = Boolean(ev.evento && (ev.evento.toLowerCase().includes("especial") || ev.evento.toLowerCase().includes("tbt") || ev.evento.toLowerCase().includes("finc")));
+      const isSpecial = Boolean(ev.evento && (ev.evento.toLowerCase().includes("especial") || ev.evento.toLowerCase().includes("tbt")));
 
       let detectedTipo = "Liga";
       if (isRelease) detectedTipo = "Pre-Release";
@@ -692,7 +692,7 @@ export function AdminInscricoesPremier({
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                Todos ({enrichedCalendarEvents.length + 1})
+                Todos ({enrichedCalendarEvents.length})
               </button>
               <button
                 type="button"
@@ -732,7 +732,7 @@ export function AdminInscricoesPremier({
           </div>
 
           {/* Resumo Rápido de Canais Ativos */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Status Canal Global (/#inscricao) */}
             <div className={`p-3.5 rounded-xl border transition-all ${
               premierAbertas && currentRegStatus.isOpen
@@ -755,31 +755,6 @@ export function AdminInscricoesPremier({
               <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
                 <span>Data: {formatDateToBR(premierData)}</span>
                 <span className="text-amber-400 font-semibold">{premierValor ? `R$ ${premierValor}` : "Grátis"}</span>
-              </div>
-            </div>
-
-            {/* Status Canal Especial: FINC (/finc) */}
-            <div className="p-3.5 rounded-xl border border-purple-500/30 bg-purple-500/10">
-              <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-purple-300 font-medium">Página Especial Dedicada</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-200 border border-purple-500/40">
-                  🟣 Aberto em /finc
-                </span>
-              </div>
-              <div className="font-bold text-sm text-white truncate">
-                FINC 2026 — Festival de Inverno
-              </div>
-              <div className="text-[11px] text-purple-300/80 mt-1 flex items-center justify-between">
-                <span>Encerra: 19/10 às 12h00</span>
-                <a
-                  href="/finc"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline flex items-center gap-1 font-semibold text-purple-300"
-                >
-                  <span>Abrir</span>
-                  <ExternalLink className="h-3 w-3" />
-                </a>
               </div>
             </div>
 
@@ -813,64 +788,6 @@ export function AdminInscricoesPremier({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Card da FINC se o filtro incluir ativos ou todos */}
-              {(formEventsFilter === "all" || formEventsFilter === "active") && (
-                <div className="rounded-xl border border-purple-500/40 bg-purple-950/20 p-4 flex flex-col justify-between space-y-3 shadow-lg shadow-purple-500/5 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-xl pointer-events-none" />
-                  
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wider">
-                        Especial • Regional
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        ATIVO EM /FINC
-                      </span>
-                    </div>
-
-                    <h4 className="font-bold text-white text-sm line-clamp-1 group-hover:text-purple-300 transition-colors">
-                      FINC 2026 — Festival de Inverno
-                    </h4>
-                    <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
-                      Etapa especial com página e formulário dedicados
-                    </p>
-
-                    <div className="mt-3 space-y-1.5 text-xs text-slate-300 border-t border-white/5 pt-2.5">
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <Clock className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-                        <span>Inscrições até: <strong>19/10 às 12h00</strong></span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <MapPin className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-                        <span>Rota direta do site: <code className="text-purple-300 font-mono">/finc</code></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-white/10 flex items-center gap-2">
-                    <a
-                      href="/finc"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 py-1.5 px-3 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5"
-                    >
-                      <span>Ver Página /finc</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleFilterRegistrationsByEvent("FINC")}
-                      className="py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/10 transition-all flex items-center gap-1 cursor-pointer"
-                      title="Filtrar inscrições recebidas para a FINC"
-                    >
-                      <Users className="h-3 w-3 text-purple-400" />
-                      <span>Inscritos</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Cards dos Eventos do Calendário */}
               {filteredCalendarEvents.map((ev) => {
                 const isActiveOnSite = ev.isPremierActive;

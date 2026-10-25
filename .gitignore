@@ -32,6 +32,7 @@ local.db
 # Organizer Local Docs & Scripts (Private)
 docs/
 scripts/
+dados/
 .agents/
 .gemini/
 

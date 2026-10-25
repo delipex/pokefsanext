@@ -175,21 +175,3 @@ export const solicitacoesDecks = sqliteTable("solicitacoes_decks", {
   status: text("status").default("pendente"), // 'pendente', 'aprovada', 'rejeitada'
   createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
 });
-
-// 14. Tabela de Inscrições Especiais FINC 2026 - Arena Geek (Espaço TCG)
-export const inscricoesFinc = sqliteTable("inscricoes_finc", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  protocolo: text("protocolo").notNull().unique(), // ex: FINC-TCG-7821
-  nome: text("nome").notNull(),
-  whatsapp: text("whatsapp").notNull(),
-  email: text("email"),
-  tipoParticipante: text("tipo_participante").default("externo"), // 'externo', 'unef', 'unifan', 'outra'
-  ra: text("ra"), // Registro Acadêmico / Matrícula (alunos UNEF ou UNIFAN)
-  jogos: text("jogos").notNull(), // JSON array: ["pokemon", "yugioh", "onepiece", "digimon", "riftbound"]
-  dias: text("dias").notNull(), // JSON array: ["21", "22"] ou "ambos"
-  intencao: text("intencao").default("torneio"), // 'torneio', 'casual', 'oficina_aprender'
-  possuiDeck: text("possui_deck").default("sim"), // 'sim', 'nao', 'preciso_demo'
-  observacoes: text("observacoes"),
-  status: text("status").default("confirmado"), // 'confirmado', 'cancelado'
-  createdAt: text("created_at").default(sql`(CURRENT_TIMESTAMP)`),
-});

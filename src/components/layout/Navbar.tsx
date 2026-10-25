@@ -22,7 +22,6 @@ export function Navbar({
   exibirTopCut = false,
 }: NavbarProps) {
   const pathname = usePathname();
-  if (pathname === "/finc") return null;
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loggedInAthlete, setLoggedInAthlete] = useState<{ popId: string; nome: string } | null>(null);
