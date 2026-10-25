@@ -30,8 +30,16 @@ export function PremierStickyNavBanner({ config }: PremierStickyNavBannerProps) 
   const theme = resolvePremierTheme(config?.premierTema || "halloween");
   const iconEmoji = resolveIconEmoji(config?.premierBannerIcone || theme.iconDefault);
 
+  const isGratuito =
+    config?.premierGratuito === "true" ||
+    config?.premierGratuito === true ||
+    config?.premierValor === "0" ||
+    config?.premierValor === "0,00" ||
+    config?.premierValor?.toLowerCase?.() === "gratuito" ||
+    config?.premierValor?.toLowerCase?.() === "grátis";
+
   const title = (config?.premierCtaTexto || config?.premierNome || theme.defaultTitle).trim();
-  const buttonText = (config?.premierCtaBotao || theme.buttonTextDefault).trim();
+  const buttonText = (config?.premierCtaBotao || (isGratuito ? "Vaga Gratuita ➜" : theme.buttonTextDefault)).trim();
   const eventDate = config?.premierData ? formatDateToBR(normalizeDateToISO(config.premierData)) : "";
 
   // Imagem de fundo opcional (URL externa ou interna)
@@ -85,7 +93,7 @@ export function PremierStickyNavBanner({ config }: PremierStickyNavBannerProps) 
                 className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${theme.badgeClass} shrink-0`}
               >
                 <Sparkles className="h-2.5 w-2.5" />
-                Inscrições Abertas
+                {isGratuito ? "🎉 Entrada Franca" : "Inscrições Abertas"}
               </span>
 
               <h4 className="text-xs sm:text-sm font-extrabold text-white truncate group-hover:underline">

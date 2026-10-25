@@ -187,9 +187,20 @@ export async function POST(req: Request) {
         ? tipoEnergia
         : inferDeckEnergy(finalDeckNome, rawDecklistText);
 
-    // Define status inicial baseado na forma de pagamento escolhida
-    const isPresencial = metodoPagamento === "presencial" || metodoPagamento === "local";
-    const initialStatusPix = isPresencial ? "Pagar no Local" : "Pendente";
+    // Define status inicial baseado na forma de pagamento escolhida (ou gratuito)
+    const isGratuito =
+      metodoPagamento === "gratuito" ||
+      configMap.premierGratuito === "true" ||
+      configMap.premierGratuito === true ||
+      body.valor === "0,00" ||
+      body.valor === "0";
+
+    const isPresencial = !isGratuito && (metodoPagamento === "presencial" || metodoPagamento === "local");
+    const initialStatusPix = isGratuito
+      ? "Confirmado"
+      : isPresencial
+      ? "Pagar no Local"
+      : "Pendente";
 
     // 4. Verificação de Inscrição Existente para o Mesmo Evento (Unificação & Atualização)
     let existingItem: any = null;

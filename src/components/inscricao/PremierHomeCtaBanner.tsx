@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Clock, MapPin, Sparkles, Trophy, Users } from "lucide-react";
+import { Calendar, Clock, MapPin, Sparkles, Trophy, Users, Zap } from "lucide-react";
 import { evaluatePremierRegistrationStatus, formatDateToBR, normalizeDateToISO } from "@/lib/tournament-utils";
 import { resolvePremierTheme, resolveIconEmoji } from "./PremierCtaTheme";
 
@@ -20,6 +20,14 @@ export function PremierHomeCtaBanner({ config }: PremierHomeCtaBannerProps) {
 
   const theme = resolvePremierTheme(config?.premierTema || "halloween");
   const iconEmoji = resolveIconEmoji(config?.premierBannerIcone || theme.iconDefault);
+
+  const isGratuito =
+    config?.premierGratuito === "true" ||
+    config?.premierGratuito === true ||
+    config?.premierValor === "0" ||
+    config?.premierValor === "0,00" ||
+    config?.premierValor?.toLowerCase?.() === "gratuito" ||
+    config?.premierValor?.toLowerCase?.() === "grátis";
 
   const title = (config?.premierCtaTexto || config?.premierNome || theme.defaultTitle).trim();
   const subtitle = (config?.premierCtaSubtexto || config?.premierSubtitulo || theme.defaultSubtitle).trim();
@@ -152,18 +160,23 @@ export function PremierHomeCtaBanner({ config }: PremierHomeCtaBannerProps) {
                   {eventLocal}
                 </span>
               )}
-              {eventValor && (
+              {isGratuito ? (
+                <span className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 font-bold px-2.5 py-1 rounded-xl border border-emerald-500/40">
+                  <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                  🎉 Entrada Franca • 100% Gratuito
+                </span>
+              ) : eventValor ? (
                 <span className="inline-flex items-center gap-1.5 bg-emerald-950/60 text-emerald-300 font-bold px-2.5 py-1 rounded-xl border border-emerald-500/30">
                   <Trophy className="h-3.5 w-3.5 text-emerald-400" />
                   Taxa: {eventValor}
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
 
-        {/* Lado Direito: Botão de Inscrição Gigante com Efeito Hover */}
-        <div className="w-full lg:w-auto shrink-0 flex items-center justify-end">
+        {/* Lado Direito: Botão de Inscrição + Atalho de Login Rápido */}
+        <div className="w-full lg:w-auto shrink-0 flex flex-col items-stretch lg:items-end justify-center gap-2">
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
@@ -171,8 +184,18 @@ export function PremierHomeCtaBanner({ config }: PremierHomeCtaBannerProps) {
             className={`w-full sm:w-auto min-h-[46px] inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-2xl text-sm sm:text-base cursor-pointer transition-all duration-200 ${theme.buttonClass}`}
           >
             <span className="text-xl leading-none">{iconEmoji}</span>
-            <span>{buttonText}</span>
+            <span>{isGratuito && !config?.premierCtaBotao ? "Garantir Vaga Gratuita ➜" : buttonText}</span>
           </motion.button>
+
+          {/* Atalho Express solicitado pelo organizador */}
+          <button
+            type="button"
+            onClick={handleOpenInscricao}
+            className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-300/90 hover:text-amber-200 bg-black/40 hover:bg-black/60 border border-amber-400/20 hover:border-amber-400/40 px-3 py-1 rounded-full transition-all cursor-pointer shadow-sm"
+          >
+            <Zap className="h-3 w-3 text-amber-400" />
+            <span>Já tem login ou jogou na Liga? Preencha em 1 clique</span>
+          </button>
         </div>
       </div>
     </motion.section>

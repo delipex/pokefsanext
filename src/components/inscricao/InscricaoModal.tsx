@@ -27,6 +27,7 @@ import {
   Layers,
   Download,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { EnergyBadge } from "@/components/ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
@@ -92,6 +93,14 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     activeRegistration?: any;
   } | null>(null);
   const [existingRegistration, setExistingRegistration] = useState<any | null>(null);
+
+  // Inscrição Express / Preenchimento Rápido (1-Click Fill)
+  const [isQuickFillOpen, setIsQuickFillOpen] = useState(false);
+  const [quickPopId, setQuickPopId] = useState("");
+  const [quickPin, setQuickPin] = useState("");
+  const [quickRequirePin, setQuickRequirePin] = useState(false);
+  const [isQuickLoading, setIsQuickLoading] = useState(false);
+  const [quickFeedback, setQuickFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // UI / Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -239,6 +248,76 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     }
   };
 
+  // Preenchimento Rápido / 1-Click Fill via POP ID
+  const handleQuickLookup = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setQuickFeedback(null);
+    const cleanId = quickPopId.replace(/\D/g, "");
+    if (!cleanId || cleanId.length < 5 || cleanId.length > 9) {
+      setQuickFeedback({ type: "error", text: "Informe um POP ID válido (entre 5 e 9 dígitos)." });
+      return;
+    }
+
+    setIsQuickLoading(true);
+    try {
+      const res = await fetch("/api/portal/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ popId: cleanId, pin: quickPin }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.requirePin) {
+          setQuickRequirePin(true);
+          setQuickFeedback({
+            type: "error",
+            text: data.message || "Conta encontrada! Por favor, informe seu PIN de 4 dígitos para preencher.",
+          });
+          return;
+        }
+        throw new Error(data.error || "Atleta não encontrado com este POP ID.");
+      }
+
+      if (data.found) {
+        setNome(data.nome || "");
+        setPopId(data.popId || cleanId);
+        if (data.dataNascimento) {
+          setDataNascimento(data.dataNascimento);
+        }
+        if (data.categoria) {
+          setCategoria(data.categoria);
+        }
+        if (data.whatsapp) {
+          setWhatsapp(data.whatsapp);
+        }
+        if (data.deckNome && !selectedDeck) {
+          setSelectedDeck(data.deckNome);
+        }
+
+        setLoggedInUser({
+          popId: data.popId || cleanId,
+          nome: data.nome,
+          categoria: data.categoria,
+          whatsapp: data.whatsapp,
+          dataNascimento: data.dataNascimento,
+          deckAtivoNome: data.deckNome,
+        });
+
+        setQuickFeedback({
+          type: "success",
+          text: `🎉 Olá, ${data.nome}! Seus dados foram preenchidos com sucesso.`,
+        });
+        setIsQuickFillOpen(false);
+        setQuickRequirePin(false);
+      }
+    } catch (err: any) {
+      setQuickFeedback({ type: "error", text: err.message || "Não foi possível carregar os dados." });
+    } finally {
+      setIsQuickLoading(false);
+    }
+  };
+
 
   // Parser visual e contador de cartas em tempo real
   const parsedDeckData: ParsedDecklistResult = useMemo(() => {
@@ -318,6 +397,18 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   const isAmbosTurnos = useMemo(() => {
     return isBothTurnosSelected(selectedTurno);
   }, [selectedTurno]);
+
+  const isGratuito = useMemo(() => {
+    return (
+      config.premierGratuito === "true" ||
+      config.premierGratuito === true ||
+      config.premierValor === "0" ||
+      config.premierValor === "0,00" ||
+      config.premierValor?.toLowerCase?.() === "gratuito" ||
+      config.premierValor?.toLowerCase?.() === "grátis" ||
+      config.premierValor?.toLowerCase?.() === "gratis"
+    );
+  }, [config.premierGratuito, config.premierValor]);
 
   const baseValorNumber = useMemo(() => {
     return parseBRLMoney(config.premierValor || "35,00");
@@ -458,9 +549,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
           tipoEnergia: isPreRelease ? "colorless" : "auto",
           decklistRaw: isPreRelease ? "" : decklistRaw.trim(),
           limitlessUrl: isPreRelease ? "" : limitlessUrl.trim(),
-          metodoPagamento,
+          metodoPagamento: isGratuito ? "gratuito" : metodoPagamento,
           turno: selectedTurno || ((isMultiTurno || isPreRelease) ? turno1Name : "Único"),
-          valor: effectiveValorFormatted,
+          valor: isGratuito ? "0,00" : effectiveValorFormatted,
           quantidade: quantidadeInscricoes,
           eventoNome: config.premierNome || "Torneio Oficial Liga Atlântica",
           etapaData: config.premierData || new Date().toISOString().split("T")[0],
@@ -533,13 +624,15 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
 
                 <div className="space-y-2">
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 text-xs font-black text-emerald-300 uppercase tracking-wider">
-                    Inscrição Registrada!
+                    {isGratuito ? "🎉 Vaga Confirmada (Entrada Franca)" : "Inscrição Registrada!"}
                   </span>
                   <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                    Tudo Pronto, Treinador!
+                    {isGratuito ? "Inscrição Concluída!" : "Tudo Pronto, Treinador!"}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
-                    Sua vaga foi pré-reservada com sucesso. Guarde o protocolo e finalize a confirmação enviando o comprovante via PIX.
+                    {isGratuito
+                      ? "Sua vaga foi confirmada com sucesso no grid oficial de competidores! Não há cobrança de taxa para esta sessão. Apresente-se com o seu protocolo."
+                      : "Sua vaga foi pré-reservada com sucesso. Guarde o protocolo e finalize a confirmação enviando o comprovante via PIX."}
                   </p>
                 </div>
 
@@ -580,8 +673,25 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                   </div>
                 )}
 
-                {/* Card de Pagamento PIX ou Aviso Presencial */}
-                {metodoPagamento === "pix" && successData.chavePix ? (
+                {/* Card de Pagamento PIX ou Confirmação Gratuita */}
+                {isGratuito ? (
+                  <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-left space-y-2">
+                    <div className="flex items-center justify-between text-emerald-300">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-emerald-400" />
+                        <span className="text-xs font-bold uppercase tracking-wider">
+                          Inscrição 100% Gratuita • Sem Cobrança
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-black bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
+                        Confirmado
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Sua inscrição foi confirmada no grid oficial de participantes. Não é necessário realizar nenhum pagamento para este evento.
+                    </p>
+                  </div>
+                ) : metodoPagamento === "pix" && successData.chavePix ? (
                   <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-left space-y-3">
                     <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
                       <div className="flex items-center gap-2">
@@ -760,7 +870,9 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     </div>
                     <div className="flex items-center gap-1.5 rounded-xl bg-white/[0.03] p-2 border border-white/5">
                       <CreditCard className="h-4 w-4 text-emerald-400 shrink-0" />
-                      <span className="truncate font-bold text-white">R$ {config.premierValor || "35,00"}</span>
+                      <span className="truncate font-bold text-white">
+                        {isGratuito ? "🎉 Gratuito" : `R$ ${config.premierValor || "35,00"}`}
+                      </span>
                     </div>
                   </div>
 
@@ -828,7 +940,101 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                       </p>
                     </div>
                   </div>
-                ) : null}
+                ) : (
+                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs backdrop-blur-md space-y-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          <Zap className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-extrabold text-white text-xs sm:text-sm">
+                            Já jogou na Liga ou tem login no site?
+                          </p>
+                          <p className="text-[11px] text-amber-200/80">
+                            Informe seu POP ID para preencher todos os seus dados em 1 clique!
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsQuickFillOpen(!isQuickFillOpen);
+                          setQuickFeedback(null);
+                        }}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>{isQuickFillOpen ? "Fechar" : "Inscrição Express"}</span>
+                      </button>
+                    </div>
+
+                    {/* Caixa de Busca Rápida Inline */}
+                    {isQuickFillOpen && (
+                      <div className="pt-2 border-t border-amber-500/20 space-y-2.5 animate-fadeIn">
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                          <div className={quickRequirePin ? "sm:col-span-6" : "sm:col-span-8"}>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={quickPopId}
+                              onChange={(e) => setQuickPopId(e.target.value.replace(/\D/g, ""))}
+                              placeholder="Digite seu POP ID (ex: 1234567)..."
+                              className="w-full rounded-xl border border-amber-500/40 bg-slate-900/90 px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                              autoFocus
+                            />
+                          </div>
+
+                          {quickRequirePin && (
+                            <div className="sm:col-span-3">
+                              <input
+                                type="password"
+                                maxLength={4}
+                                inputMode="numeric"
+                                value={quickPin}
+                                onChange={(e) => setQuickPin(e.target.value.replace(/\D/g, ""))}
+                                placeholder="PIN (4 dígitos)"
+                                className="w-full rounded-xl border border-amber-500/40 bg-slate-900/90 px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                              />
+                            </div>
+                          )}
+
+                          <div className={quickRequirePin ? "sm:col-span-3" : "sm:col-span-4"}>
+                            <button
+                              type="button"
+                              onClick={handleQuickLookup}
+                              disabled={isQuickLoading || !quickPopId.trim()}
+                              className="w-full h-full min-h-[34px] inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-colors disabled:opacity-50 cursor-pointer shadow-md shadow-amber-500/20"
+                            >
+                              {isQuickLoading ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Zap className="h-3.5 w-3.5" />
+                                  <span>{quickRequirePin ? "Confirmar" : "Preencher ➜"}</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {quickFeedback && (
+                          <div
+                            className={`p-2 rounded-xl text-xs flex items-center gap-2 ${
+                              quickFeedback.type === "success"
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                            }`}
+                          >
+                            <span>{quickFeedback.type === "success" ? "✅" : "⚠️"}</span>
+                            <span>{quickFeedback.text}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Formulário Interativo */}
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -1225,87 +1431,103 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     </>
                   )}
 
-                  {/* Escolha da Forma de Pagamento */}
-                  <div className="space-y-2 pt-2 border-t border-white/10">
-                    <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <CreditCard className="h-3.5 w-3.5 text-emerald-400" />
-                        Forma de Pagamento da Inscrição *
-                      </span>
-                      <div className="text-right">
-                        <span className="text-xs font-black text-emerald-400">
-                          R$ {effectiveValorFormatted}
-                        </span>
-                        {isAmbosTurnos && (
-                          <span className="block text-[10px] text-amber-300 font-semibold">
-                            (2x R$ {baseValorFormatted})
-                          </span>
-                        )}
+                  {/* Escolha da Forma de Pagamento (Ocultada em Evento Gratuito) */}
+                  {isGratuito ? (
+                    <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 flex items-center gap-3.5 shadow-lg shadow-emerald-950/20">
+                      <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 shrink-0">
+                        <Sparkles className="h-5 w-5 text-emerald-400" />
                       </div>
-                    </label>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      {/* Opção 1: PIX Antecipado */}
-                      <button
-                        type="button"
-                        onClick={() => setMetodoPagamento("pix")}
-                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                          metodoPagamento === "pix"
-                            ? "bg-emerald-500/15 border-emerald-500/60 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-400"
-                            : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-400"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <QrCode className={`h-4 w-4 ${metodoPagamento === "pix" ? "text-emerald-400" : "text-slate-400"}`} />
-                            <span className={`text-xs font-black ${metodoPagamento === "pix" ? "text-white" : "text-slate-300"}`}>
-                              PIX Antecipado
-                            </span>
-                          </div>
-                          <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
-                            metodoPagamento === "pix"
-                              ? "bg-emerald-500 border-emerald-400 text-slate-950 font-black"
-                              : "border-white/20"
-                          }`}>
-                            {metodoPagamento === "pix" ? "✓" : ""}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 leading-tight">
-                          Pague online e envie o comprovante para garantir sua vaga de imediato.
+                      <div className="min-w-0">
+                        <span className="text-xs font-black text-emerald-300 uppercase tracking-wider block">
+                          🎉 Inscrição Gratuita • Entrada Franca
+                        </span>
+                        <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                          Não há cobrança de taxa de inscrição para este evento. Seus dados cadastrais serão enviados diretamente para confirmação da sua vaga.
                         </p>
-                      </button>
-
-                      {/* Opção 2: Pagar no Local */}
-                      <button
-                        type="button"
-                        onClick={() => setMetodoPagamento("presencial")}
-                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                          metodoPagamento === "presencial"
-                            ? "bg-blue-500/15 border-blue-500/60 shadow-lg shadow-blue-500/10 ring-1 ring-blue-400"
-                            : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-400"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <MapPin className={`h-4 w-4 ${metodoPagamento === "presencial" ? "text-blue-400" : "text-slate-400"}`} />
-                            <span className={`text-xs font-black ${metodoPagamento === "presencial" ? "text-white" : "text-slate-300"}`}>
-                              No Dia do Evento
-                            </span>
-                          </div>
-                          <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
-                            metodoPagamento === "presencial"
-                              ? "bg-blue-500 border-blue-400 text-white font-black"
-                              : "border-white/20"
-                          }`}>
-                            {metodoPagamento === "presencial" ? "✓" : ""}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 leading-tight">
-                          Pague presencialmente na recepção antes do início da Rodada 1.
-                        </p>
-                      </button>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-2 pt-2 border-t border-white/10">
+                      <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <CreditCard className="h-3.5 w-3.5 text-emerald-400" />
+                          Forma de Pagamento da Inscrição *
+                        </span>
+                        <div className="text-right">
+                          <span className="text-xs font-black text-emerald-400">
+                            R$ {effectiveValorFormatted}
+                          </span>
+                          {isAmbosTurnos && (
+                            <span className="block text-[10px] text-amber-300 font-semibold">
+                              (2x R$ {baseValorFormatted})
+                            </span>
+                          )}
+                        </div>
+                      </label>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {/* Opção 1: PIX Antecipado */}
+                        <button
+                          type="button"
+                          onClick={() => setMetodoPagamento("pix")}
+                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            metodoPagamento === "pix"
+                              ? "bg-emerald-500/15 border-emerald-500/60 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-400"
+                              : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-400"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <QrCode className={`h-4 w-4 ${metodoPagamento === "pix" ? "text-emerald-400" : "text-slate-400"}`} />
+                              <span className={`text-xs font-black ${metodoPagamento === "pix" ? "text-white" : "text-slate-300"}`}>
+                                PIX Antecipado
+                              </span>
+                            </div>
+                            <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
+                              metodoPagamento === "pix"
+                                ? "bg-emerald-500 border-emerald-400 text-slate-950 font-black"
+                                : "border-white/20"
+                            }`}>
+                              {metodoPagamento === "pix" ? "✓" : ""}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 leading-tight">
+                            Pague online e envie o comprovante para garantir sua vaga de imediato.
+                          </p>
+                        </button>
+
+                        {/* Opção 2: Pagar no Local */}
+                        <button
+                          type="button"
+                          onClick={() => setMetodoPagamento("presencial")}
+                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            metodoPagamento === "presencial"
+                              ? "bg-blue-500/15 border-blue-500/60 shadow-lg shadow-blue-500/10 ring-1 ring-blue-400"
+                              : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-400"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <MapPin className={`h-4 w-4 ${metodoPagamento === "presencial" ? "text-blue-400" : "text-slate-400"}`} />
+                              <span className={`text-xs font-black ${metodoPagamento === "presencial" ? "text-white" : "text-slate-300"}`}>
+                                No Dia do Evento
+                              </span>
+                            </div>
+                            <span className={`h-4 w-4 rounded-full border flex items-center justify-center text-[10px] ${
+                              metodoPagamento === "presencial"
+                                ? "bg-blue-500 border-blue-400 text-white font-black"
+                                : "border-white/20"
+                            }`}>
+                              {metodoPagamento === "presencial" ? "✓" : ""}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 leading-tight">
+                            Pague presencialmente na recepção antes do início da Rodada 1.
+                          </p>
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Observações / Regras do Organizador */}
                   {config.premierObs && (
@@ -1320,19 +1542,26 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     <button
                       type="submit"
                       disabled={isSubmitting || !isAbertas}
-                      className={`w-full inline-flex items-center justify-center gap-2 rounded-2xl p-4 text-sm sm:text-base font-black text-white shadow-xl transition-all cursor-pointer ${
+                      className={`w-full inline-flex items-center justify-center gap-2 rounded-2xl p-4 text-sm sm:text-base font-black shadow-xl transition-all cursor-pointer ${
                         !isAbertas
-                          ? "bg-slate-700 opacity-50 cursor-not-allowed"
-                          : "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 shadow-blue-600/30"
+                          ? "bg-slate-700 opacity-50 cursor-not-allowed text-white"
+                          : isGratuito
+                          ? "bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-black shadow-emerald-600/30"
+                          : "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/30"
                       }`}
                     >
                       {isSubmitting ? (
                         <>
-                          <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                           <span>Processando Inscrição...</span>
                         </>
                       ) : !isAbertas ? (
                         <span>Inscrições Encerradas para este Torneio</span>
+                      ) : isGratuito ? (
+                        <>
+                          <Sparkles className="h-4 w-4 text-slate-950" />
+                          <span>Confirmar Inscrição Gratuita ➜</span>
+                        </>
                       ) : existingRegistration ? (
                         <>
                           <Sparkles className="h-4 w-4 text-blue-300" />

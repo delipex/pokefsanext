@@ -140,6 +140,9 @@ export function AdminInscricoesPremier({
   const [premierPlaceholderDeck, setPremierPlaceholderDeck] = useState(
     initialConfig.premierPlaceholderDeck || ""
   );
+  const [premierGratuito, setPremierGratuito] = useState(
+    initialConfig.premierGratuito === "true" || initialConfig.premierGratuito === true
+  );
   const [premierObs, setPremierObs] = useState(
     initialConfig.premierObs ||
       "Traga sua decklist impressa ou envie diretamente pelo formulário online até as 13:45. Formato Standard (Padrão)."
@@ -446,6 +449,7 @@ export function AdminInscricoesPremier({
       premierBannerBg,
       premierOcultarDecksPadrao: String(premierOcultarDecksPadrao),
       premierPlaceholderDeck,
+      premierGratuito: String(premierGratuito),
       premierObs,
       premierWebhook: "",
     };
@@ -1416,13 +1420,29 @@ export function AdminInscricoesPremier({
             {/* Linha 4: Taxa, Vagas e Exigência de Decklist */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Taxa de Inscrição (R$)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-300 font-semibold text-xs sm:text-sm">Taxa de Inscrição (R$)</label>
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/25 hover:bg-emerald-500/20 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={premierGratuito}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setPremierGratuito(checked);
+                        if (checked) setPremierValor("0,00");
+                      }}
+                      className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-400 h-3.5 w-3.5"
+                    />
+                    <span>🎟️ Gratuito / Grátis</span>
+                  </label>
+                </div>
                 <input
                   type="text"
-                  value={premierValor}
+                  disabled={premierGratuito}
+                  value={premierGratuito ? "0,00 (Gratuito)" : premierValor}
                   onChange={(e) => setPremierValor(e.target.value)}
                   placeholder="Ex: 35,00"
-                  className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
+                  className={`w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white ${premierGratuito ? "opacity-60 cursor-not-allowed text-emerald-300 font-bold" : ""}`}
                 />
               </div>
 
@@ -1512,41 +1532,72 @@ export function AdminInscricoesPremier({
               </div>
             </div>
 
-            {/* Linha 5: Chave PIX, Titular e WhatsApp */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Chave PIX para Pagamento</label>
-                <input
-                  type="text"
-                  value={premierPix}
-                  onChange={(e) => setPremierPix(e.target.value)}
-                  placeholder="CPF, CNPJ, E-mail, Celular ou Chave Aleatória"
-                  className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
-                />
-              </div>
+            {/* Linha 5: Chave PIX, Titular e WhatsApp (ou Aviso de Gratuito) */}
+            {premierGratuito ? (
+              <div className="p-4 rounded-2xl bg-emerald-950/25 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 shrink-0">
+                    <Sparkles className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black uppercase text-emerald-300 tracking-wider block">
+                      🎟️ Torneio Gratuito (Entrada Franca)
+                    </span>
+                    <span className="text-xs text-slate-300 block mt-0.5 leading-relaxed">
+                      Chave PIX, QR Code, titular bancário e escolha de pagamento foram <strong>removidos do formulário público</strong>. O atleta preenche apenas seus dados de identificação e baralho.
+                    </span>
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Favorecido / Titular do PIX</label>
-                <input
-                  type="text"
-                  value={premierTitular}
-                  onChange={(e) => setPremierTitular(e.target.value)}
-                  placeholder="Ex: Liga Atlântica TCG (Felipe Damasceno)"
-                  className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
-                />
+                <div className="w-full sm:w-auto shrink-0 min-w-[240px]">
+                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    WhatsApp do Organizador (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={premierWaContato}
+                    onChange={(e) => setPremierWaContato(e.target.value)}
+                    placeholder="Ex: 5575999999999"
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-1.5 text-white text-xs"
+                  />
+                </div>
               </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Chave PIX para Pagamento</label>
+                  <input
+                    type="text"
+                    value={premierPix}
+                    onChange={(e) => setPremierPix(e.target.value)}
+                    placeholder="CPF, CNPJ, E-mail, Celular ou Chave Aleatória"
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">WhatsApp do Organizador (Envio Direto)</label>
-                <input
-                  type="text"
-                  value={premierWaContato}
-                  onChange={(e) => setPremierWaContato(e.target.value)}
-                  placeholder="Ex: 5575999999999 (Vazio = padrão)"
-                  className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
-                />
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Favorecido / Titular do PIX</label>
+                  <input
+                    type="text"
+                    value={premierTitular}
+                    onChange={(e) => setPremierTitular(e.target.value)}
+                    placeholder="Ex: Liga Atlântica TCG (Felipe Damasceno)"
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">WhatsApp do Organizador (Envio Direto)</label>
+                  <input
+                    type="text"
+                    value={premierWaContato}
+                    onChange={(e) => setPremierWaContato(e.target.value)}
+                    placeholder="Ex: 5575999999999 (Vazio = padrão)"
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Linha 6: Banner, Tema, Ícone e Cores Personalizadas */}
             <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 space-y-4">
@@ -1693,7 +1744,7 @@ export function AdminInscricoesPremier({
                             <span
                               className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${previewTheme.badgeClass}`}
                             >
-                              {previewTheme.badgeText} • INSCRIÇÕES ABERTAS
+                              {previewTheme.badgeText} • {premierGratuito ? "ENTRADA FRANCA" : "INSCRIÇÕES ABERTAS"}
                             </span>
                             <div className="text-sm sm:text-base font-black text-white truncate">
                               {premierCtaTexto || premierNome || previewTheme.defaultTitle}
@@ -1708,7 +1759,7 @@ export function AdminInscricoesPremier({
                             type="button"
                             className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black cursor-default ${previewTheme.buttonClass}`}
                           >
-                            {previewIcon} {premierCtaBotao || previewTheme.buttonTextDefault}
+                            {previewIcon} {premierCtaBotao || (premierGratuito ? "Garantir Vaga Gratuita ➜" : previewTheme.buttonTextDefault)}
                           </button>
                         </div>
                       </div>
