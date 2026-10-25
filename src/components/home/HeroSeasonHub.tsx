@@ -366,54 +366,6 @@ export function HeroSeasonHub({
 
   return (
     <div className="w-full space-y-4">
-      {/* Banner de Destaque Dedicado para Torneio Especial com Inscrições Abertas (se o próximo evento imediato for outra sessão) */}
-      {isPremierActive && !isNextEventThePremierEvent && (
-        <motion.div
-
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-3xl border border-emerald-500/30 bg-emerald-950/40 p-4 sm:p-5 backdrop-blur-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl shadow-emerald-950/30"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="h-11 w-11 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0 shadow-inner">
-              <Trophy className="h-6 w-6 text-amber-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/25 border border-emerald-400/50 px-2.5 py-0.5 text-[10px] font-black uppercase text-emerald-300 tracking-wider">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" /> Inscrições Abertas
-                </span>
-                <h3 className="text-sm sm:text-base font-black text-white">
-                  {premierConfig?.premierNome || "Torneio Especial Oficial"}
-                </h3>
-              </div>
-              <div className="text-xs text-slate-300 mt-1 flex items-center gap-2 flex-wrap font-medium">
-                <span>📅 {formatEventDate(premierConfig?.premierData)}</span>
-                <span>•</span>
-                <span>⏰ {premierConfig?.premierHorario || "14:00"}</span>
-                <span>•</span>
-                <span>📍 {premierConfig?.premierLocal || "Livraria Atlântica"}</span>
-                {premierConfig?.premierValor && (
-                  <>
-                    <span>•</span>
-                    <span className="font-bold text-emerald-300">R$ {premierConfig.premierValor}</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={handleOpenInscricao}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-5 py-2.5 text-xs sm:text-sm font-black text-white shadow-lg shadow-emerald-600/30 cursor-pointer shrink-0 animate-pulse"
-          >
-            <Sparkles className="h-4 w-4 text-amber-300" />
-            <span>Fazer Inscrição Online</span>
-          </motion.button>
-        </motion.div>
-      )}
-
       <div className={`grid ${gridClass} gap-4 sm:gap-6 items-stretch`}>
         {/* =========================================================
             COLUNA 1: PÓDIO DA TEMPORADA ATUAL (Se ativo)

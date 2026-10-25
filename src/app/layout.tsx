@@ -6,6 +6,7 @@ import { TopBanner } from "@/components/layout/TopBanner";
 import { Footer } from "@/components/layout/Footer";
 import { getConfigMap } from "@/lib/queries";
 import { InscricaoGlobalListener } from "@/components/inscricao/InscricaoGlobalListener";
+import { PremierStickyNavBanner } from "@/components/inscricao/PremierStickyNavBanner";
 
 const exo2 = Exo_2({
   subsets: ["latin"],
@@ -66,6 +67,8 @@ export default async function RootLayout({
           exibirPortal={config.exibirPortalAtleta !== "false"}
           exibirTopCut={config.exibirTopCut === "true" || config.exibirTopCut === true}
         />
+        {/* Banner Sticky Sub-Nav (aparece em todas as páginas colado ao menu, exceto na Home) */}
+        <PremierStickyNavBanner config={config} />
 
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 lg:pt-16 pb-16 sm:pb-20 lg:pb-24 relative z-10 min-w-0 overflow-x-clip">
           {children}

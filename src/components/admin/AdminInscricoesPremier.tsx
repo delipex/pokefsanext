@@ -43,6 +43,7 @@ import {
   isTurno1Only,
   isTurno2Only,
 } from "@/lib/tournament-utils";
+import { AVAILABLE_ICONS, resolvePremierTheme, resolveIconEmoji } from "@/components/inscricao/PremierCtaTheme";
 
 interface AdminInscricoesPremierProps {
   initialConfig: Record<string, any>;
@@ -128,6 +129,17 @@ export function AdminInscricoesPremier({
   );
   const [premierBanner, setPremierBanner] = useState(initialConfig.premierBanner || "");
   const [premierTema, setPremierTema] = useState(initialConfig.premierTema || "lightning");
+  const [premierBannerIcone, setPremierBannerIcone] = useState(initialConfig.premierBannerIcone || "pumpkin");
+  const [premierCtaTexto, setPremierCtaTexto] = useState(initialConfig.premierCtaTexto || "");
+  const [premierCtaSubtexto, setPremierCtaSubtexto] = useState(initialConfig.premierCtaSubtexto || "");
+  const [premierCtaBotao, setPremierCtaBotao] = useState(initialConfig.premierCtaBotao || "");
+  const [premierBannerBg, setPremierBannerBg] = useState(initialConfig.premierBannerBg || "");
+  const [premierOcultarDecksPadrao, setPremierOcultarDecksPadrao] = useState(
+    initialConfig.premierOcultarDecksPadrao === "true" || initialConfig.premierOcultarDecksPadrao === true
+  );
+  const [premierPlaceholderDeck, setPremierPlaceholderDeck] = useState(
+    initialConfig.premierPlaceholderDeck || ""
+  );
   const [premierObs, setPremierObs] = useState(
     initialConfig.premierObs ||
       "Traga sua decklist impressa ou envie diretamente pelo formulário online até as 13:45. Formato Standard (Padrão)."
@@ -249,6 +261,15 @@ export function AdminInscricoesPremier({
       setPremierValor("45,00");
     } else {
       setPremierTipo("Especial");
+      if (
+        cal.evento?.toLowerCase().includes("halloween") ||
+        cal.evento?.toLowerCase().includes("fantasma") ||
+        cal.evento?.toLowerCase().includes("noturno")
+      ) {
+        setPremierTema("halloween");
+        setPremierBannerIcone("pumpkin");
+        setPremierOcultarDecksPadrao(true);
+      }
     }
   };
 
@@ -418,6 +439,13 @@ export function AdminInscricoesPremier({
       premierWaContato,
       premierBanner,
       premierTema,
+      premierBannerIcone,
+      premierCtaTexto,
+      premierCtaSubtexto,
+      premierCtaBotao,
+      premierBannerBg,
+      premierOcultarDecksPadrao: String(premierOcultarDecksPadrao),
+      premierPlaceholderDeck,
       premierObs,
       premierWebhook: "",
     };
@@ -1434,6 +1462,56 @@ export function AdminInscricoesPremier({
               </div>
             </div>
 
+            {/* Linha 4.5: Sessão Especial & Seleção de Decks */}
+            <div className="p-4 rounded-2xl bg-amber-950/25 border border-amber-500/30 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-amber-400" />
+                  <span className="text-xs font-black uppercase text-amber-300 tracking-wider">
+                    Sessão Especial & Opções de Baralho
+                  </span>
+                </div>
+                <span className="text-[10px] text-amber-300 font-bold bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                  Formulário Flexível
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                <label className="flex items-start gap-3 cursor-pointer bg-slate-900/90 p-3 rounded-xl border border-white/10 text-xs text-slate-300 hover:text-white transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={premierOcultarDecksPadrao}
+                    onChange={(e) => setPremierOcultarDecksPadrao(e.target.checked)}
+                    className="rounded border-slate-700 text-amber-500 focus:ring-amber-400 h-4 w-4 mt-0.5"
+                  />
+                  <div>
+                    <span className="font-bold text-white block">
+                      Ocultar Decks Padrão da Lista (Digitação Livre)
+                    </span>
+                    <span className="text-[11px] text-slate-400 block mt-1 leading-relaxed">
+                      Ative para sessões especiais (Halloween, torneios temáticos ou selados). O competidor digita o nome do seu deck em vez de selecionar na lista de 50 decks meta.
+                    </span>
+                  </div>
+                </label>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    Dica / Placeholder do Baralho Especial
+                  </label>
+                  <input
+                    type="text"
+                    value={premierPlaceholderDeck}
+                    onChange={(e) => setPremierPlaceholderDeck(e.target.value)}
+                    placeholder="Ex: Deck Temático Halloween, Gengar ex, Noturno..."
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white text-xs font-medium"
+                  />
+                  <span className="text-[10px] text-slate-400 block mt-1">
+                    Texto de exemplo exibido no campo para guiar os jogadores.
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Linha 5: Chave PIX, Titular e WhatsApp */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
@@ -1470,35 +1548,207 @@ export function AdminInscricoesPremier({
               </div>
             </div>
 
-            {/* Linha 6: Banner e Tema */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">URL do Banner / Arte de Capa (Opcional)</label>
-                <input
-                  type="url"
-                  value={premierBanner}
-                  onChange={(e) => setPremierBanner(e.target.value)}
-                  placeholder="https://exemplo.com/banner-cup.jpg"
-                  className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
-                />
+            {/* Linha 6: Banner, Tema, Ícone e Cores Personalizadas */}
+            <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-orange-400" />
+                  <span className="text-xs font-black uppercase text-orange-300 tracking-wider">
+                    Personalização Visual do Banner & Botão de Inscrição
+                  </span>
+                </div>
+                <span className="text-[10px] text-orange-300 font-bold bg-orange-500/15 px-2.5 py-0.5 rounded-full border border-orange-500/30">
+                  Home (Acima do Top 15) & Menu das Outras Páginas
+                </span>
               </div>
 
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Tema de Cor / Energia</label>
-                <select
-                  value={premierTema}
-                  onChange={(e) => setPremierTema(e.target.value)}
-                  className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
-                >
-                  <option value="lightning">⚡ Lightning / Amarelo (Padrão)</option>
-                  <option value="fire">🔥 Fire / Vermelho</option>
-                  <option value="water">💧 Water / Azul Turquesa</option>
-                  <option value="psychic">🔮 Psychic / Roxo</option>
-                  <option value="grass">🌿 Grass / Verde Esmeralda</option>
-                  <option value="darkness">🌑 Darkness / Azul Petróleo</option>
-                  <option value="dragon">🐉 Dragon / Dourado</option>
-                  <option value="metal">⚙️ Metal / Prateado</option>
-                </select>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    🎨 Tema de Cor & Estilo
+                  </label>
+                  <select
+                    value={premierTema}
+                    onChange={(e) => setPremierTema(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white text-xs font-semibold"
+                  >
+                    <option value="halloween">🎃 Halloween Especial (Laranja & Roxo Espectral)</option>
+                    <option value="darkness">👻 Darkness / Noturno & Fantasma</option>
+                    <option value="lightning">⚡ Lightning / Amarelo (Padrão)</option>
+                    <option value="fire">🔥 Fire / Vermelho</option>
+                    <option value="psychic">🔮 Psychic / Roxo</option>
+                    <option value="water">💧 Water / Azul Turquesa</option>
+                    <option value="grass">🌿 Grass / Verde Esmeralda</option>
+                    <option value="dragon">🐉 Dragon / Dourado</option>
+                    <option value="metal">⚙️ Metal / Prateado</option>
+                    <option value="custom">🎨 Personalizado (Cor/Imagem Livre)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    🏷️ Ícone em Destaque
+                  </label>
+                  <select
+                    value={premierBannerIcone}
+                    onChange={(e) => setPremierBannerIcone(e.target.value)}
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white text-xs font-semibold"
+                  >
+                    {AVAILABLE_ICONS.map((ic) => (
+                      <option key={ic.value} value={ic.value}>
+                        {ic.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    🖼️ Imagem de Fundo (URL Opcional)
+                  </label>
+                  <input
+                    type="url"
+                    value={premierBannerBg}
+                    onChange={(e) => setPremierBannerBg(e.target.value)}
+                    placeholder="https://exemplo.com/arte-halloween.jpg"
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-1">
+                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    💬 Chamada Principal no Banner
+                  </label>
+                  <input
+                    type="text"
+                    value={premierCtaTexto}
+                    onChange={(e) => setPremierCtaTexto(e.target.value)}
+                    placeholder="Ex: 🎃 Torneio Especial de Halloween — Vagas Limitadas!"
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white text-xs"
+                  />
+                </div>
+
+                <div className="sm:col-span-1">
+                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    📝 Subtexto / Frase de Convite
+                  </label>
+                  <input
+                    type="text"
+                    value={premierCtaSubtexto}
+                    onChange={(e) => setPremierCtaSubtexto(e.target.value)}
+                    placeholder="Ex: Vista sua fantasia ou traga seu deck temático mais assustador!"
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white text-xs"
+                  />
+                </div>
+
+                <div className="sm:col-span-1">
+                  <label className="block text-slate-300 font-semibold mb-1 text-xs">
+                    🔘 Texto do Botão de Ação
+                  </label>
+                  <input
+                    type="text"
+                    value={premierCtaBotao}
+                    onChange={(e) => setPremierCtaBotao(e.target.value)}
+                    placeholder="Ex: Garantir Vaga no Halloween ➜"
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Preview em Tempo Real das Duas Posições Solicitadas */}
+              <div className="pt-2 border-t border-white/10 space-y-3">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="h-3 w-3 text-amber-400" />
+                  Pré-visualização em Tempo Real:
+                </div>
+
+                {/* 1. Preview na Home (Acima do Top 15) */}
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    📍 Como aparecerá na Home (Acima do Top 15):
+                  </span>
+                  {(() => {
+                    const previewTheme = resolvePremierTheme(premierTema);
+                    const previewIcon = resolveIconEmoji(premierBannerIcone || previewTheme.iconDefault);
+                    return (
+                      <div
+                        className={`relative overflow-hidden rounded-2xl border ${previewTheme.borderClass} ${previewTheme.glowClass} p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}
+                      >
+                        {premierBannerBg && (
+                          <div
+                            className="absolute inset-0 bg-cover bg-center opacity-20 pointer-events-none"
+                            style={{ backgroundImage: `url(${premierBannerBg})` }}
+                          />
+                        )}
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-br ${previewTheme.gradientClass} opacity-95 pointer-events-none`}
+                        />
+                        <div className="relative z-10 flex items-center gap-3.5 flex-1 min-w-0">
+                          <div className="h-12 w-12 rounded-xl bg-black/40 border border-white/15 flex items-center justify-center text-2xl shrink-0 shadow-lg">
+                            {previewIcon}
+                          </div>
+                          <div className="min-w-0 space-y-0.5">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${previewTheme.badgeClass}`}
+                            >
+                              {previewTheme.badgeText} • INSCRIÇÕES ABERTAS
+                            </span>
+                            <div className="text-sm sm:text-base font-black text-white truncate">
+                              {premierCtaTexto || premierNome || previewTheme.defaultTitle}
+                            </div>
+                            <div className="text-xs text-slate-300 truncate">
+                              {premierCtaSubtexto || premierSubtitulo || previewTheme.defaultSubtitle}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="relative z-10 w-full sm:w-auto">
+                          <button
+                            type="button"
+                            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black cursor-default ${previewTheme.buttonClass}`}
+                          >
+                            {previewIcon} {premierCtaBotao || previewTheme.buttonTextDefault}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* 2. Preview nas Outras Páginas (Colado ao Menu) */}
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    📍 Como aparecerá nas outras páginas (Colado embaixo do menu):
+                  </span>
+                  {(() => {
+                    const previewTheme = resolvePremierTheme(premierTema);
+                    const previewIcon = resolveIconEmoji(premierBannerIcone || previewTheme.iconDefault);
+                    return (
+                      <div
+                        className={`relative overflow-hidden rounded-xl border-b ${previewTheme.borderClass} ${previewTheme.glowClass} p-2.5 sm:p-3 flex items-center justify-between gap-3`}
+                      >
+                        <div
+                          className={`absolute inset-0 bg-gradient-to-r ${previewTheme.gradientClass} opacity-95 pointer-events-none`}
+                        />
+                        <div className="relative z-10 flex items-center gap-2.5 min-w-0">
+                          <span className="text-lg">{previewIcon}</span>
+                          <span className="text-xs sm:text-sm font-extrabold text-white truncate">
+                            {premierCtaTexto || premierNome || previewTheme.defaultTitle}
+                          </span>
+                        </div>
+                        <div className="relative z-10 shrink-0">
+                          <button
+                            type="button"
+                            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold cursor-default ${previewTheme.buttonClass}`}
+                          >
+                            {(premierCtaBotao || previewTheme.buttonTextDefault).replace("➜", "").trim()} ➜
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
 

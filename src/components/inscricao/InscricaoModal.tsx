@@ -292,6 +292,15 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   const tema = config.premierTema || "lightning";
 
   const isMultiTurno = config.premierMultiTurno === "true" || config.premierMultiTurno === true;
+  const isOcultarDecksPadrao = useMemo(() => {
+    return (
+      config.premierOcultarDecksPadrao === "true" ||
+      config.premierOcultarDecksPadrao === true ||
+      config.premierModoDeckEspecial === "true" ||
+      config.premierModoDeckEspecial === true
+    );
+  }, [config.premierOcultarDecksPadrao, config.premierModoDeckEspecial]);
+
   const isPreRelease = useMemo(() => {
     return Boolean(
       (config.premierTipo && config.premierTipo.toLowerCase().includes("release")) ||
@@ -406,11 +415,22 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
 
     let finalDeckNome = isPreRelease
       ? "Kit Pré-Release (Formato Selado)"
+      : isOcultarDecksPadrao
+      ? (selectedDeck.trim() || customDeckNome.trim())
       : selectedDeck === "Outro"
       ? customDeckNome.trim()
       : selectedDeck.trim();
 
-    if (!isPreRelease && (!finalDeckNome || finalDeckNome.toLowerCase() === "outro" || finalDeckNome.toLowerCase() === "outros")) {
+    if (!isPreRelease && !finalDeckNome) {
+      setErrorMessage(
+        isOcultarDecksPadrao
+          ? "Por favor, digite o nome ou arquétipo do baralho que irá jogar."
+          : "Por favor, selecione ou digite o nome específico do baralho que irá jogar."
+      );
+      return;
+    }
+
+    if (!isPreRelease && !isOcultarDecksPadrao && (finalDeckNome.toLowerCase() === "outro" || finalDeckNome.toLowerCase() === "outros")) {
       setErrorMessage("Por favor, selecione ou digite o nome específico do baralho que irá jogar (a palavra 'Outro' não é permitida como nome de deck).");
       return;
     }
@@ -1036,46 +1056,74 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     </div>
                   ) : (
                     <>
-                      {/* Baralho / Arquétipo do Deck (Menu de Escolha) */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                            <Layers className="h-3.5 w-3.5 text-blue-400" />
-                            Baralho / Arquétipo do Deck *
-                          </label>
-                          <span className="text-[10px] text-slate-400 font-normal">
-                            {effectiveDeckList.length} opções disponíveis
-                          </span>
-                        </div>
-                        <select
-                          required
-                          value={selectedDeck}
-                          onChange={(e) => setSelectedDeck(e.target.value)}
-                          className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
-                        >
-                          <option value="">-- Selecione o Baralho / Deck --</option>
-                          {effectiveDeckList.map((deck) => (
-                            <option key={deck} value={deck}>
-                              {deck}
-                            </option>
-                          ))}
-                          <option value="Outro">➕ Outro (Digitar manualmente...)</option>
-                        </select>
-
-                        {selectedDeck === "Outro" && (
-                          <div className="pt-1.5">
-                            <input
-                              type="text"
-                              required
-                              value={customDeckNome}
-                              onChange={(e) => setCustomDeckNome(e.target.value)}
-                              placeholder="Digite o nome do baralho / arquétipo..."
-                              className="w-full rounded-xl border border-blue-500/50 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
-                              autoFocus
-                            />
+                      {/* Baralho / Arquétipo do Deck */}
+                      {isOcultarDecksPadrao ? (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                              <Layers className="h-3.5 w-3.5 text-amber-400" />
+                              {config.premierLabelDeck || "Baralho / Arquétipo do Deck (Sessão Especial) *"}
+                            </label>
+                            <span className="text-[10px] text-amber-400 font-bold bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                              Digitação Livre
+                            </span>
                           </div>
-                        )}
-                      </div>
+                          <input
+                            type="text"
+                            required
+                            value={selectedDeck}
+                            onChange={(e) => setSelectedDeck(e.target.value)}
+                            placeholder={
+                              config.premierPlaceholderDeck ||
+                              "Digite o nome do baralho (ex: Deck Noturno Halloween, Gengar ex...)"
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm font-bold text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                          />
+                          <p className="text-[11px] text-slate-400">
+                            Nesta sessão especial, você pode digitar livremente o nome ou arquétipo do seu deck.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                              <Layers className="h-3.5 w-3.5 text-blue-400" />
+                              Baralho / Arquétipo do Deck *
+                            </label>
+                            <span className="text-[10px] text-slate-400 font-normal">
+                              {effectiveDeckList.length} opções disponíveis
+                            </span>
+                          </div>
+                          <select
+                            required
+                            value={selectedDeck}
+                            onChange={(e) => setSelectedDeck(e.target.value)}
+                            className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
+                          >
+                            <option value="">-- Selecione o Baralho / Deck --</option>
+                            {effectiveDeckList.map((deck) => (
+                              <option key={deck} value={deck}>
+                                {deck}
+                              </option>
+                            ))}
+                            <option value="Outro">➕ Outro (Digitar manualmente...)</option>
+                          </select>
+
+                          {selectedDeck === "Outro" && (
+                            <div className="pt-1.5">
+                              <input
+                                type="text"
+                                required
+                                value={customDeckNome}
+                                onChange={(e) => setCustomDeckNome(e.target.value)}
+                                placeholder="Digite o nome do baralho / arquétipo..."
+                                className="w-full rounded-xl border border-blue-500/50 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                                autoFocus
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Link do Limitless (Importador Automático) */}
                       <div className="space-y-1.5">

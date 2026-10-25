@@ -1,6 +1,7 @@
 import { getRanking, getTop4Podium, getMetagameData, getEtapasWithSummary, getConfigMap, getNextEvent, getSeasonAwards } from "@/lib/queries";
 import { HeroSeasonHub } from "@/components/home/HeroSeasonHub";
 import { ScrollVelocityCards } from "@/components/home/ScrollVelocityCards";
+import { PremierHomeCtaBanner } from "@/components/inscricao/PremierHomeCtaBanner";
 import { SeasonAwardsSection } from "@/components/ranking/SeasonAwardsSection";
 import { PlayerModalData } from "@/components/ranking/PlayerModal";
 
@@ -149,6 +150,9 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8 sm:space-y-12">
+      {/* 0. Banner / Botão de Inscrição Especial (ACIMA DO TOP 15) */}
+      <PremierHomeCtaBanner config={config} />
+
       {/* 1. Galeria Flutuante Editorial de Cartas com Telemetria Integrada no Rodapé */}
       {exibirCarrossel && (
         <ScrollVelocityCards
