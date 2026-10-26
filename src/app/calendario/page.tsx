@@ -1,5 +1,5 @@
 import { getCalendario, getConfigMap } from "@/lib/queries";
-import { Clock, MapPin, ExternalLink, CheckCircle2, CalendarDays, Sparkles } from "lucide-react";
+import { Clock, MapPin, ExternalLink, CheckCircle2, CalendarDays, Sparkles, ChevronDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +97,139 @@ export default async function CalendarioPage() {
 
   const isPremierActive = isPremierAbertas && !isPremierEventPassed;
 
+  const now = new Date();
+  const todayISO = now.toISOString().split("T")[0];
+
+  const upcomingEvents: typeof eventos = [];
+  const pastEvents: typeof eventos = [];
+
+  for (const ev of eventos) {
+    const isConcluded = ev.status?.toLowerCase() === "concluido" || ev.status?.toLowerCase() === "concluído";
+    const evDateISO = normalizeDateToISO(ev.data);
+    const isPast = Boolean(evDateISO && evDateISO < todayISO);
+    if (isConcluded || isPast) {
+      pastEvents.push(ev);
+    } else {
+      upcomingEvents.push(ev);
+    }
+  }
+
+  const renderEventCard = (ev: (typeof eventos)[0], idx: number, isForceConcluded = false) => {
+    const dateBadge = parseEventDate(ev.data);
+    const evDateISO = normalizeDateToISO(ev.data);
+    const isPast = Boolean(evDateISO && evDateISO < todayISO);
+    const isConcluded = isForceConcluded || ev.status?.toLowerCase() === "concluido" || ev.status?.toLowerCase() === "concluído" || isPast;
+    const isConfirmed = !isConcluded && ev.status?.toLowerCase() === "confirmado";
+    const eventType = getEventTypeBadge(ev.evento);
+    const evNomeLower = (ev.evento || "").toLowerCase().trim();
+
+    const isThisEventPremierOpen =
+      !isConcluded &&
+      isPremierActive &&
+      ((premierDateISO && evDateISO && premierDateISO === evDateISO) ||
+        (premierNomeLower &&
+          (evNomeLower === premierNomeLower ||
+            evNomeLower.includes(premierNomeLower) ||
+            premierNomeLower.includes(evNomeLower))));
+
+    const hasDirectLink = Boolean(ev.linkInscricao && ev.linkInscricao.trim() !== "");
+    const hasInscricao = isThisEventPremierOpen || hasDirectLink;
+    const finalInscricaoHref = hasDirectLink ? ev.linkInscricao : "#inscricao";
+
+    return (
+      <div
+        key={ev.id || idx}
+        className={`group relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-3xl border ${
+          isThisEventPremierOpen
+            ? "border-emerald-500/40 bg-emerald-950/20 shadow-emerald-950/30"
+            : "border-white/[0.04] bg-white/[0.02]"
+        } hover:bg-white/[0.04] hover:border-white/[0.08] p-4 sm:p-6 shadow-xl backdrop-blur-2xl transition-all duration-300 hover:scale-[1.01] ${
+          isConcluded ? "opacity-60 saturate-50" : ""
+        }`}
+      >
+        {/* Lado Esquerdo: Bloco de Data + Informações */}
+        <div className="flex items-start sm:items-center gap-3.5 sm:gap-5 min-w-0 flex-1">
+          {/* Bloco de Data Estilizado */}
+          <div className="flex flex-col items-center justify-center h-14 w-14 sm:h-18 sm:w-18 shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.03] shadow-inner text-center">
+            <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-400 tracking-wider">
+              {dateBadge.weekday}
+            </span>
+            <span className="text-lg sm:text-2xl font-black text-white leading-none my-0.5 tabular-nums">
+              {dateBadge.day}
+            </span>
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-400">
+              {dateBadge.month}
+            </span>
+          </div>
+
+          {/* Detalhes do Evento */}
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className={`rounded-lg border px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${eventType.color}`}>
+                {eventType.label}
+              </span>
+              {hasInscricao && !isConcluded && (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/20 border border-emerald-400/50 px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase text-emerald-300 shadow-sm animate-pulse">
+                  <Sparkles className="h-3 w-3 text-amber-300" /> Inscrições Abertas
+                </span>
+              )}
+              {isConcluded && (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-slate-500/15 border border-slate-500/30 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-slate-400">
+                  <CheckCircle2 className="h-3 w-3" /> Concluído
+                </span>
+              )}
+              {isConfirmed && !hasInscricao && (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-emerald-400">
+                  <CheckCircle2 className="h-3 w-3" /> Confirmado
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-slate-400 tabular-nums">
+                <Clock className="h-3 w-3 text-amber-400" /> {ev.horario || "14:00"}
+              </span>
+            </div>
+
+            <h3 className="text-sm sm:text-lg font-black text-white group-hover:text-amber-300 transition-colors truncate">
+              {ev.evento}
+            </h3>
+
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-normal">
+              <MapPin className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+              <span className="truncate">
+                {ev.local || "Livraria Atlântica +"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Lado Direito: Ações */}
+        <div className="shrink-0 flex items-center justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/[0.04] flex-wrap">
+          {ev.linkMaps && (
+            <a
+              href={ev.linkMaps}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer"
+            >
+              Como Chegar <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          )}
+
+          {hasInscricao && !isConcluded && (
+            <a
+              href={finalInscricaoHref}
+              target={finalInscricaoHref.startsWith("http") ? "_blank" : undefined}
+              rel={finalInscricaoHref.startsWith("http") ? "noopener noreferrer" : undefined}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/30 transition-all cursor-pointer animate-pulse"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+              <span>Inscrever-se</span>
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       {/* Cabeçalho */}
@@ -106,132 +239,33 @@ export default async function CalendarioPage() {
         </h1>
       </div>
 
-      {/* Lista / Linha do Tempo dos Eventos Bento */}
-      {eventos.length === 0 ? (
+      {/* Lista de Próximos Eventos */}
+      {upcomingEvents.length === 0 ? (
         <div className="rounded-3xl border border-white/[0.04] bg-white/[0.02] p-12 text-center text-slate-400 backdrop-blur-2xl">
           <CalendarDays className="mx-auto h-12 w-12 text-slate-500 mb-3" />
-          <h3 className="text-base font-bold text-white">Nenhum torneio agendado no momento</h3>
+          <h3 className="text-base font-bold text-white">Nenhum torneio futuro agendado no momento</h3>
           <p className="text-xs text-slate-400 mt-1">Fique atento aos anúncios no grupo oficial da Liga.</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {eventos.map((ev, idx) => {
-            const dateBadge = parseEventDate(ev.data);
-            const isConcluded = ev.status?.toLowerCase() === "concluido" || ev.status?.toLowerCase() === "concluído";
-            const isConfirmed = !isConcluded && ev.status?.toLowerCase() === "confirmado";
-            const eventType = getEventTypeBadge(ev.evento);
-
-            const evDateISO = normalizeDateToISO(ev.data);
-            const evNomeLower = (ev.evento || "").toLowerCase().trim();
-
-            const isThisEventPremierOpen =
-              !isConcluded &&
-              isPremierActive &&
-              ((premierDateISO && evDateISO && premierDateISO === evDateISO) ||
-                (premierNomeLower &&
-                  (evNomeLower === premierNomeLower ||
-                    evNomeLower.includes(premierNomeLower) ||
-                    premierNomeLower.includes(evNomeLower))));
-
-
-            const hasDirectLink = Boolean(ev.linkInscricao && ev.linkInscricao.trim() !== "");
-            const hasInscricao = isThisEventPremierOpen || hasDirectLink;
-            const finalInscricaoHref = hasDirectLink ? ev.linkInscricao : "#inscricao";
-
-            return (
-              <div
-                key={ev.id || idx}
-                className={`group relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 rounded-3xl border ${
-                  isThisEventPremierOpen
-                    ? "border-emerald-500/40 bg-emerald-950/20 shadow-emerald-950/30"
-                    : "border-white/[0.04] bg-white/[0.02]"
-                } hover:bg-white/[0.04] hover:border-white/[0.08] p-4 sm:p-6 shadow-xl backdrop-blur-2xl transition-all duration-300 hover:scale-[1.01] ${
-                  isConcluded ? "opacity-60 saturate-50" : ""
-                }`}
-              >
-                {/* Lado Esquerdo: Bloco de Data + Informações */}
-                <div className="flex items-start sm:items-center gap-3.5 sm:gap-5 min-w-0 flex-1">
-                  {/* Bloco de Data Estilizado */}
-                  <div className="flex flex-col items-center justify-center h-14 w-14 sm:h-18 sm:w-18 shrink-0 rounded-2xl border border-white/[0.06] bg-white/[0.03] shadow-inner text-center">
-                    <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-400 tracking-wider">
-                      {dateBadge.weekday}
-                    </span>
-                    <span className="text-lg sm:text-2xl font-black text-white leading-none my-0.5 tabular-nums">
-                      {dateBadge.day}
-                    </span>
-                    <span className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-400">
-                      {dateBadge.month}
-                    </span>
-                  </div>
-
-                  {/* Detalhes do Evento */}
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                      <span className={`rounded-lg border px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${eventType.color}`}>
-                        {eventType.label}
-                      </span>
-                      {hasInscricao && !isConcluded && (
-                        <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/20 border border-emerald-400/50 px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase text-emerald-300 shadow-sm animate-pulse">
-                          <Sparkles className="h-3 w-3 text-amber-300" /> Inscrições Abertas
-                        </span>
-                      )}
-                      {isConcluded && (
-                        <span className="inline-flex items-center gap-1 rounded-lg bg-slate-500/15 border border-slate-500/30 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-slate-400">
-                          <CheckCircle2 className="h-3 w-3" /> Concluído
-                        </span>
-                      )}
-                      {isConfirmed && !hasInscricao && (
-                        <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-emerald-400">
-                          <CheckCircle2 className="h-3 w-3" /> Confirmado
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold text-slate-400 tabular-nums">
-                        <Clock className="h-3 w-3 text-amber-400" /> {ev.horario || "14:00"}
-                      </span>
-                    </div>
-
-                    <h3 className="text-sm sm:text-lg font-black text-white group-hover:text-amber-300 transition-colors truncate">
-                      {ev.evento}
-                    </h3>
-
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400 font-normal">
-                      <MapPin className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                      <span className="truncate">
-                        {ev.local || "Livraria Atlântica +"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Lado Direito: Ações */}
-                <div className="shrink-0 flex items-center justify-end gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/[0.04] flex-wrap">
-                  {ev.linkMaps && (
-                    <a
-                      href={ev.linkMaps}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer"
-                    >
-                      Como Chegar <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
-
-                  {hasInscricao && !isConcluded && (
-                    <a
-                      href={finalInscricaoHref}
-                      target={finalInscricaoHref.startsWith("http") ? "_blank" : undefined}
-                      rel={finalInscricaoHref.startsWith("http") ? "noopener noreferrer" : undefined}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/30 transition-all cursor-pointer animate-pulse"
-                    >
-                      <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-                      <span>Inscrever-se</span>
-                    </a>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {upcomingEvents.map((ev, idx) => renderEventCard(ev, idx, false))}
         </div>
+      )}
+
+      {/* Histórico / Eventos Concluídos (Oculto por padrão em Acordeão) */}
+      {pastEvents.length > 0 && (
+        <details className="group rounded-3xl border border-white/[0.04] bg-white/[0.02] p-4 sm:p-5 backdrop-blur-2xl transition-all">
+          <summary className="flex items-center justify-between cursor-pointer list-none text-slate-400 hover:text-white font-bold text-xs sm:text-sm select-none">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-slate-500" />
+              <span>Ver Torneios Concluídos ({pastEvents.length})</span>
+            </div>
+            <ChevronDown className="h-4 w-4 text-slate-400 group-open:rotate-180 transition-transform duration-200" />
+          </summary>
+          <div className="mt-4 space-y-3 pt-3 border-t border-white/[0.04]">
+            {pastEvents.map((ev, idx) => renderEventCard(ev, idx, true))}
+          </div>
+        </details>
       )}
     </div>
   );

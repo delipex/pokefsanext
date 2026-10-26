@@ -14,6 +14,7 @@ import {
   Search,
   Filter,
   Eye,
+  EyeOff,
   CheckCircle2,
   AlertTriangle,
   Trash2,
@@ -172,8 +173,9 @@ export function AdminInscricoesPremier({
   const [paymentFilter, setPaymentFilter] = useState("");
   const [selectedArchivedStage, setSelectedArchivedStage] = useState("all");
 
-  // Central de Formulários & Status dos Eventos
-  const [formEventsFilter, setFormEventsFilter] = useState<"all" | "active" | "upcoming" | "concluded">("all");
+  // Central de Formulários & Status dos Eventos (Ocultar passados por padrão)
+  const [formEventsFilter, setFormEventsFilter] = useState<"upcoming" | "active" | "all" | "concluded">("upcoming");
+  const [hidePastEvents, setHidePastEvents] = useState(true);
   const [isEditorExpanded, setIsEditorExpanded] = useState(true);
   const [activeEditingEventTitle, setActiveEditingEventTitle] = useState<string>(initialConfig.premierNome || "");
 
@@ -398,21 +400,34 @@ export function AdminInscricoesPremier({
     });
   }, [initialCalendar, isEventMatchingActivePremier, getEventRegistrationStats, premierAbertas, currentRegStatus.isOpen]);
 
-  // Lista filtrada para exibição nos cards da central
+  // Contagens para os filtros
+  const concludedEventsCount = useMemo(() => {
+    return enrichedCalendarEvents.filter((ev) => ev.isConcluded).length;
+  }, [enrichedCalendarEvents]);
+
+  const upcomingEventsCount = useMemo(() => {
+    return enrichedCalendarEvents.filter((ev) => !ev.isConcluded).length;
+  }, [enrichedCalendarEvents]);
+
+  // Lista filtrada para exibição nos cards da central (Ocultar eventos passados/concluídos por padrão)
   const filteredCalendarEvents = useMemo(() => {
     return enrichedCalendarEvents.filter((ev) => {
       if (formEventsFilter === "active") {
         return ev.isPremierActive && ev.isFormOpen;
       }
-      if (formEventsFilter === "upcoming") {
-        return !ev.isConcluded;
-      }
       if (formEventsFilter === "concluded") {
         return ev.isConcluded;
       }
+      if (formEventsFilter === "upcoming") {
+        return !ev.isConcluded;
+      }
+      // Se formEventsFilter === "all"
+      if (hidePastEvents) {
+        return !ev.isConcluded;
+      }
       return true;
     });
-  }, [enrichedCalendarEvents, formEventsFilter]);
+  }, [enrichedCalendarEvents, formEventsFilter, hidePastEvents]);
 
   // Salvar Configurações do Premier
   const handleSavePremierConfig = async (e: React.FormEvent) => {
@@ -717,14 +732,17 @@ export function AdminInscricoesPremier({
             <div className="flex items-center gap-1.5 p-1 bg-slate-950/70 border border-white/10 rounded-xl overflow-x-auto text-xs font-semibold">
               <button
                 type="button"
-                onClick={() => setFormEventsFilter("all")}
+                onClick={() => {
+                  setFormEventsFilter("upcoming");
+                  setHidePastEvents(true);
+                }}
                 className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
-                  formEventsFilter === "all"
+                  formEventsFilter === "upcoming"
                     ? "bg-amber-400 text-slate-950 font-bold shadow"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                Todos ({enrichedCalendarEvents.length})
+                📅 Próximos & Ativos ({upcomingEventsCount})
               </button>
               <button
                 type="button"
@@ -740,25 +758,31 @@ export function AdminInscricoesPremier({
               </button>
               <button
                 type="button"
-                onClick={() => setFormEventsFilter("upcoming")}
-                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
-                  formEventsFilter === "upcoming"
-                    ? "bg-blue-500 text-white font-bold shadow"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                📅 Próximos
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormEventsFilter("concluded")}
+                onClick={() => {
+                  setFormEventsFilter("concluded");
+                  setHidePastEvents(false);
+                }}
                 className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                   formEventsFilter === "concluded"
                     ? "bg-slate-700 text-white font-bold shadow"
                     : "text-slate-500 hover:text-slate-300"
                 }`}
               >
-                🏁 Concluídos
+                🏁 Concluídos ({concludedEventsCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormEventsFilter("all");
+                  setHidePastEvents(false);
+                }}
+                className={`px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                  formEventsFilter === "all"
+                    ? "bg-slate-800 text-slate-200 font-bold shadow"
+                    : "text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                📋 Todos ({enrichedCalendarEvents.length})
               </button>
             </div>
           </div>
@@ -810,10 +834,51 @@ export function AdminInscricoesPremier({
 
           {/* Grade de Cards de Eventos & Formulários */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-              <span className="font-semibold uppercase tracking-wider text-[11px] text-slate-400">
-                Eventos da Temporada ({filteredCalendarEvents.length})
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400 px-1">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="font-semibold uppercase tracking-wider text-[11px] text-slate-400">
+                  {formEventsFilter === "concluded"
+                    ? `Eventos Concluídos (${filteredCalendarEvents.length})`
+                    : hidePastEvents
+                    ? `Próximos Eventos (${filteredCalendarEvents.length})`
+                    : `Eventos da Temporada (${filteredCalendarEvents.length})`}
+                </span>
+
+                {/* Botão de Alternar / Ocultar Eventos Passados */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (formEventsFilter === "concluded") {
+                      setFormEventsFilter("upcoming");
+                      setHidePastEvents(true);
+                    } else if (hidePastEvents) {
+                      setHidePastEvents(false);
+                      setFormEventsFilter("all");
+                    } else {
+                      setHidePastEvents(true);
+                      setFormEventsFilter("upcoming");
+                    }
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                    hidePastEvents
+                      ? "bg-white/5 hover:bg-white/10 text-slate-300 border-white/10"
+                      : "bg-amber-400/10 hover:bg-amber-400/20 text-amber-300 border-amber-400/30"
+                  }`}
+                >
+                  {hidePastEvents ? (
+                    <>
+                      <Eye className="h-3.5 w-3.5 text-slate-400" />
+                      <span>Mostrar Passados ({concludedEventsCount})</span>
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="h-3.5 w-3.5 text-amber-400" />
+                      <span>Esconder Passados</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               <span className="hidden sm:inline">
                 Clique em <strong>Configurar Form</strong> para editar ou <strong>Ativar no Site</strong> para abrir
               </span>
@@ -978,6 +1043,18 @@ export function AdminInscricoesPremier({
                   </div>
                 );
               })}
+
+              {filteredCalendarEvents.length === 0 && (
+                <div className="col-span-full p-8 text-center rounded-xl border border-white/5 bg-slate-950/40 text-slate-400">
+                  <Calendar className="h-8 w-8 mx-auto text-slate-500 mb-2 opacity-60" />
+                  <p className="text-sm font-bold text-white">Nenhum evento corresponde ao filtro atual</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {hidePastEvents
+                      ? `Os ${concludedEventsCount} eventos passados estão ocultos. Clique em "Mostrar Passados" acima para visualizá-los.`
+                      : "Altere o filtro acima para visualizar outros eventos."}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
