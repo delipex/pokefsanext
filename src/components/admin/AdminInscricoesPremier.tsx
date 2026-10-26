@@ -1773,9 +1773,10 @@ export function AdminInscricoesPremier({
                               <span className="text-base leading-none">{previewIcon}</span>
                               <span>{premierCtaBotao || (premierGratuito ? "Garantir Vaga Gratuita ➜" : previewTheme.buttonTextDefault)}</span>
                             </div>
-                            <span className="text-[10px] font-semibold opacity-90 inline-flex items-center gap-1 mt-1">
-                              ⚡ Preenchimento rápido em 1 clique
-                            </span>
+                            <div className="flex items-center justify-center gap-1.5 mt-1 text-[10px] font-semibold opacity-90 text-white/95">
+                              <Zap className="h-3 w-3 shrink-0 text-amber-300 fill-amber-300" />
+                              <span>Preenchimento rápido em 1 clique</span>
+                            </div>
                           </button>
                         </div>
                       </div>

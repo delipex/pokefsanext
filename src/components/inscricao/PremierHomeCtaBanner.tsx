@@ -99,107 +99,110 @@ export function PremierHomeCtaBanner({ config }: PremierHomeCtaBannerProps) {
         aria-hidden="true"
       />
 
-      {/* Conteúdo Principal em Grid Equilibrado de 12 Colunas */}
-      <div className="relative z-10 p-5 sm:p-7 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
-        {/* Lado Esquerdo (lg: 7-8 colunas): Ícone + Badges + Título + Subtítulo + Metadados */}
-        <div className="lg:col-span-7 xl:col-span-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 min-w-0">
-          {/* Badge de Ícone Temático Ampliado com Brilho Atmosférico */}
-          <div className="relative shrink-0">
-            <div
-              className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl flex items-center justify-center text-4xl sm:text-5xl shadow-2xl border border-white/20 bg-gradient-to-br from-white/15 to-black/60 backdrop-blur-md select-none group-hover:scale-105 transition-transform duration-300"
-              style={{
-                boxShadow: `0 0 28px ${theme.accentColorHex}45`,
-              }}
+      {/* Conteúdo Principal em Grid Equilibrado e Mobile-First */}
+      <div className="relative z-10 p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-center">
+        {/* Lado Esquerdo: Badges + Header com Ícone e Título + Metadados */}
+        <div className="lg:col-span-7 xl:col-span-8 space-y-3 sm:space-y-4 min-w-0">
+          
+          {/* 1. Linha de Badges Compactos e Independentes (evita quebras no mobile) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider border shadow-sm ${theme.badgeClass}`}
             >
-              {iconEmoji}
+              <Sparkles className="h-3 w-3 shrink-0" />
+              <span>{theme.badgeText}</span>
+              <span className="hidden sm:inline opacity-80">• INSCRIÇÕES ABERTAS</span>
+            </span>
+
+            {isGratuito && (
+              <span className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 text-[10px] sm:text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border border-emerald-500/40 shadow-sm backdrop-blur-sm">
+                <Sparkles className="h-3 w-3 text-emerald-400 shrink-0" />
+                Entrada Franca
+              </span>
+            )}
+
+            {vagas && (
+              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-300 bg-white/10 border border-white/15 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full backdrop-blur-sm">
+                <Users className="h-3 w-3 text-slate-400 shrink-0" />
+                {vagas}
+              </span>
+            )}
+          </div>
+
+          {/* 2. Bloco Principal: Ícone + Título + Subtítulo Integrados em Linha Única */}
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+            {/* Ícone Temático */}
+            <div className="relative shrink-0">
+              <div
+                className="h-14 w-14 sm:h-18 sm:w-18 lg:h-20 lg:w-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl lg:text-5xl shadow-xl border border-white/20 bg-gradient-to-br from-white/15 to-black/60 backdrop-blur-md select-none group-hover:scale-105 transition-transform duration-300"
+                style={{
+                  boxShadow: `0 0 24px ${theme.accentColorHex}40`,
+                }}
+              >
+                {iconEmoji}
+              </div>
+            </div>
+
+            {/* Título & Subtítulo */}
+            <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
+              <h2 className="text-xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-md truncate sm:whitespace-normal">
+                {title}
+              </h2>
+              {subtitle && (
+                <p className="text-xs sm:text-sm text-slate-200/90 font-medium leading-snug line-clamp-2 sm:line-clamp-none max-w-2xl">
+                  {subtitle}
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="flex-1 min-w-0 space-y-2">
-            {/* Linha de Badges: Status + Vagas + Gratuito */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border shadow-sm ${theme.badgeClass}`}
-              >
-                <Sparkles className="h-3 w-3" />
-                {theme.badgeText} • INSCRIÇÕES ABERTAS
+          {/* 3. Metadados do Torneio em Grid 2 Colunas no Mobile / Flex no Desktop */}
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 text-xs text-slate-300 font-medium pt-0.5">
+            {eventDate && (
+              <span className="inline-flex items-center gap-1.5 bg-black/40 px-2.5 py-1.5 rounded-xl border border-white/10 min-w-0">
+                <Calendar className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                <span className="truncate">{eventDate}</span>
               </span>
-
-              {vagas && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-300 bg-white/10 border border-white/15 px-2.5 py-1 rounded-full backdrop-blur-sm">
-                  <Users className="h-3 w-3 text-slate-400" />
-                  {vagas}
-                </span>
-              )}
-
-              {isGratuito && (
-                <span className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-500/40 shadow-sm backdrop-blur-sm">
-                  <Sparkles className="h-3 w-3 text-emerald-400" />
-                  Entrada Franca
-                </span>
-              )}
-            </div>
-
-            {/* Título Principal de Alto Impacto */}
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-md">
-              {title}
-            </h2>
-
-            {/* Subtítulo Amigável */}
-            {subtitle && (
-              <p className="text-sm sm:text-base text-slate-200/90 font-medium leading-relaxed max-w-2xl">
-                {subtitle}
-              </p>
             )}
-
-            {/* Metadados do Torneio (Data, Hora, Local, Taxa quando não for gratuito) */}
-            <div className="pt-1 flex items-center gap-2 sm:gap-3 flex-wrap text-xs text-slate-300 font-medium">
-              {eventDate && (
-                <span className="inline-flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-xl border border-white/10">
-                  <Calendar className="h-3.5 w-3.5 text-amber-400" />
-                  {eventDate}
-                </span>
-              )}
-              {eventTime && (
-                <span className="inline-flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-xl border border-white/10">
-                  <Clock className="h-3.5 w-3.5 text-amber-400" />
-                  Check-in: {eventTime}
-                </span>
-              )}
-              {eventLocal && (
-                <span className="inline-flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-xl border border-white/10">
-                  <MapPin className="h-3.5 w-3.5 text-amber-400" />
-                  {eventLocal}
-                </span>
-              )}
-              {!isGratuito && eventValor && (
-                <span className="inline-flex items-center gap-1.5 bg-emerald-950/70 text-emerald-300 font-bold px-2.5 py-1 rounded-xl border border-emerald-500/30">
-                  <Trophy className="h-3.5 w-3.5 text-emerald-400" />
-                  Taxa: {eventValor}
-                </span>
-              )}
-            </div>
+            {eventTime && (
+              <span className="inline-flex items-center gap-1.5 bg-black/40 px-2.5 py-1.5 rounded-xl border border-white/10 min-w-0">
+                <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                <span className="truncate">Check-in: {eventTime}</span>
+              </span>
+            )}
+            {eventLocal && (
+              <span className="col-span-2 sm:col-span-1 inline-flex items-center gap-1.5 bg-black/40 px-2.5 py-1.5 rounded-xl border border-white/10 min-w-0">
+                <MapPin className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                <span className="truncate">{eventLocal}</span>
+              </span>
+            )}
+            {!isGratuito && eventValor && (
+              <span className="inline-flex items-center gap-1.5 bg-emerald-950/70 text-emerald-300 font-bold px-2.5 py-1.5 rounded-xl border border-emerald-500/30 min-w-0">
+                <Trophy className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                <span className="truncate">Taxa: {eventValor}</span>
+              </span>
+            )}
           </div>
         </div>
 
         {/* Lado Direito (lg: 4-5 colunas): Bloco de Ação / Botão Proporcional e Equilibrado */}
-        <div className="lg:col-span-5 xl:col-span-4 w-full flex flex-col items-center lg:items-end justify-center space-y-2">
+        <div className="lg:col-span-5 xl:col-span-4 w-full flex flex-col items-center lg:items-end justify-center space-y-2 pt-1 lg:pt-0">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleOpenInscricao}
-            className={`w-full py-4 px-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 shadow-2xl group ${theme.buttonClass} border border-white/20`}
+            className={`w-full py-3.5 sm:py-4 px-4 sm:px-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 shadow-2xl group ${theme.buttonClass} border border-white/20`}
           >
-            <div className="flex items-center justify-center gap-2.5 text-base sm:text-lg font-black tracking-tight leading-tight">
-              <span className="text-2xl leading-none group-hover:scale-110 transition-transform duration-200">{iconEmoji}</span>
+            <div className="flex items-center justify-center gap-2 text-sm sm:text-base lg:text-lg font-black tracking-tight leading-tight">
+              <span className="text-xl sm:text-2xl leading-none group-hover:scale-110 transition-transform duration-200">{iconEmoji}</span>
               <span>{isGratuito && !config?.premierCtaBotao ? "Garantir Vaga Gratuita ➜" : buttonText}</span>
             </div>
-            <div className="inline-flex items-center justify-center gap-1.5 mt-1.5 text-xs font-semibold opacity-90 group-hover:opacity-100 transition-opacity tracking-normal leading-tight">
-              <Zap className="h-3.5 w-3.5 shrink-0 text-amber-300" />
+            <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[11px] sm:text-xs font-semibold opacity-90 group-hover:opacity-100 transition-opacity tracking-normal leading-tight text-white/95">
+              <Zap className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-amber-300 fill-amber-300" />
               <span>Preenchimento rápido em 1 clique</span>
             </div>
           </motion.button>
-          <p className="text-[11px] text-slate-300/80 font-medium text-center lg:text-right w-full px-1">
+          <p className="text-[10px] sm:text-[11px] text-slate-300/80 font-medium text-center lg:text-right w-full px-1">
             ⚡ Vagas confirmadas em tempo real • 100% Online
           </p>
         </div>
