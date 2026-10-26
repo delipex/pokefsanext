@@ -1725,7 +1725,7 @@ export function AdminInscricoesPremier({
                     const previewIcon = resolveIconEmoji(premierBannerIcone || previewTheme.iconDefault);
                     return (
                       <div
-                        className={`relative overflow-hidden rounded-2xl border ${previewTheme.borderClass} ${previewTheme.glowClass} p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}
+                        className={`relative overflow-hidden rounded-2xl border ${previewTheme.borderClass} ${previewTheme.glowClass} p-4 sm:p-5 grid grid-cols-1 md:grid-cols-12 gap-4 items-center`}
                       >
                         {premierBannerBg && (
                           <div
@@ -1736,17 +1736,27 @@ export function AdminInscricoesPremier({
                         <div
                           className={`absolute inset-0 bg-gradient-to-br ${previewTheme.gradientClass} opacity-95 pointer-events-none`}
                         />
-                        <div className="relative z-10 flex items-center gap-3.5 flex-1 min-w-0">
-                          <div className="h-12 w-12 rounded-xl bg-black/40 border border-white/15 flex items-center justify-center text-2xl shrink-0 shadow-lg">
+                        <div className="relative z-10 md:col-span-8 flex items-center gap-3.5 min-w-0">
+                          <div
+                            className="h-14 w-14 rounded-2xl bg-gradient-to-br from-white/15 to-black/60 border border-white/20 flex items-center justify-center text-3xl shrink-0 shadow-xl"
+                            style={{ boxShadow: `0 0 20px ${previewTheme.accentColorHex}40` }}
+                          >
                             {previewIcon}
                           </div>
-                          <div className="min-w-0 space-y-0.5">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${previewTheme.badgeClass}`}
-                            >
-                              {previewTheme.badgeText} • {premierGratuito ? "ENTRADA FRANCA" : "INSCRIÇÕES ABERTAS"}
-                            </span>
-                            <div className="text-sm sm:text-base font-black text-white truncate">
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${previewTheme.badgeClass}`}
+                              >
+                                {previewTheme.badgeText} • INSCRIÇÕES ABERTAS
+                              </span>
+                              {premierGratuito && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                  Entrada Franca
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-base sm:text-lg font-black text-white truncate">
                               {premierCtaTexto || premierNome || previewTheme.defaultTitle}
                             </div>
                             <div className="text-xs text-slate-300 truncate">
@@ -1754,17 +1764,17 @@ export function AdminInscricoesPremier({
                             </div>
                           </div>
                         </div>
-                        <div className="relative z-10 w-full sm:w-auto">
+                        <div className="relative z-10 md:col-span-4 w-full flex flex-col items-stretch">
                           <button
                             type="button"
-                            className={`w-full sm:w-auto px-5 py-2.5 rounded-2xl flex flex-col items-center justify-center text-center cursor-default ${previewTheme.buttonClass}`}
+                            className={`w-full py-3 px-4 rounded-2xl flex flex-col items-center justify-center text-center cursor-default ${previewTheme.buttonClass} border border-white/20 shadow-lg`}
                           >
                             <div className="flex items-center justify-center gap-2 text-xs sm:text-sm font-black">
-                              <span>{previewIcon}</span>
+                              <span className="text-base leading-none">{previewIcon}</span>
                               <span>{premierCtaBotao || (premierGratuito ? "Garantir Vaga Gratuita ➜" : previewTheme.buttonTextDefault)}</span>
                             </div>
-                            <span className="text-[10px] font-semibold opacity-90 inline-flex items-center gap-1 mt-0.5">
-                              ⚡ Já jogou na Liga? Preencha em 1 clique
+                            <span className="text-[10px] font-semibold opacity-90 inline-flex items-center gap-1 mt-1">
+                              ⚡ Preenchimento rápido em 1 clique
                             </span>
                           </button>
                         </div>

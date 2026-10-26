@@ -30,13 +30,26 @@ export function PremierStickyNavBanner({ config }: PremierStickyNavBannerProps) 
   const theme = resolvePremierTheme(config?.premierTema || "halloween");
   const iconEmoji = resolveIconEmoji(config?.premierBannerIcone || theme.iconDefault);
 
-  const isGratuito =
-    config?.premierGratuito === "true" ||
-    config?.premierGratuito === true ||
-    config?.premierValor === "0" ||
-    config?.premierValor === "0,00" ||
-    config?.premierValor?.toLowerCase?.() === "gratuito" ||
-    config?.premierValor?.toLowerCase?.() === "grátis";
+  const isGratuito = useMemo(() => {
+    if (config?.premierGratuito === "true" || config?.premierGratuito === true) return true;
+    const clean = String(config?.premierValor || "")
+      .trim()
+      .toLowerCase()
+      .replace("r$", "")
+      .replace(",", ".")
+      .trim();
+    const num = parseFloat(clean);
+    if (!isNaN(num) && num === 0) return true;
+    return (
+      clean === "0" ||
+      clean === "00" ||
+      clean === "0.00" ||
+      clean === "gratuito" ||
+      clean === "gratis" ||
+      clean === "grátis" ||
+      clean === "free"
+    );
+  }, [config?.premierGratuito, config?.premierValor]);
 
   const title = (config?.premierCtaTexto || config?.premierNome || theme.defaultTitle).trim();
   const buttonText = (config?.premierCtaBotao || (isGratuito ? "Vaga Gratuita ➜" : theme.buttonTextDefault)).trim();
