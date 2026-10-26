@@ -175,27 +175,23 @@ export function PremierHomeCtaBanner({ config }: PremierHomeCtaBannerProps) {
           </div>
         </div>
 
-        {/* Lado Direito: Botão de Inscrição + Atalho de Login Rápido */}
-        <div className="w-full lg:w-auto shrink-0 flex flex-col items-stretch lg:items-end justify-center gap-2">
+        {/* Lado Direito: Botão Unificado de Inscrição com Atalho Interno */}
+        <div className="w-full lg:w-auto shrink-0 flex items-center justify-center lg:justify-end">
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleOpenInscricao}
-            className={`w-full sm:w-auto min-h-[46px] inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-2xl text-sm sm:text-base cursor-pointer transition-all duration-200 ${theme.buttonClass}`}
+            className={`w-full sm:w-auto min-h-[56px] px-6 py-3 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 shadow-xl group ${theme.buttonClass}`}
           >
-            <span className="text-xl leading-none">{iconEmoji}</span>
-            <span>{isGratuito && !config?.premierCtaBotao ? "Garantir Vaga Gratuita ➜" : buttonText}</span>
+            <div className="flex items-center justify-center gap-2 text-sm sm:text-base font-black tracking-tight leading-none">
+              <span className="text-xl sm:text-2xl leading-none">{iconEmoji}</span>
+              <span>{isGratuito && !config?.premierCtaBotao ? "Garantir Vaga Gratuita ➜" : buttonText}</span>
+            </div>
+            <div className="inline-flex items-center justify-center gap-1 mt-1.5 text-[11px] sm:text-xs font-semibold opacity-85 group-hover:opacity-100 transition-opacity tracking-normal leading-tight">
+              <Zap className="h-3 w-3 shrink-0" />
+              <span>Já tem login ou jogou na Liga? Preencha em 1 clique</span>
+            </div>
           </motion.button>
-
-          {/* Atalho Express solicitado pelo organizador */}
-          <button
-            type="button"
-            onClick={handleOpenInscricao}
-            className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold text-amber-300/90 hover:text-amber-200 bg-black/40 hover:bg-black/60 border border-amber-400/20 hover:border-amber-400/40 px-3 py-1 rounded-full transition-all cursor-pointer shadow-sm"
-          >
-            <Zap className="h-3 w-3 text-amber-400" />
-            <span>Já tem login ou jogou na Liga? Preencha em 1 clique</span>
-          </button>
         </div>
       </div>
     </motion.section>

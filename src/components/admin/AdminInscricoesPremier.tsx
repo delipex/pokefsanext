@@ -1757,9 +1757,15 @@ export function AdminInscricoesPremier({
                         <div className="relative z-10 w-full sm:w-auto">
                           <button
                             type="button"
-                            className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black cursor-default ${previewTheme.buttonClass}`}
+                            className={`w-full sm:w-auto px-5 py-2.5 rounded-2xl flex flex-col items-center justify-center text-center cursor-default ${previewTheme.buttonClass}`}
                           >
-                            {previewIcon} {premierCtaBotao || (premierGratuito ? "Garantir Vaga Gratuita ➜" : previewTheme.buttonTextDefault)}
+                            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm font-black">
+                              <span>{previewIcon}</span>
+                              <span>{premierCtaBotao || (premierGratuito ? "Garantir Vaga Gratuita ➜" : previewTheme.buttonTextDefault)}</span>
+                            </div>
+                            <span className="text-[10px] font-semibold opacity-90 inline-flex items-center gap-1 mt-0.5">
+                              ⚡ Já jogou na Liga? Preencha em 1 clique
+                            </span>
                           </button>
                         </div>
                       </div>
