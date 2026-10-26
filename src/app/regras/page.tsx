@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { getConfigMap } from "@/lib/queries";
 import { DEFAULT_REGRAS_DATA, RegraSection } from "@/components/admin/AdminRegrasManager";
+import { formatInlineText } from "@/components/ui/FormattedRulesText";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ export default async function RegrasPage() {
                 {contentList.map((p, pIdx) => (
                   <div key={pIdx} className="flex items-start gap-3 text-sm text-slate-300 leading-relaxed font-normal">
                     <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <span>{p}</span>
+                    <span>{formatInlineText(p)}</span>
                   </div>
                 ))}
               </div>

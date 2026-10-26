@@ -18,6 +18,7 @@ import {
   FileText,
   HelpCircle,
 } from "lucide-react";
+import { formatInlineText } from "@/components/ui/FormattedRulesText";
 
 export interface RegraSection {
   icon: string;
@@ -295,7 +296,7 @@ export function AdminRegrasManager({ initialRegras, onSaved }: AdminRegrasManage
                     {section.content.map((p, pIdx) => (
                       <div key={pIdx} className="flex items-start gap-3 text-sm text-slate-300 leading-relaxed font-normal">
                         <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <span>{p || <span className="text-slate-500 italic">Linha em branco...</span>}</span>
+                        <span>{p ? formatInlineText(p) : <span className="text-slate-500 italic">Linha em branco...</span>}</span>
                       </div>
                     ))}
                   </div>
@@ -382,11 +383,15 @@ export function AdminRegrasManager({ initialRegras, onSaved }: AdminRegrasManage
                       <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                       <input
                         type="text"
+                        maxLength={280}
                         value={item}
-                        onChange={(e) => handleItemChange(sIdx, iIdx, e.target.value)}
-                        placeholder="Descreva uma regra ou diretriz..."
+                        onChange={(e) => handleItemChange(sIdx, iIdx, e.target.value.slice(0, 280))}
+                        placeholder="Descreva uma diretriz... (suporta **negrito** e *itálico*)"
                         className="flex-1 rounded-xl border border-white/10 bg-slate-900/70 py-2 px-3 text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all"
                       />
+                      <span className="text-[10px] font-mono text-slate-500 shrink-0 tabular-nums px-1.5 py-0.5 rounded bg-white/5 border border-white/5">
+                        {item.length}/280
+                      </span>
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(sIdx, iIdx)}

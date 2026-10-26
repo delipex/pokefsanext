@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   FileText,
   Plus,
@@ -33,7 +33,13 @@ import {
   Zap,
   Layers,
   MapPin,
+  Bold,
+  Italic,
+  List,
+  Edit3,
+  HelpCircle,
 } from "lucide-react";
+import { FormattedRulesText } from "@/components/ui/FormattedRulesText";
 import { EnergyBadge } from "../ui/EnergyBadge";
 import { parsePTCGDecklist } from "@/lib/decklist-parser";
 import { DecklistVisualGallery } from "@/components/deck/DecklistVisualGallery";
@@ -148,6 +154,47 @@ export function AdminInscricoesPremier({
     initialConfig.premierObs ||
       "Traga sua decklist impressa ou envie diretamente pelo formulário online até as 13:45. Formato Standard (Padrão)."
   );
+
+  // Editor de Regras & Instruções com Formatação e Limite
+  const MAX_REGRAS_CHARS = 800;
+  const [regrasEditorMode, setRegrasEditorMode] = useState<"edit" | "preview">("edit");
+  const regrasTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertFormattingToRegras = (prefix: string, suffix: string = "") => {
+    const textarea = regrasTextareaRef.current;
+    if (!textarea) {
+      setPremierObs((prev: string) => (prev + prefix + suffix).slice(0, MAX_REGRAS_CHARS));
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentVal = premierObs;
+    const selectedText = currentVal.substring(start, end);
+
+    const replacement = selectedText
+      ? `${prefix}${selectedText}${suffix}`
+      : `${prefix}${suffix || "texto"}`;
+
+    const newVal = (
+      currentVal.substring(0, start) +
+      replacement +
+      currentVal.substring(end)
+    ).slice(0, MAX_REGRAS_CHARS);
+
+    setPremierObs(newVal);
+
+    setTimeout(() => {
+      textarea.focus();
+      const newCursorPos = selectedText
+        ? start + replacement.length
+        : start + prefix.length;
+      textarea.setSelectionRange(
+        newCursorPos,
+        newCursorPos + (selectedText ? 0 : (suffix ? "texto".length : 0))
+      );
+    }, 50);
+  };
 
   // Múltiplos Horários / Turnos (ex: Pré-Release em 2 sessões)
   const [premierMultiTurno, setPremierMultiTurno] = useState(
@@ -1897,16 +1944,168 @@ export function AdminInscricoesPremier({
               </div>
             </div>
 
-            {/* Linha 7: Instruções e Regras */}
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1">Instruções, Regras & Premiação no Modal de Inscrição</label>
-              <textarea
-                rows={3}
-                value={premierObs}
-                onChange={(e) => setPremierObs(e.target.value)}
-                placeholder="Orientações aos jogadores, estrutura de premiação, regras de check-in..."
-                className="w-full bg-slate-900 border border-white/15 rounded-xl px-3 py-2 text-white"
-              />
+            {/* Linha 7: Instruções e Regras com Formatação e Limite de Caracteres */}
+            <div className="space-y-2 p-3.5 rounded-2xl bg-slate-950/40 border border-white/10">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="block text-slate-200 font-bold text-xs sm:text-sm flex items-center gap-1.5">
+                  <span>📜 Regras, Instruções & Premiação do Evento</span>
+                </label>
+
+                {/* Contador de Caracteres e Barra de Capacidade */}
+                <div className="flex items-center gap-2">
+                  <div className="w-20 sm:w-28 h-1.5 rounded-full bg-slate-800 overflow-hidden border border-white/5">
+                    <div
+                      className={`h-full transition-all duration-200 ${
+                        premierObs.length > 720
+                          ? "bg-rose-500"
+                          : premierObs.length > 550
+                          ? "bg-amber-400"
+                          : "bg-emerald-400"
+                      }`}
+                      style={{
+                        width: `${Math.min(100, (premierObs.length / MAX_REGRAS_CHARS) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <span
+                    className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+                      premierObs.length > 720
+                        ? "text-rose-400 bg-rose-500/10 border-rose-500/30"
+                        : premierObs.length > 550
+                        ? "text-amber-300 bg-amber-400/10 border-amber-400/30"
+                        : "text-slate-300 bg-white/5 border-white/10"
+                    }`}
+                  >
+                    {premierObs.length} / {MAX_REGRAS_CHARS} caracteres
+                  </span>
+                </div>
+              </div>
+
+              {/* Barra de Ferramentas de Formatação */}
+              <div className="flex items-center justify-between gap-2 flex-wrap p-2 rounded-xl bg-slate-900 border border-white/10">
+                <div className="flex items-center gap-1 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => insertFormattingToRegras("**", "**")}
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/15 text-white border border-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Negrito: **texto**"
+                  >
+                    <Bold className="h-3.5 w-3.5" />
+                    <span>Negrito</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertFormattingToRegras("*", "*")}
+                    className="px-2.5 py-1 rounded-lg text-xs font-serif italic bg-white/5 hover:bg-white/15 text-slate-300 border border-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Itálico: *texto*"
+                  >
+                    <Italic className="h-3.5 w-3.5" />
+                    <span>Itálico</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertFormattingToRegras("\n• ")}
+                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/15 text-slate-300 border border-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Marcador de Lista / Tópico"
+                  >
+                    <List className="h-3.5 w-3.5 text-amber-400" />
+                    <span>• Tópico</span>
+                  </button>
+
+                  <div className="hidden sm:block h-4 w-px bg-white/10 mx-0.5" />
+
+                  {/* Atalhos com Emojis */}
+                  <button
+                    type="button"
+                    onClick={() => insertFormattingToRegras("🏆 **Premiação:**\n• ")}
+                    className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-white/5 hover:bg-white/15 text-slate-300 border border-white/10 transition-colors cursor-pointer"
+                    title="Inserir bloco de premiação"
+                  >
+                    🏆 Premiação
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertFormattingToRegras("⚠️ **Atenção:** ")}
+                    className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-white/5 hover:bg-white/15 text-slate-300 border border-white/10 transition-colors cursor-pointer"
+                    title="Inserir aviso/regra"
+                  >
+                    ⚠️ Regra
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertFormattingToRegras("⏰ **Horário:** ")}
+                    className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-white/5 hover:bg-white/15 text-slate-300 border border-white/10 transition-colors cursor-pointer"
+                    title="Inserir horário de check-in"
+                  >
+                    ⏰ Horário
+                  </button>
+                </div>
+
+                {/* Alternância Editar vs Prévia */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setRegrasEditorMode("edit")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                      regrasEditorMode === "edit"
+                        ? "bg-amber-400 text-slate-950 shadow"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    <span>Editar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRegrasEditorMode("preview")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                      regrasEditorMode === "preview"
+                        ? "bg-amber-400 text-slate-950 shadow"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>Prévia</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Editor ou Prévia */}
+              {regrasEditorMode === "edit" ? (
+                <div className="space-y-1">
+                  <textarea
+                    ref={regrasTextareaRef}
+                    rows={4}
+                    maxLength={MAX_REGRAS_CHARS}
+                    value={premierObs}
+                    onChange={(e) => setPremierObs(e.target.value.slice(0, MAX_REGRAS_CHARS))}
+                    placeholder="Orientações aos jogadores, estrutura de premiação, regras de check-in... (Ex: **Negrito**, *itálico*, • Tópicos)"
+                    className="w-full bg-slate-900 border border-white/15 rounded-xl p-3 text-sm text-white font-mono focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all leading-relaxed"
+                  />
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                    <span>💡 Selecione um trecho e clique em <strong>Negrito</strong> para formatar ou use <strong>• Tópico</strong> para listar.</span>
+                    <span className="font-semibold text-slate-300">
+                      Restam {Math.max(0, MAX_REGRAS_CHARS - premierObs.length)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-white/15 bg-slate-900/90 p-4 min-h-[120px] shadow-inner space-y-2">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1.5 pb-2 border-b border-white/10">
+                    <Eye className="h-3.5 w-3.5 text-amber-400" />
+                    <span>Visualização exata dentro do modal de inscrição:</span>
+                  </div>
+                  {premierObs ? (
+                    <div className="p-3.5 rounded-xl bg-slate-950/70 border border-white/10">
+                      <FormattedRulesText text={premierObs} className="text-xs text-slate-200" />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 italic py-2">
+                      Nenhuma regra preenchida ainda. Digite suas regras no modo "Editar".
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Link Direto Compartilhável */}

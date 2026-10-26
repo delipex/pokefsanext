@@ -33,6 +33,7 @@ import { EnergyBadge } from "@/components/ui/EnergyBadge";
 import { getMultiEnergyConfig } from "@/lib/theme/energy-tokens";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
 import defaultDecks from "@/data/decks.json";
+import { FormattedRulesText } from "@/components/ui/FormattedRulesText";
 import { parsePTCGDecklist, ParsedDecklistResult } from "@/lib/decklist-parser";
 import { DecklistVisualGallery } from "@/components/deck/DecklistVisualGallery";
 import {
@@ -1529,11 +1530,13 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     </div>
                   )}
 
-                  {/* Observações / Regras do Organizador */}
+                  {/* Observações / Regras do Organizador com Formatação Rica */}
                   {config.premierObs && (
-                    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3 text-[11px] text-slate-400 flex items-start gap-2">
+                    <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-3.5 text-xs text-slate-300 flex items-start gap-2.5 shadow-inner">
                       <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                      <p className="leading-relaxed">{config.premierObs}</p>
+                      <div className="flex-1 min-w-0">
+                        <FormattedRulesText text={config.premierObs} className="text-xs text-slate-300" />
+                      </div>
                     </div>
                   )}
 
