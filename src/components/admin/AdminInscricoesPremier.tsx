@@ -1872,7 +1872,8 @@ export function AdminInscricoesPremier({
                               <span
                                 className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${previewTheme.badgeClass}`}
                               >
-                                {previewTheme.badgeText} • INSCRIÇÕES ABERTAS
+                                <Sparkles className="h-3 w-3 text-amber-300" />
+                                INSCRIÇÕES ABERTAS
                               </span>
                               {premierGratuito && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">

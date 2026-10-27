@@ -50,7 +50,20 @@ export function PremierHomeCtaBanner({ config }: PremierHomeCtaBannerProps) {
   const buttonText = (config?.premierCtaBotao || theme.buttonTextDefault).trim();
 
   const eventDate = config?.premierData ? formatDateToBR(normalizeDateToISO(config.premierData)) : "";
-  const eventTime = config?.premierHorario || "14h00";
+
+  // Normalização do horário para nunca duplicar "Check-in: Check-in às..."
+  const displayCheckin = useMemo(() => {
+    let raw = (config?.premierHorario || "14h00").trim();
+    if (!raw) return "";
+
+    // Remove qualquer repetição de "check-in", "checkin", "check in", "às", "as", ":" no início
+    while (/^check-?\s*in\s*[:\-\—]?\s*(às|as)?\s*/i.test(raw)) {
+      raw = raw.replace(/^check-?\s*in\s*[:\-\—]?\s*(às|as)?\s*/i, "").trim();
+    }
+
+    return `Check-in: ${raw || "14h00"}`;
+  }, [config?.premierHorario]);
+
   const eventLocal = config?.premierLocal || "Livraria Atlântica";
   const eventValor = config?.premierValor ? `R$ ${config.premierValor}` : "";
   const vagas = config?.premierVagas ? `${config.premierVagas} Vagas` : "";
@@ -109,9 +122,8 @@ export function PremierHomeCtaBanner({ config }: PremierHomeCtaBannerProps) {
             <span
               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider border shadow-sm ${theme.badgeClass}`}
             >
-              <Sparkles className="h-3 w-3 shrink-0" />
-              <span>{theme.badgeText}</span>
-              <span className="hidden sm:inline opacity-80">• INSCRIÇÕES ABERTAS</span>
+              <Sparkles className="h-3 w-3 shrink-0 text-amber-300" />
+              <span>INSCRIÇÕES ABERTAS</span>
             </span>
 
             {isGratuito && (
@@ -164,10 +176,10 @@ export function PremierHomeCtaBanner({ config }: PremierHomeCtaBannerProps) {
                 <span className="truncate">{eventDate}</span>
               </span>
             )}
-            {eventTime && (
+            {displayCheckin && (
               <span className="inline-flex items-center gap-1.5 bg-black/40 px-2.5 py-1.5 rounded-xl border border-white/10 min-w-0">
                 <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                <span className="truncate">Check-in: {eventTime}</span>
+                <span className="truncate">{displayCheckin}</span>
               </span>
             )}
             {eventLocal && (

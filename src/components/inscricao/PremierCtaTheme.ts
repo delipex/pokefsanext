@@ -50,7 +50,7 @@ export const PREMIER_THEMES: Record<PremierThemeKey, ResolvedPremierTheme> = {
     borderClass: "border-purple-500/35 hover:border-purple-400/50",
     glowClass: "shadow-[0_0_30px_rgba(147,51,234,0.2)]",
     badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/40",
-    badgeText: "👻 Sessão Noturna",
+    badgeText: "Inscrições Abertas",
     buttonClass:
       "bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-600 hover:from-purple-600 hover:to-indigo-500 text-white font-black shadow-lg shadow-purple-600/30",
     buttonTextDefault: "Inscrever-se no Torneio ➜",
