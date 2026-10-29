@@ -68,7 +68,9 @@ export default async function HomePage() {
   // 3. Montar Top 15 Decks com maior Winrate (amostra de pelo menos 2 partidas para relevância competitiva)
   const allDecksWithWinrate = Array.from(deckStats.entries())
     .map(([nome, stats]) => {
-      const info = metaData.decksInfo.find((d: any) => d.nome.toLowerCase() === nome.toLowerCase());
+      const info = (metaData.decksInfo || []).find(
+        (d: any) => (d?.nome || "").toLowerCase() === (nome || "").toLowerCase()
+      );
       const totalPartidas = stats.vitorias + stats.empates + stats.derrotas;
       const winRate = totalPartidas > 0 ? (stats.vitorias / totalPartidas) * 100 : 0;
       return {

@@ -66,8 +66,8 @@ function formatDateBR(dateStr: string) {
 }
 
 export function MetagameDashboard({
-  metagameEntries,
-  decksInfo,
+  metagameEntries = [],
+  decksInfo = [],
   etapas = [],
 }: MetagameDashboardProps) {
   // Filtro de Etapa: "all" (Temporada Completa) ou "YYYY-MM-DD"
@@ -78,19 +78,21 @@ export function MetagameDashboard({
 
   // Ordenação cronológica das etapas para numeração estável
   const chronologicalStages = useMemo(() => {
-    return [...etapas].sort((a, b) => a.data.localeCompare(b.data));
+    return [...(etapas || [])].sort((a, b) => a.data.localeCompare(b.data));
   }, [etapas]);
 
   // Etapas ordenadas da mais recente para a mais antiga para exibição no dropdown
   const stagesForSelect = useMemo(() => {
-    return [...etapas].sort((a, b) => b.data.localeCompare(a.data));
+    return [...(etapas || [])].sort((a, b) => b.data.localeCompare(a.data));
   }, [etapas]);
 
   // Mapa de decks cadastrados
   const decksMap = useMemo(() => {
     const map = new Map<string, DeckInfo>();
-    decksInfo.forEach((deck) => {
-      map.set(deck.nome.toLowerCase().trim(), deck);
+    (decksInfo || []).forEach((deck) => {
+      if (deck?.nome) {
+        map.set(deck.nome.toLowerCase().trim(), deck);
+      }
     });
     return map;
   }, [decksInfo]);
@@ -196,18 +198,21 @@ export function MetagameDashboard({
     : "#3b82f6";
 
   const handlePrevSlide = () => {
+    if (carouselDecks.length === 0) return;
     if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     setCarouselIndex((prev) => (prev === 0 ? carouselDecks.length - 1 : prev - 1));
   };
 
   const handleNextSlide = () => {
+    if (carouselDecks.length === 0) return;
     if (autoPlayRef.current) clearInterval(autoPlayRef.current);
     setCarouselIndex((prev) => (prev + 1) % carouselDecks.length);
   };
 
   const handleDeckHover = (deckName: string) => {
     setHoveredDeck(deckName);
-    const idx = carouselDecks.findIndex((d) => d.deckName.toLowerCase() === deckName.toLowerCase());
+    const target = (deckName || "").toLowerCase().trim();
+    const idx = carouselDecks.findIndex((d) => (d.deckName || "").toLowerCase().trim() === target);
     if (idx !== -1) {
       setCarouselIndex(idx);
     }

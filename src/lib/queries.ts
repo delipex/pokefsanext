@@ -19,11 +19,28 @@ import { getCanonicalPlayersMap, resolveCanonicalPlayer } from "./player-canonic
 import fs from "fs";
 import path from "path";
 
-// Cache em memória baseado em timestamp de modificação (mtime) para máxima velocidade
+// Cache em memória baseado em timestamp de modificação (mtime) para arquivos e TTL para consultas de banco
 const fileCache = new Map<string, { mtime: number; data: any }>();
+const queryCache = new Map<string, { data: any; expiry: number }>();
 
 export function clearFileCache() {
   fileCache.clear();
+  queryCache.clear();
+}
+
+export function clearQueryCache() {
+  clearFileCache();
+}
+
+export async function withCache<T>(key: string, ttlSeconds: number, fetcher: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const cached = queryCache.get(key);
+  if (cached && cached.expiry > now) {
+    return cached.data as T;
+  }
+  const result = await fetcher();
+  queryCache.set(key, { data: result, expiry: now + ttlSeconds * 1000 });
+  return result;
 }
 
 // Helper para ler arquivos de dados locais com segurança e cache de alta performance
@@ -205,98 +222,74 @@ function getFallbackEtapas(): any[] {
 }
 
 export async function getRanking(categoria?: string) {
-  await ensureDatabaseSchema();
-  const fallback = getFallbackRanking();
-  const latestDecks = getLatestDecksMap();
-  try {
-    let query = db
-      .select()
-      .from(rankingConsolidado)
-      .orderBy(
-        desc(rankingConsolidado.pontos),
-        desc(rankingConsolidado.podios),
-        desc(rankingConsolidado.vitorias),
-        asc(rankingConsolidado.mediaColocacao),
-        asc(rankingConsolidado.jogadorNome)
-      );
+  const cacheKey = `ranking_${categoria || "all"}`;
+  return withCache(cacheKey, 30, async () => {
+    await ensureDatabaseSchema();
+    const fallback = getFallbackRanking();
+    const latestDecks = getLatestDecksMap();
+    try {
+      let query = db
+        .select()
+        .from(rankingConsolidado)
+        .orderBy(
+          desc(rankingConsolidado.pontos),
+          desc(rankingConsolidado.podios),
+          desc(rankingConsolidado.vitorias),
+          asc(rankingConsolidado.mediaColocacao),
+          asc(rankingConsolidado.jogadorNome)
+        );
 
-    if (categoria && categoria !== "TODOS") {
-      // @ts-ignore
-      query = query.where(eq(rankingConsolidado.categoria, categoria.toUpperCase()));
-    }
+      if (categoria && categoria !== "TODOS") {
+        // @ts-ignore
+        query = query.where(eq(rankingConsolidado.categoria, categoria.toUpperCase()));
+      }
 
-    const res = await query;
-    if (res && res.length > 0) {
-      const enriched = res.map((p) => {
-        const resolvedDeck =
-          p.ultimoDeck && p.ultimoDeck !== "Não registrado" && p.ultimoDeck !== "Sem deck registrado"
-            ? p.ultimoDeck
-            : latestDecks[p.jogadorNome.toLowerCase().trim()] || null;
-        return {
-          ...p,
-          ultimoDeck: resolvedDeck,
-        };
-      });
+      const res = await query;
+      if (res && res.length > 0) {
+        const enriched = res.map((p) => {
+          const resolvedDeck =
+            p.ultimoDeck && p.ultimoDeck !== "Não registrado" && p.ultimoDeck !== "Sem deck registrado"
+              ? p.ultimoDeck
+              : latestDecks[p.jogadorNome.toLowerCase().trim()] || null;
+          return {
+            ...p,
+            ultimoDeck: resolvedDeck,
+          };
+        });
 
-      // Deduplicação defensiva do ranking por ID e Nome
-      const rankMap = new Map<string, any>();
-      for (const p of enriched) {
-        const rawId = String(p.jogadorId || "").trim();
-        const rawName = String(p.jogadorNome || "").trim().toLowerCase();
-        const key = (rawId && !rawId.startsWith("sem-id")) ? `id_${rawId}` : `name_${rawName}`;
-        if (!rankMap.has(key)) {
-          rankMap.set(key, p);
-        } else {
-          const existing = rankMap.get(key);
-          if (existing && (!existing.jogadorId || existing.jogadorId.startsWith("sem-id")) && rawId && !rawId.startsWith("sem-id")) {
+        // Deduplicação defensiva do ranking por ID e Nome
+        const rankMap = new Map<string, any>();
+        for (const p of enriched) {
+          const rawId = String(p.jogadorId || "").trim();
+          const rawName = String(p.jogadorNome || "").trim().toLowerCase();
+          const key = (rawId && !rawId.startsWith("sem-id")) ? `id_${rawId}` : `name_${rawName}`;
+          if (!rankMap.has(key)) {
             rankMap.set(key, p);
+          } else {
+            const existing = rankMap.get(key);
+            if (existing && (!existing.jogadorId || existing.jogadorId.startsWith("sem-id")) && rawId && !rawId.startsWith("sem-id")) {
+              rankMap.set(key, p);
+            }
           }
         }
+        return Array.from(rankMap.values());
       }
-      return Array.from(rankMap.values());
+    } catch (err) {
+      // Silencioso
     }
-  } catch (err) {
-    // Silencioso
-  }
 
-  if (categoria && categoria !== "TODOS") {
-    return fallback.filter((r) => r.categoria?.toUpperCase() === categoria.toUpperCase());
-  }
-  return fallback;
+    if (categoria && categoria !== "TODOS") {
+      return fallback.filter((r) => r.categoria?.toUpperCase() === categoria.toUpperCase());
+    }
+    return fallback;
+  });
 }
 
 export async function getTop4Podium() {
-  await ensureDatabaseSchema();
-  const latestDecks = getLatestDecksMap();
-  try {
-    const res = await db
-      .select()
-      .from(rankingConsolidado)
-      .orderBy(
-        desc(rankingConsolidado.pontos),
-        desc(rankingConsolidado.podios),
-        asc(rankingConsolidado.mediaColocacao),
-        asc(rankingConsolidado.jogadorNome)
-      )
-      .limit(4);
-    if (res && res.length > 0) {
-      return res.map((p) => {
-        const resolvedDeck =
-          p.ultimoDeck && p.ultimoDeck !== "Não registrado" && p.ultimoDeck !== "Sem deck registrado"
-            ? p.ultimoDeck
-            : latestDecks[p.jogadorNome.toLowerCase().trim()] || null;
-        return {
-          ...p,
-          ultimoDeck: resolvedDeck,
-        };
-      });
-    }
-  } catch (err) {
-    // Silencioso
-  }
-
-  const fallback = getFallbackRanking();
-  return fallback.slice(0, 4);
+  return withCache("top4_podium", 30, async () => {
+    const ranking = await getRanking();
+    return ranking.slice(0, 4);
+  });
 }
 
 export async function getAllDecks() {
@@ -345,152 +338,156 @@ export async function getAllEtapas() {
 }
 
 export async function getEtapasWithSummary() {
-  await ensureDatabaseSchema();
-  const fallback = getFallbackEtapas();
-  const metaMap = getMetagameMap();
+  return withCache("etapas_with_summary", 30, async () => {
+    await ensureDatabaseSchema();
+    const fallback = getFallbackEtapas();
+    const metaMap = getMetagameMap();
 
-  try {
-    const allEtapas = await db.select().from(etapas).orderBy(asc(etapas.data));
-    const results = await db
-      .select()
-      .from(etapaResultados)
-      .orderBy(asc(etapaResultados.colocacao));
+    try {
+      const allEtapas = await db.select().from(etapas).orderBy(asc(etapas.data));
+      const results = await db
+        .select()
+        .from(etapaResultados)
+        .orderBy(asc(etapaResultados.colocacao));
 
-    if (allEtapas && allEtapas.length > 0) {
-      const fallbackMap = new Map<string, any>(fallback.map((f: any) => [f.data, f]));
+      if (allEtapas && allEtapas.length > 0) {
+        const fallbackMap = new Map<string, any>(fallback.map((f: any) => [f.data, f]));
 
-      const mapped = allEtapas.map((etapa, idx) => {
-        let etapaMatches = results.filter((r) => r.etapaData === etapa.data || r.etapaId === etapa.id);
+        const mapped = allEtapas.map((etapa, idx) => {
+          let etapaMatches = results.filter((r) => r.etapaData === etapa.data || r.etapaId === etapa.id);
 
-        if (etapaMatches.length === 0 && fallbackMap.has(etapa.data)) {
-          etapaMatches = fallbackMap.get(etapa.data).resultados || [];
-        }
-
-        const enrichedMatches = etapaMatches.map((m) => {
-          let deck = m.deckNome;
-          if (!deck || deck === "Sem deck" || deck === "Sem deck registrado" || deck === "Não registrado") {
-            const fromMeta = metaMap[etapa.data]?.[(m.jogadorNome || "").toLowerCase().trim()];
-            if (fromMeta) deck = fromMeta;
+          if (etapaMatches.length === 0 && fallbackMap.has(etapa.data)) {
+            etapaMatches = fallbackMap.get(etapa.data).resultados || [];
           }
+
+          const enrichedMatches = etapaMatches.map((m) => {
+            let deck = m.deckNome;
+            if (!deck || deck === "Sem deck" || deck === "Sem deck registrado" || deck === "Não registrado") {
+              const fromMeta = metaMap[etapa.data]?.[(m.jogadorNome || "").toLowerCase().trim()];
+              if (fromMeta) deck = fromMeta;
+            }
+            return {
+              ...m,
+              deckNome: deck || null,
+            };
+          });
+
+          const campeao = enrichedMatches.find((r) => r.colocacao === 1);
+          const top4 = enrichedMatches.filter((r) => r.colocacao <= 4);
+
           return {
-            ...m,
-            deckNome: deck || null,
+            ...etapa,
+            numeroEtapa: idx + 1,
+            totalJogadores: enrichedMatches.length || (fallbackMap.get(etapa.data)?.totalJogadores || 0),
+            campeaoNome: campeao?.jogadorNome || fallbackMap.get(etapa.data)?.campeaoNome || null,
+            campeaoId: campeao?.jogadorId || null,
+            campeaoDeck: campeao?.deckNome || fallbackMap.get(etapa.data)?.campeaoDeck || null,
+            top4,
+            resultados: enrichedMatches,
           };
         });
 
-        const campeao = enrichedMatches.find((r) => r.colocacao === 1);
-        const top4 = enrichedMatches.filter((r) => r.colocacao <= 4);
-
-        return {
-          ...etapa,
-          numeroEtapa: idx + 1,
-          totalJogadores: enrichedMatches.length || (fallbackMap.get(etapa.data)?.totalJogadores || 0),
-          campeaoNome: campeao?.jogadorNome || fallbackMap.get(etapa.data)?.campeaoNome || null,
-          campeaoId: campeao?.jogadorId || null,
-          campeaoDeck: campeao?.deckNome || fallbackMap.get(etapa.data)?.campeaoDeck || null,
-          top4,
-          resultados: enrichedMatches,
-        };
-      });
-
-      return mapped.sort((a, b) => b.data.localeCompare(a.data));
+        return mapped.sort((a, b) => b.data.localeCompare(a.data));
+      }
+    } catch (err) {
+      console.error("Erro ao buscar etapas resumidas:", err);
     }
-  } catch (err) {
-    console.error("Erro ao buscar etapas resumidas:", err);
-  }
 
-  return fallback;
+    return fallback;
+  });
 }
 
 export async function getMetagameData() {
-  await ensureDatabaseSchema();
-  let allMeta: any[] = [];
-  let allDecks: any[] = [];
-  let allEtapas: any[] = [];
-  let allResults: any[] = [];
+  return withCache("metagame_data", 30, async () => {
+    await ensureDatabaseSchema();
+    let allMeta: any[] = [];
+    let allDecks: any[] = [];
+    let allEtapas: any[] = [];
+    let allResults: any[] = [];
 
-  try {
-    const [dbMeta, dbDecks, dbEtapas, dbResults] = await Promise.all([
-      db.select().from(metagame).catch(() => []),
-      db.select().from(decks).catch(() => []),
-      db.select().from(etapas).orderBy(desc(etapas.data)).catch(() => []),
-      db.select().from(etapaResultados).catch(() => []),
-    ]);
-    if (dbMeta && dbMeta.length > 0) allMeta = dbMeta;
-    if (dbDecks && dbDecks.length > 0) allDecks = dbDecks;
-    if (dbEtapas && dbEtapas.length > 0) allEtapas = dbEtapas;
-    if (dbResults && dbResults.length > 0) allResults = dbResults;
-  } catch (err) {
-    // Silencioso
-  }
+    try {
+      const [dbMeta, dbDecks, dbEtapas, dbResults] = await Promise.all([
+        db.select().from(metagame).catch(() => []),
+        db.select().from(decks).catch(() => []),
+        db.select().from(etapas).orderBy(desc(etapas.data)).catch(() => []),
+        db.select().from(etapaResultados).catch(() => []),
+      ]);
+      if (dbMeta && dbMeta.length > 0) allMeta = dbMeta;
+      if (dbDecks && dbDecks.length > 0) allDecks = dbDecks;
+      if (dbEtapas && dbEtapas.length > 0) allEtapas = dbEtapas;
+      if (dbResults && dbResults.length > 0) allResults = dbResults;
+    } catch (err) {
+      // Silencioso
+    }
 
-  // Fallback Metagame Entries
-  if (!allMeta || allMeta.length === 0) {
-    const rawMeta = readDataFile<Record<string, any>>("metagame.json", {});
-    allMeta = [];
-    for (const [etapaData, sessao] of Object.entries<any>(rawMeta)) {
-      const decksMap = sessao.decks || {};
-      for (const [jogadorNome, deckNome] of Object.entries<string>(decksMap)) {
-        if (!deckNome) continue;
-        allMeta.push({
-          etapaData,
-          sessionCode: sessao.sessionCode || null,
-          jogadorNome,
-          deckNome,
-        });
+    // Fallback Metagame Entries
+    if (!allMeta || allMeta.length === 0) {
+      const rawMeta = readDataFile<Record<string, any>>("metagame.json", {});
+      allMeta = [];
+      for (const [etapaData, sessao] of Object.entries<any>(rawMeta)) {
+        const decksMap = sessao.decks || {};
+        for (const [jogadorNome, deckNome] of Object.entries<string>(decksMap)) {
+          if (!deckNome) continue;
+          allMeta.push({
+            etapaData,
+            sessionCode: sessao.sessionCode || null,
+            jogadorNome,
+            deckNome,
+          });
+        }
       }
     }
-  }
 
-  // Fallback Decks Info
-  if (!allDecks || allDecks.length === 0) {
-    const rawDecks = readDataFile<any[]>("decks.json", []);
-    allDecks = rawDecks.map((d, i) => ({
-      id: i + 1,
-      nome: d.deck || "",
-      tipoEnergia: d.tipoEnergia || "colorless",
-      imagem: d.imagem || null,
-      limitless: d.limitless || null,
-      icone: d.icone || null,
-      ativo: true,
-    }));
-  }
+    // Fallback Decks Info
+    if (!allDecks || allDecks.length === 0) {
+      const rawDecks = readDataFile<any[]>("decks.json", []);
+      allDecks = rawDecks.map((d, i) => ({
+        id: i + 1,
+        nome: d.deck || "",
+        tipoEnergia: d.tipoEnergia || "colorless",
+        imagem: d.imagem || null,
+        limitless: d.limitless || null,
+        icone: d.icone || null,
+        ativo: true,
+      }));
+    }
 
-  // Fallback Etapas
-  if (!allEtapas || allEtapas.length === 0) {
-    allEtapas = readDataFile<any[]>("etapas.json", []);
-  }
+    // Fallback Etapas
+    if (!allEtapas || allEtapas.length === 0) {
+      allEtapas = readDataFile<any[]>("etapas.json", []);
+    }
 
-  // Normalização Universal Canônica para evitar duplicatas por maiúsculas/minúsculas
-  const canonicalMaps = await getCanonicalPlayersMap();
+    // Normalização Universal Canônica para evitar duplicatas por maiúsculas/minúsculas
+    const canonicalMaps = await getCanonicalPlayersMap();
 
-  const normalizedMeta = (allMeta || []).map((m) => {
-    const canonical = resolveCanonicalPlayer({ nome: m.jogadorNome }, canonicalMaps);
+    const normalizedMeta = (allMeta || []).map((m) => {
+      const canonical = resolveCanonicalPlayer({ nome: m.jogadorNome }, canonicalMaps);
+      return {
+        ...m,
+        jogadorNome: canonical.nome,
+      };
+    });
+
+    const normalizedResults = (allResults || []).map((r) => {
+      const canonical = resolveCanonicalPlayer(
+        { id: r.jogadorId, nome: r.jogadorNome, categoria: r.categoria },
+        canonicalMaps
+      );
+      return {
+        ...r,
+        jogadorId: canonical.id || r.jogadorId,
+        jogadorNome: canonical.nome,
+        categoria: canonical.categoria || r.categoria,
+      };
+    });
+
     return {
-      ...m,
-      jogadorNome: canonical.nome,
+      metagameEntries: normalizedMeta,
+      decksInfo: allDecks || [],
+      etapas: allEtapas || [],
+      etapaResultados: normalizedResults,
     };
   });
-
-  const normalizedResults = (allResults || []).map((r) => {
-    const canonical = resolveCanonicalPlayer(
-      { id: r.jogadorId, nome: r.jogadorNome, categoria: r.categoria },
-      canonicalMaps
-    );
-    return {
-      ...r,
-      jogadorId: canonical.id || r.jogadorId,
-      jogadorNome: canonical.nome,
-      categoria: canonical.categoria || r.categoria,
-    };
-  });
-
-  return {
-    metagameEntries: normalizedMeta,
-    decksInfo: allDecks || [],
-    etapas: allEtapas || [],
-    etapaResultados: normalizedResults,
-  };
 }
 
 export async function getCampeoes() {
@@ -708,9 +705,10 @@ export async function getNextEvent() {
 }
 
 export async function getSeasonAwards() {
-  try {
-    const ranking = await getRanking();
-    const metaData = await getMetagameData();
+  return withCache("season_awards", 30, async () => {
+    try {
+      const ranking = await getRanking();
+      const metaData = await getMetagameData();
     const metaEntries = metaData.metagameEntries;
 
     if (!ranking || ranking.length === 0) {
@@ -912,6 +910,7 @@ export async function getSeasonAwards() {
       murchaRanking: [],
     };
   }
+  });
 }
 
 export async function getAllJogadores() {
@@ -956,23 +955,25 @@ export async function getSubmittedDecklists() {
 }
 
 export async function getConfigMap(): Promise<Record<string, any>> {
-  try {
-    await ensureDatabaseSchema();
-    const rows = await db.select().from(configuracoes);
-    if (rows && rows.length > 0) {
-      const map: Record<string, any> = {};
-      for (const r of rows) {
-        try {
-          map[r.chave] = JSON.parse(r.valor);
-        } catch {
-          map[r.chave] = r.valor;
+  return withCache("config_map", 30, async () => {
+    try {
+      await ensureDatabaseSchema();
+      const rows = await db.select().from(configuracoes);
+      if (rows && rows.length > 0) {
+        const map: Record<string, any> = {};
+        for (const r of rows) {
+          try {
+            map[r.chave] = JSON.parse(r.valor);
+          } catch {
+            map[r.chave] = r.valor;
+          }
         }
+        return map;
       }
-      return map;
+    } catch (err) {
+      // Silencioso
     }
-  } catch (err) {
-    // Silencioso
-  }
 
-  return readDataFile<Record<string, any>>("config.json", {});
+    return readDataFile<Record<string, any>>("config.json", {});
+  });
 }

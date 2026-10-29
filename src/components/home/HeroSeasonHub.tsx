@@ -138,6 +138,9 @@ export function HeroSeasonHub({
   useEffect(() => {
     if (!nextEvent?.data) return;
 
+    let hasRefreshed = false;
+    let timerId: NodeJS.Timeout | null = null;
+
     const parseTargetDate = () => {
       const rawDate = nextEvent.data.replace(/\//g, "-").trim();
       const parts = rawDate.split("-");
@@ -174,8 +177,14 @@ export function HeroSeasonHub({
           setIsLive(true);
         } else {
           setIsLive(false);
-          // O evento encerrou: revalida dados para avançar automaticamente ao próximo torneio
-          router.refresh();
+          // O evento encerrou: revalida dados apenas UMA vez para avançar ao próximo torneio
+          if (!hasRefreshed) {
+            hasRefreshed = true;
+            router.refresh();
+          }
+          if (timerId) {
+            clearInterval(timerId);
+          }
         }
         setTimeLeft({ days: "00", hours: "00", mins: "00", secs: "00" });
         return;
@@ -196,9 +205,11 @@ export function HeroSeasonHub({
     };
 
     updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-    return () => clearInterval(interval);
-  }, [nextEvent, router]);
+    timerId = setInterval(updateCountdown, 1000);
+    return () => {
+      if (timerId) clearInterval(timerId);
+    };
+  }, [nextEvent?.data, nextEvent?.horario, router]);
 
   if (!exibirPodio && !exibirProximoEvento) return null;
 

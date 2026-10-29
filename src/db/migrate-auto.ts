@@ -10,6 +10,7 @@ import defaultGaleria from "@/data/galeria.json";
 import { initialEtapaResultados, initialMetagameEntries } from "./initial-seed-data";
 
 let hasMigrated = false;
+let migrationPromise: Promise<void> | null = null;
 
 const DEFAULT_REGRAS = JSON.stringify([
   {
@@ -56,6 +57,23 @@ const DEFAULT_REGRAS = JSON.stringify([
 
 export async function ensureDatabaseSchema() {
   if (hasMigrated) return;
+  if (migrationPromise) return migrationPromise;
+
+  migrationPromise = (async () => {
+    try {
+      await executeMigration();
+      hasMigrated = true;
+    } catch (err) {
+      console.warn("Aviso no processo de migração do banco:", err);
+    } finally {
+      migrationPromise = null;
+    }
+  })();
+
+  return migrationPromise;
+}
+
+async function executeMigration() {
 
   const tables = [
     `CREATE TABLE IF NOT EXISTS jogadores (

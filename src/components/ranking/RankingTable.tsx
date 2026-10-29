@@ -136,15 +136,21 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
   // Filtragem no Ranking Geral
   const filteredGeneralPlayers = useMemo(() => {
+    const q = (search || "").toLowerCase().trim();
     return playersWithOfficialRank.filter((p) => {
       const matchCategory =
         selectedCategory === "TODOS" ||
         formatCategoryAbbr(p.categoria) === selectedCategory;
 
+      const pNome = (p.jogadorNome || "").toLowerCase();
+      const pId = String(p.jogadorId || "");
+      const pDeck = (p.ultimoDeck || "").toLowerCase();
+
       const matchSearch =
-        p.jogadorNome.toLowerCase().includes(search.toLowerCase()) ||
-        p.jogadorId.includes(search) ||
-        (p.ultimoDeck && p.ultimoDeck.toLowerCase().includes(search.toLowerCase()));
+        !q ||
+        pNome.includes(q) ||
+        pId.includes(q) ||
+        pDeck.includes(q);
 
       return matchCategory && matchSearch;
     });
@@ -153,15 +159,21 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
   // Filtragem na Etapa Selecionada
   const filteredStageResults = useMemo(() => {
     if (!currentStage) return [];
-    return currentStage.resultados.filter((r) => {
+    const q = (search || "").toLowerCase().trim();
+    return (currentStage.resultados || []).filter((r) => {
       const matchCategory =
         selectedCategory === "TODOS" ||
         formatCategoryAbbr(r.categoria) === selectedCategory;
 
+      const rNome = (r.jogadorNome || "").toLowerCase();
+      const rId = String(r.jogadorId || "");
+      const rDeck = (r.deckNome || "").toLowerCase();
+
       const matchSearch =
-        r.jogadorNome.toLowerCase().includes(search.toLowerCase()) ||
-        (r.jogadorId && r.jogadorId.includes(search)) ||
-        (r.deckNome && r.deckNome.toLowerCase().includes(search.toLowerCase()));
+        !q ||
+        rNome.includes(q) ||
+        (rId && rId.includes(q)) ||
+        rDeck.includes(q);
 
       return matchCategory && matchSearch;
     });
@@ -196,18 +208,18 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
     for (let idx = 0; idx < sortedEtapas.length; idx++) {
       const etapa = sortedEtapas[idx];
-      const match = etapa.resultados.find(
+      const match = (etapa.resultados || []).find(
         (r) =>
-          (player.jogadorId && r.jogadorId && r.jogadorId === player.jogadorId) ||
-          r.jogadorNome.toLowerCase().trim() === player.jogadorNome.toLowerCase().trim()
+          (player.jogadorId && r.jogadorId && String(r.jogadorId) === String(player.jogadorId)) ||
+          ((r.jogadorNome || "").toLowerCase().trim() === (player.jogadorNome || "").toLowerCase().trim())
       );
       const mult = etapa.multiplicador ? Number(etapa.multiplicador) : 1.0;
 
       if (match) {
         const basePts = Number(match.pontos) || 0;
         const finalPts = Number((basePts * mult).toFixed(1));
-        const foundDeck = allDecks.find(
-          (d) => d.nome.toLowerCase() === (match.deckNome || "").toLowerCase()
+        const foundDeck = (allDecks || []).find(
+          (d) => (d.nome || "").toLowerCase() === (match.deckNome || "").toLowerCase()
         );
 
         history.push({
@@ -259,10 +271,13 @@ export function RankingTable({ initialPlayers, etapas = [], allDecks = [] }: Ran
 
   // Helper para abrir modal a partir do resultado da etapa
   const handleOpenStagePlayerModal = (result: StageResult) => {
+    const rNome = (result.jogadorNome || "").toLowerCase().trim();
+    const rId = result.jogadorId ? String(result.jogadorId).trim() : null;
+
     const generalPlayer = initialPlayers.find(
       (p) =>
-        p.jogadorNome.toLowerCase().trim() === result.jogadorNome.toLowerCase().trim() ||
-        (result.jogadorId && p.jogadorId === result.jogadorId)
+        (p.jogadorNome || "").toLowerCase().trim() === rNome ||
+        (rId && p.jogadorId && String(p.jogadorId).trim() === rId)
     );
 
     const mult = currentStage?.multiplicador ? Number(currentStage.multiplicador) : 1.0;
