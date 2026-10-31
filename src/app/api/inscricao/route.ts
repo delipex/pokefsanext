@@ -22,6 +22,7 @@ import {
   formatDateToBR,
   calculatePokemonAgeCategory,
 } from "@/lib/tournament-utils";
+import { getCanonicalPlayersMap, resolveCanonicalPlayer } from "@/lib/player-canonical";
 
 // GET: Retorna as configurações do torneio ativo e total de inscritos
 export async function GET() {
@@ -236,6 +237,14 @@ export async function POST(req: Request) {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const protocolo = existingItem?.protocolo || `LA-${dateStr}-${randomSuffix}`;
 
+    // Resolver nome de exibição canônico oficial da Liga (preserva "Carlos Morais", "Davi Soledade", "Cristian S")
+    const canonicalMaps = await getCanonicalPlayersMap();
+    const canonicalPlayer = resolveCanonicalPlayer(
+      { id: popVal.cleanId, nome: nameVal.cleanName!, categoria: finalCategory },
+      canonicalMaps
+    );
+    const finalPlayerDisplayName = canonicalPlayer.nome || nameVal.cleanName!;
+
     let savedItem: any = null;
 
     if (isUpdate && existingItem) {
@@ -286,7 +295,7 @@ export async function POST(req: Request) {
         const [updated] = await db
           .update(jogadorDecklists)
           .set({
-            jogadorNome: nameVal.cleanName!,
+            jogadorNome: finalPlayerDisplayName,
             categoria: finalCategory,
             turno: turno || existingItem.turno || null,
             dataNascimento: isoNascimento || existingItem.dataNascimento,
@@ -310,7 +319,7 @@ export async function POST(req: Request) {
             validada = ?, updated_at = ?, historico_edicoes = ?
           WHERE id = ?;`,
           args: [
-            nameVal.cleanName!,
+            finalPlayerDisplayName,
             finalCategory,
             turno || existingItem.turno || null,
             isoNascimento || existingItem.dataNascimento || null,
@@ -335,7 +344,7 @@ export async function POST(req: Request) {
           .values({
             protocolo,
             jogadorId: popVal.cleanId,
-            jogadorNome: nameVal.cleanName!,
+            jogadorNome: finalPlayerDisplayName,
             categoria: finalCategory,
             turno: turno || null,
             dataNascimento: isoNascimento || null,
@@ -361,7 +370,7 @@ export async function POST(req: Request) {
           args: [
             protocolo,
             popVal.cleanId,
-            nameVal.cleanName!,
+            finalPlayerDisplayName,
             finalCategory,
             turno || null,
             isoNascimento || null,
@@ -376,7 +385,7 @@ export async function POST(req: Request) {
             initialStatusPix,
           ],
         });
-        savedItem = res.rows[0] || { protocolo, jogadorNome: nameVal.cleanName, turno };
+        savedItem = res.rows[0] || { protocolo, jogadorNome: finalPlayerDisplayName, turno };
       }
     }
 
@@ -391,7 +400,7 @@ export async function POST(req: Request) {
       if (existingPlayer.length === 0) {
         await db.insert(jogadores).values({
           id: popVal.cleanId!,
-          nome: nameVal.cleanName!,
+          nome: finalPlayerDisplayName,
           categoria: finalCategory,
           dataNascimento: isoNascimento || null,
           ativo: true,
@@ -402,6 +411,7 @@ export async function POST(req: Request) {
         await db
           .update(jogadores)
           .set({
+            nome: finalPlayerDisplayName || existingPlayer[0].nome,
             categoria: finalCategory,
             dataNascimento: isoNascimento || existingPlayer[0].dataNascimento,
             deckAtivoNome: finalDeckNome,

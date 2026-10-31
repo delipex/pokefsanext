@@ -167,11 +167,13 @@ export async function POST(req: Request) {
 
     // 8. Persistência Atômica no Banco de Dados
     const existingPlayer = await db.select().from(jogadores).where(eq(jogadores.id, cleanId));
+    const displayName = (existingAthlete && existingAthlete.nome) ? existingAthlete.nome : (existingPlayer[0]?.nome || cleanName);
+
     if (existingPlayer.length > 0) {
       await db
         .update(jogadores)
         .set({
-          nome: cleanName,
+          nome: displayName,
           categoria,
           whatsapp: cleanPhone,
           dataNascimento: isoNasc,
@@ -186,7 +188,7 @@ export async function POST(req: Request) {
         .insert(jogadores)
         .values({
           id: cleanId,
-          nome: cleanName,
+          nome: displayName,
           categoria,
           whatsapp: cleanPhone,
           dataNascimento: isoNasc,
@@ -205,7 +207,7 @@ export async function POST(req: Request) {
         const idx = raw.findIndex((j: any) => String(j.id || j.ID || "").trim() === cleanId);
         const itemToSave = {
           id: cleanId,
-          jogador: cleanName,
+          jogador: displayName,
           categoria,
           whatsapp: cleanPhone,
           dataNascimento: dataNascimento ? String(dataNascimento).trim() : undefined,
