@@ -66,7 +66,6 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   const [isOpen, setIsOpen] = useState(false);
   const [config, setConfig] = useState<Record<string, any>>(initialConfig || {});
   const [totalInscritos, setTotalInscritos] = useState<number>(0);
-  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
 
   // Form State
   const [nome, setNome] = useState("");
@@ -149,75 +148,82 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
     }
   }, [controlledIsOpen]);
 
-  // Carrega configurações mais atualizadas da API, catálogo de decks e sessão ativa do atleta quando aberto
+  // Preenchimento de dados do atleta logado (reutilizável)
+  const populateUserData = (user: any) => {
+    if (!user || !user.loggedIn || !user.popId) return;
+    setLoggedInUser(user);
+    setNome((prev) => (!prev ? user.nome || "" : prev));
+    setPopId((prev) => (!prev ? String(user.popId) || "" : prev));
+    if (user.categoria) {
+      setCategoria(user.categoria);
+    }
+    if (user.dataNascimento) {
+      const brDate = formatDateToBR(user.dataNascimento);
+      setDataNascimento((prev) => (!prev ? brDate : prev));
+      const catCheck = calculatePokemonAgeCategory(brDate);
+      if (catCheck.isValid) setCategoria(catCheck.categoria);
+    }
+    if (user.whatsapp) {
+      setWhatsapp((prev) => (!prev ? user.whatsapp : prev));
+    }
+    if (user.activeRegistration) {
+      setExistingRegistration(user.activeRegistration);
+      setSelectedDeck(user.activeRegistration.deckNome || user.deckAtivoNome || "");
+      setDecklistRaw(user.activeRegistration.decklistRaw || user.decklistTexto || "");
+      if (user.activeRegistration.turno) {
+        setSelectedTurno(user.activeRegistration.turno);
+      }
+      if (
+        user.activeRegistration.statusPix === "Pagar no Local" ||
+        user.activeRegistration.statusPix === "Presencial"
+      ) {
+        setMetodoPagamento("presencial");
+      }
+    } else {
+      if (user.deckAtivoNome) {
+        setSelectedDeck((prev) => (!prev ? user.deckAtivoNome : prev));
+      }
+      if (user.decklistTexto) {
+        setDecklistRaw((prev) => (!prev ? user.decklistTexto : prev));
+      }
+    }
+  };
+
+  // Pre-carregamento em background logo ao montar a página (Zero delay ao tocar no mobile)
+  useEffect(() => {
+    // 1. Preload da sessão do atleta logado
+    fetch("/api/portal/me")
+      .then((res) => res.json())
+      .then((user) => {
+        if (user && user.loggedIn) {
+          populateUserData(user);
+        }
+      })
+      .catch(() => {});
+
+    // 2. Preload de vagas / total de inscritos
+    fetch("/api/inscricao")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.config) {
+          setConfig(data.config);
+          setTotalInscritos(data.totalInscritos || 0);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Bloqueio de scroll do body e re-sincronização não-bloqueante ao abrir
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      setIsLoadingConfig(true);
+      // Revalida em segundo plano sem travar o início da animação
       fetch("/api/inscricao")
         .then((res) => res.json())
         .then((data) => {
           if (data && data.config) {
             setConfig(data.config);
             setTotalInscritos(data.totalInscritos || 0);
-          }
-        })
-        .catch(() => {})
-        .finally(() => setIsLoadingConfig(false));
-
-      fetch("/api/admin/decks")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.decks && Array.isArray(data.decks)) {
-            const names = Array.from(
-              new Set(data.decks.map((d: any) => (d.nome || d.deck || "").trim()).filter(Boolean))
-            ).sort((a: any, b: any) => a.localeCompare(b, "pt-BR"));
-            if (names.length > 0) setDeckCatalogList(names as string[]);
-          }
-        })
-        .catch(() => {});
-
-      // Auto-preenchimento para atletas logados no Portal
-      fetch("/api/portal/me")
-        .then((res) => res.json())
-        .then((user) => {
-          if (user && user.loggedIn && user.popId) {
-            setLoggedInUser(user);
-            setNome((prev) => (!prev ? user.nome || "" : prev));
-            setPopId((prev) => (!prev ? String(user.popId) || "" : prev));
-            if (user.categoria) {
-              setCategoria(user.categoria);
-            }
-            if (user.dataNascimento) {
-              const brDate = formatDateToBR(user.dataNascimento);
-              setDataNascimento((prev) => (!prev ? brDate : prev));
-              const catCheck = calculatePokemonAgeCategory(brDate);
-              if (catCheck.isValid) setCategoria(catCheck.categoria);
-            }
-            if (user.whatsapp) {
-              setWhatsapp((prev) => (!prev ? user.whatsapp : prev));
-            }
-            if (user.activeRegistration) {
-              setExistingRegistration(user.activeRegistration);
-              setSelectedDeck(user.activeRegistration.deckNome || user.deckAtivoNome || "");
-              setDecklistRaw(user.activeRegistration.decklistRaw || user.decklistTexto || "");
-              if (user.activeRegistration.turno) {
-                setSelectedTurno(user.activeRegistration.turno);
-              }
-              if (
-                user.activeRegistration.statusPix === "Pagar no Local" ||
-                user.activeRegistration.statusPix === "Presencial"
-              ) {
-                setMetodoPagamento("presencial");
-              }
-            } else {
-              if (user.deckAtivoNome) {
-                setSelectedDeck((prev) => (!prev ? user.deckAtivoNome : prev));
-              }
-              if (user.decklistTexto) {
-                setDecklistRaw((prev) => (!prev ? user.decklistTexto : prev));
-              }
-            }
           }
         })
         .catch(() => {});
@@ -586,28 +592,29 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto">
-          {/* Backdrop Escuro Glassmorphism */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto overscroll-contain">
+          {/* Backdrop Escuro Otimizado para Mobile */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
             onClick={handleClose}
-            className="fixed inset-0 bg-[#050811]/85 backdrop-blur-xl transition-opacity"
+            className="fixed inset-0 bg-[#050811]/90 backdrop-blur-sm sm:backdrop-blur-xl transition-opacity transform-gpu will-change-[opacity] touch-manipulation"
           />
 
-          {/* Container Modal com Efeito de Card Premium */}
+          {/* Container Modal com Efeito de Card Premium Otimizado para Mobile */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", stiffness: 350, damping: 28 }}
-            className="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0c1222]/95 p-5 sm:p-7 shadow-2xl shadow-black/80 backdrop-blur-3xl z-10 space-y-6 text-slate-100"
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="relative w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0c1222]/98 sm:bg-[#0c1222]/95 sm:backdrop-blur-2xl p-4 sm:p-7 shadow-2xl shadow-black/90 z-10 space-y-5 sm:space-y-6 text-slate-100 overscroll-contain transform-gpu will-change-[transform,opacity]"
           >
-            {/* Botão Fechar Flutuante */}
+            {/* Botão Fechar Flutuante com Alvo de Toque Adequado (44px) */}
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 sm:top-5 sm:right-5 h-9 w-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all cursor-pointer z-20"
+              className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 h-11 w-11 sm:h-9 sm:w-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer z-20 touch-manipulation"
               aria-label="Fechar modal"
             >
               <X className="h-5 w-5" />
@@ -964,7 +971,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                           setIsQuickFillOpen(!isQuickFillOpen);
                           setQuickFeedback(null);
                         }}
-                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-bold text-xs transition-colors cursor-pointer"
+                        className="shrink-0 min-h-[44px] inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 border border-amber-400/40 text-amber-300 font-bold text-xs transition-all cursor-pointer touch-manipulation"
                       >
                         <Sparkles className="h-3.5 w-3.5" />
                         <span>{isQuickFillOpen ? "Fechar" : "Inscrição Express"}</span>
@@ -982,7 +989,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                               value={quickPopId}
                               onChange={(e) => setQuickPopId(e.target.value.replace(/\D/g, ""))}
                               placeholder="Digite seu POP ID (ex: 1234567)..."
-                              className="w-full rounded-xl border border-amber-500/40 bg-slate-900/90 px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                              className="w-full min-h-[44px] rounded-xl border border-amber-500/40 bg-slate-900/90 px-3 py-2 text-base sm:text-xs font-mono text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
                               autoFocus
                             />
                           </div>
@@ -996,7 +1003,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                                 value={quickPin}
                                 onChange={(e) => setQuickPin(e.target.value.replace(/\D/g, ""))}
                                 placeholder="PIN (4 dígitos)"
-                                className="w-full rounded-xl border border-amber-500/40 bg-slate-900/90 px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                                className="w-full min-h-[44px] rounded-xl border border-amber-500/40 bg-slate-900/90 px-3 py-2 text-base sm:text-xs font-mono text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
                               />
                             </div>
                           )}
@@ -1006,7 +1013,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                               type="button"
                               onClick={handleQuickLookup}
                               disabled={isQuickLoading || !quickPopId.trim()}
-                              className="w-full h-full min-h-[34px] inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-colors disabled:opacity-50 cursor-pointer shadow-md shadow-amber-500/20"
+                              className="w-full h-full min-h-[44px] inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs transition-all disabled:opacity-50 cursor-pointer shadow-md shadow-amber-500/20 touch-manipulation"
                             >
                               {isQuickLoading ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1051,7 +1058,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         value={nome}
                         onChange={(e) => setNome(e.target.value)}
                         placeholder="Ex: Felipe Damasceno"
-                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full min-h-[44px] rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-base sm:text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
 
@@ -1065,7 +1072,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         value={popId}
                         onChange={(e) => setPopId(e.target.value)}
                         placeholder="Ex: 1234567"
-                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm font-mono text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full min-h-[44px] rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-base sm:text-sm font-mono text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
                   </div>
@@ -1091,7 +1098,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         onChange={(e) => handleBirthDateChange(e.target.value)}
                         placeholder="DD/MM/AAAA (ex: 20/05/1998)"
                         maxLength={10}
-                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                        className="w-full min-h-[44px] rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-base sm:text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
                       />
                       <span className="text-[10px] text-slate-400 block">
                         Padrão brasileiro: dia/mês/ano (ex: 20/05/1998).
@@ -1106,7 +1113,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                       <select
                         value={categoria}
                         onChange={(e) => setCategoria(e.target.value as any)}
-                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3 py-2.5 text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
+                        className="w-full min-h-[44px] rounded-xl border border-white/10 bg-slate-900/90 px-3 py-2.5 text-base sm:text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
                       >
                         <option value="Master">Master (Nascidos até 2009)</option>
                         <option value="Senior">Senior (2010 a 2013)</option>
@@ -1121,7 +1128,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         value={whatsapp}
                         onChange={(e) => setWhatsapp(e.target.value)}
                         placeholder="Ex: (75) 99999-9999"
-                        className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                        className="w-full min-h-[44px] rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-base sm:text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1148,7 +1155,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         <button
                           type="button"
                           onClick={() => handleSelectTurno("t1")}
-                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          className={`p-3.5 min-h-[56px] rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 touch-manipulation select-none active:scale-[0.98] ${
                             selectedTurno === turno1Name
                               ? "bg-indigo-600/30 border-indigo-400 shadow-lg shadow-indigo-500/20 ring-2 ring-indigo-400/60 text-white"
                               : isAmbosTurnos
@@ -1179,7 +1186,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         <button
                           type="button"
                           onClick={() => handleSelectTurno("t2")}
-                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          className={`p-3.5 min-h-[56px] rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 touch-manipulation select-none active:scale-[0.98] ${
                             selectedTurno === turno2Name
                               ? "bg-purple-600/30 border-purple-400 shadow-lg shadow-purple-500/20 ring-2 ring-purple-400/60 text-white"
                               : isAmbosTurnos
@@ -1211,7 +1218,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                           <button
                             type="button"
                             onClick={() => handleSelectTurno("ambos")}
-                            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                            className={`p-3.5 min-h-[56px] rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 touch-manipulation select-none active:scale-[0.98] ${
                               isAmbosTurnos
                                 ? "bg-emerald-600/30 border-emerald-400 shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-400/60 text-white"
                                 : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-300"
@@ -1284,7 +1291,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                               config.premierPlaceholderDeck ||
                               "Digite o nome do baralho (ex: Deck Noturno Halloween, Gengar ex...)"
                             }
-                            className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm font-bold text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                            className="w-full min-h-[44px] rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-base sm:text-sm font-bold text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
                           />
                           <p className="text-[11px] text-slate-400">
                             Nesta sessão especial, você pode digitar livremente o nome ou arquétipo do seu deck.
@@ -1305,7 +1312,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                             required
                             value={selectedDeck}
                             onChange={(e) => setSelectedDeck(e.target.value)}
-                            className="w-full rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
+                            className="w-full min-h-[44px] rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-base sm:text-sm font-bold text-white focus:border-blue-500 focus:outline-none"
                           >
                             <option value="">-- Selecione o Baralho / Deck --</option>
                             {effectiveDeckList.map((deck) => (
@@ -1324,7 +1331,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                                 value={customDeckNome}
                                 onChange={(e) => setCustomDeckNome(e.target.value)}
                                 placeholder="Digite o nome do baralho / arquétipo..."
-                                className="w-full rounded-xl border border-blue-500/50 bg-slate-900/90 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+                                className="w-full min-h-[44px] rounded-xl border border-blue-500/50 bg-slate-900/90 px-3.5 py-2.5 text-base sm:text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
                                 autoFocus
                               />
                             </div>
@@ -1352,13 +1359,13 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                               }
                             }}
                             placeholder="https://limitlesstcg.com/decks/list/..."
-                            className="flex-1 rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"
+                            className="flex-1 min-h-[44px] rounded-xl border border-white/10 bg-slate-900/90 px-3.5 py-2.5 text-base sm:text-xs text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"
                           />
                           <button
                             type="button"
                             onClick={() => handleFetchLimitless()}
                             disabled={isFetchingLimitless || !limitlessUrl.trim()}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-3.5 py-2.5 text-xs font-bold text-white transition-all disabled:opacity-50 cursor-pointer shrink-0 shadow-md"
+                            className="min-h-[44px] inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-3.5 py-2.5 text-xs font-bold text-white transition-all disabled:opacity-50 cursor-pointer shrink-0 shadow-md touch-manipulation select-none active:scale-95"
                           >
                             {isFetchingLimitless ? (
                               <>
@@ -1405,7 +1412,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                           value={decklistRaw}
                           onChange={(e) => handleDecklistChange(e.target.value)}
                           placeholder={`Cole a lista exportada do Pokémon TCG Live ou Limitless:\nExemplo:\n4 Dragapult ex TWM 130\n2 Drakloak TWM 129\n4 Arven OBF 186\n...`}
-                          className="w-full rounded-xl border border-white/10 bg-slate-900/90 p-3 text-xs font-mono text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none leading-relaxed"
+                          className="w-full rounded-xl border border-white/10 bg-slate-900/90 p-3 text-base sm:text-xs font-mono text-slate-200 placeholder-slate-600 focus:border-blue-500 focus:outline-none leading-relaxed"
                         />
                       </div>
 
@@ -1471,7 +1478,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         <button
                           type="button"
                           onClick={() => setMetodoPagamento("pix")}
-                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          className={`p-3 min-h-[56px] rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 touch-manipulation select-none active:scale-[0.98] ${
                             metodoPagamento === "pix"
                               ? "bg-emerald-500/15 border-emerald-500/60 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-400"
                               : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-400"
@@ -1501,7 +1508,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                         <button
                           type="button"
                           onClick={() => setMetodoPagamento("presencial")}
-                          className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                          className={`p-3 min-h-[56px] rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 touch-manipulation select-none active:scale-[0.98] ${
                             metodoPagamento === "presencial"
                               ? "bg-blue-500/15 border-blue-500/60 shadow-lg shadow-blue-500/10 ring-1 ring-blue-400"
                               : "bg-slate-900/80 border-white/10 hover:border-white/20 text-slate-400"
@@ -1545,7 +1552,7 @@ export function InscricaoModal({ initialConfig, isOpen: controlledIsOpen, onClos
                     <button
                       type="submit"
                       disabled={isSubmitting || !isAbertas}
-                      className={`w-full inline-flex items-center justify-center gap-2 rounded-2xl p-4 text-sm sm:text-base font-black shadow-xl transition-all cursor-pointer ${
+                      className={`w-full min-h-[52px] inline-flex items-center justify-center gap-2 rounded-2xl p-4 text-sm sm:text-base font-black shadow-xl transition-all cursor-pointer touch-manipulation select-none active:scale-[0.98] ${
                         !isAbertas
                           ? "bg-slate-700 opacity-50 cursor-not-allowed text-white"
                           : isGratuito

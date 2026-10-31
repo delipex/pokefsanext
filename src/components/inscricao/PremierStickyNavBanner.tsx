@@ -58,10 +58,19 @@ export function PremierStickyNavBanner({ config }: PremierStickyNavBannerProps) 
   // Imagem de fundo opcional (URL externa ou interna)
   const bgImage = config?.premierBannerBg || config?.premierBanner || null;
 
-  const handleOpenInscricao = () => {
+  const handleOpenInscricao = (e?: React.MouseEvent | React.TouchEvent) => {
+    e?.preventDefault?.();
     if (typeof window !== "undefined") {
-      window.location.hash = "inscricao";
+      // 1. Dispara abertura imediata com latência zero (0ms)
       window.dispatchEvent(new CustomEvent("open-inscricao-modal"));
+      // 2. Sincroniza a URL sem causar salto de viewport
+      try {
+        if (window.location.hash !== "#inscricao") {
+          window.history.pushState(null, "", "#inscricao");
+        }
+      } catch {
+        window.location.hash = "inscricao";
+      }
     }
   };
 
@@ -127,7 +136,7 @@ export function PremierStickyNavBanner({ config }: PremierStickyNavBannerProps) 
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.96 }}
             onClick={handleOpenInscricao}
-            className={`min-h-[38px] px-3.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shrink-0 cursor-pointer shadow-md transition-all ${theme.buttonClass}`}
+            className={`min-h-[44px] px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-xs font-bold inline-flex items-center gap-1.5 shrink-0 cursor-pointer shadow-md transition-all touch-manipulation select-none active:scale-[0.96] ${theme.buttonClass}`}
           >
             <span className="truncate">{buttonText.replace("➜", "").trim()}</span>
             <ArrowRight className="h-3.5 w-3.5" />

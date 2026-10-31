@@ -113,10 +113,19 @@ export function HeroSeasonHub({
   const router = useRouter();
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerModalData | null>(null);
 
-  const handleOpenInscricao = () => {
+  const handleOpenInscricao = (e?: React.MouseEvent | React.TouchEvent) => {
+    e?.preventDefault?.();
     if (typeof window !== "undefined") {
-      window.location.hash = "inscricao";
+      // 1. Dispara abertura imediata com latência zero (0ms)
       window.dispatchEvent(new CustomEvent("open-inscricao-modal"));
+      // 2. Sincroniza a URL sem causar salto de viewport
+      try {
+        if (window.location.hash !== "#inscricao") {
+          window.history.pushState(null, "", "#inscricao");
+        }
+      } catch {
+        window.location.hash = "inscricao";
+      }
     }
   };
 
@@ -608,7 +617,7 @@ export function HeroSeasonHub({
                       whileTap={{ scale: 0.94 }}
                       whileHover={{ scale: 1.02 }}
                       onClick={handleOpenInscricao}
-                      className="rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/30 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 animate-pulse"
+                      className="rounded-xl min-h-[44px] bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 px-4 py-2 text-xs font-black text-white shadow-lg shadow-emerald-600/30 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 animate-pulse touch-manipulation select-none active:scale-95"
                     >
                       <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                       <span>⚡ Fazer Inscrição</span>

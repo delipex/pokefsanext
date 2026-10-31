@@ -71,10 +71,19 @@ export function PremierHomeCtaBanner({ config }: PremierHomeCtaBannerProps) {
   // Imagem de fundo opcional (URL externa ou interna)
   const bgImage = config?.premierBannerBg || config?.premierBanner || null;
 
-  const handleOpenInscricao = () => {
+  const handleOpenInscricao = (e?: React.MouseEvent | React.TouchEvent) => {
+    e?.preventDefault?.();
     if (typeof window !== "undefined") {
-      window.location.hash = "inscricao";
+      // 1. Dispara abertura imediata com latência zero (0ms)
       window.dispatchEvent(new CustomEvent("open-inscricao-modal"));
+      // 2. Sincroniza a URL sem causar salto de viewport ou reflow do navegador
+      try {
+        if (window.location.hash !== "#inscricao") {
+          window.history.pushState(null, "", "#inscricao");
+        }
+      } catch {
+        window.location.hash = "inscricao";
+      }
     }
   };
 
@@ -203,7 +212,7 @@ export function PremierHomeCtaBanner({ config }: PremierHomeCtaBannerProps) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleOpenInscricao}
-            className={`w-full py-3.5 sm:py-4 px-4 sm:px-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 shadow-2xl group ${theme.buttonClass} border border-white/20`}
+            className={`w-full min-h-[54px] py-3.5 sm:py-4 px-4 sm:px-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 shadow-2xl group ${theme.buttonClass} border border-white/20 touch-manipulation select-none active:scale-[0.98]`}
           >
             <div className="flex items-center justify-center gap-2 text-sm sm:text-base lg:text-lg font-black tracking-tight leading-tight">
               <span className="text-xl sm:text-2xl leading-none group-hover:scale-110 transition-transform duration-200">{iconEmoji}</span>
